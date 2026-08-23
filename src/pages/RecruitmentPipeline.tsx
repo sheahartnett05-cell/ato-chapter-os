@@ -22,6 +22,7 @@ import { GripVertical, Star } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { prospects as initialProspects, PIPELINE_STAGES } from '../data/mockData'
 import type { PipelineStage, Prospect } from '../types'
+import { useChapter } from '../context/ChapterContext'
 
 function ProspectCard({ prospect, isOverlay }: { prospect: Prospect; isOverlay?: boolean }) {
   const navigate = useNavigate()
@@ -93,7 +94,7 @@ function PipelineColumn({
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-navy">{stage}</h3>
-          <span className="rounded-full bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy">
+          <span className="rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy">
             {stageProspects.length}
           </span>
         </div>
@@ -116,6 +117,7 @@ function PipelineColumn({
 }
 
 export default function RecruitmentPipeline() {
+  const { languagePack } = useChapter()
   const [prospects, setProspects] = useState(initialProspects)
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -156,7 +158,7 @@ export default function RecruitmentPipeline() {
   return (
     <>
       <TopBar
-        title="Recruitment Pipeline"
+        title={`${languagePack.recruitmentTerm} Pipeline`}
         subtitle="Drag prospects between stages"
         actions={
           <Link

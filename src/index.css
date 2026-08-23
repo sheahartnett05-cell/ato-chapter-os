@@ -1,16 +1,35 @@
 @import "tailwindcss";
 
+:root {
+  --primary: #002147;
+  --secondary: #001a38;
+  --accent: #ffc72c;
+  --accent-raw: #ffc72c;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #171717;
+  --surface-tint: #f4f2ee;
+  --surface-card: #faf9f7;
+  --accent-subtle: rgba(255, 199, 44, 0.14);
+  --primary-subtle: rgba(0, 33, 71, 0.06);
+  --rule: rgb(0 0 0 / 0.12);
+  --ink: #141414;
+  --muted: #6b6b6b;
+}
+
 @theme {
-  --color-navy: #0b1f3a;
-  --color-navy-light: #132d4f;
-  --color-navy-muted: #1a3a5c;
-  --color-gold: #c87941;
-  --color-gold-light: #e8a86b;
-  --color-gold-dark: #a8622e;
-  --color-surface: #f8f9fb;
-  --color-border: #e2e8f0;
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-serif: "Libre Baskerville", Georgia, serif;
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-navy: var(--primary);
+  --color-navy-light: var(--secondary);
+  --color-gold: var(--accent);
+  --color-gold-light: var(--accent);
+  --color-gold-dark: var(--accent);
+  --color-surface: var(--surface-tint);
+  --color-border: var(--rule);
+  --font-sans: "Source Sans 3", system-ui, sans-serif;
+  --font-serif: "Libre Baskerville", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 * {
@@ -20,17 +39,150 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: var(--color-surface);
-  color: #1e293b;
+  background: var(--surface-tint);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.metric,
+.tag,
+.timestamp,
+.amount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.theme-sidebar {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-right: 1px solid color-mix(in srgb, var(--primary) 80%, #000);
+}
+
+.theme-stripe {
+  height: 2px;
+  background: var(--accent);
+}
+
+.theme-card {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+}
+
+.theme-pill-active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 0.25rem;
+}
+
+.theme-pill-muted {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+}
+
+.theme-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.theme-stat-icon {
+  color: var(--primary);
+}
+
+.editorial-rule {
+  border-color: var(--rule);
+}
+
+.ledger-bar {
+  display: grid;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.ledger-cell {
+  padding: 1rem 1.25rem;
+  border-right: 1px solid var(--rule);
+}
+
+.ledger-cell:last-child {
+  border-right: none;
+}
+
+.list-editorial {
+  border-top: 1px solid var(--rule);
+}
+
+.list-editorial > * {
+  border-bottom: 1px solid var(--rule);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.input-editorial {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  background: #fff;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.input-editorial:focus {
+  border-color: var(--primary);
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
 }

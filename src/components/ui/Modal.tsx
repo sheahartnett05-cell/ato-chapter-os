@@ -25,24 +25,22 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30"
         onClick={onClose}
         aria-label="Close modal"
       />
-      <div
-        className={`relative w-full ${widths[size]} rounded-xl border border-border bg-white shadow-2xl`}
-      >
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-base font-semibold text-navy">{title}</h2>
+      <div className={`relative w-full border border-[var(--rule)] bg-white ${widths[size]}`}>
+        <div className="flex items-center justify-between border-b border-[var(--rule)] px-6 py-4">
+          <h2 className="font-serif text-xl tracking-tight text-[var(--ink)]">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition hover:bg-surface hover:text-navy"
+            className="rounded-sm p-1.5 text-[var(--muted)] transition hover:bg-black/[0.04] hover:text-[var(--ink)]"
           >
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   )

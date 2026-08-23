@@ -1,5 +1,6 @@
 import { Bell, Search } from 'lucide-react'
 import { useState } from 'react'
+import { useChapter } from '../../context/ChapterContext'
 
 interface TopBarProps {
   title: string
@@ -9,35 +10,51 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, actions }: TopBarProps) {
   const [search, setSearch] = useState('')
+  const { chapter } = useChapter()
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-white/80 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-4 px-8 py-4">
-        <div>
-          <h1 className="text-xl font-semibold text-navy">{title}</h1>
-          {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+    <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
+      <div className="flex items-center justify-between gap-4 px-6 py-5 lg:px-10">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className="hidden h-9 w-9 shrink-0 items-center justify-center font-serif text-xs sm:flex"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+            }}
+          >
+            {chapter.letters}
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate font-serif text-2xl tracking-tight text-[var(--ink)]">{title}</h1>
+            {subtitle && (
+              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="relative hidden md:block">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
             <input
               type="search"
-              placeholder="Search members, events, PNMs…"
+              placeholder="Search…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+              className="input-editorial w-52 py-2 pl-9 pr-3"
             />
           </div>
           <button
             type="button"
-            className="relative rounded-lg border border-border p-2 text-slate-500 transition hover:bg-surface hover:text-navy"
+            className="relative border border-[var(--rule)] p-2 text-[var(--ink)] transition hover:bg-black/[0.03]"
           >
-            <Bell size={18} />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-gold" />
+            <Bell size={16} strokeWidth={1.5} />
+            <span
+              className="absolute right-1.5 top-1.5 h-1.5 w-1.5"
+              style={{ background: 'var(--accent)' }}
+            />
           </button>
           {actions}
         </div>

@@ -1,218 +1,224 @@
 import { Link } from 'react-router-dom'
-import {
-  Users,
-  DollarSign,
-  CalendarCheck,
-  UserPlus,
-  ClipboardList,
-  ArrowRight,
-  TrendingUp,
-  AlertTriangle,
-} from 'lucide-react'
-import { TopBar } from '../components/layout/TopBar'
-import { Card, CardHeader } from '../components/ui/Card'
-import { StatusPill, priorityVariant } from '../components/ui/StatusPill'
-import {
-  CHAPTER,
-  alerts,
-  chapterHealth,
-  events,
-  members,
-  prospects,
-} from '../data/mockData'
+import { ArrowUpRight, Megaphone, BookOpen, Settings, ClipboardCheck } from 'lucide-react'
+import { PageShell } from '../components/ui/Section'
+import { alerts, members, prospects } from '../data/mockData'
+import { rsvpExcuses } from '../data/featureData'
+import { useChapter } from '../context/ChapterContext'
+import { useAuth } from '../context/AuthContext'
+import { useCommunications } from '../context/CommunicationsContext'
+import { useChapterOps } from '../context/ChapterOpsContext'
+
+function priorityLabel(p: string) {
+  return p === 'high' ? 'HIGH' : p === 'medium' ? 'MED' : 'LOW'
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+}
+
+function alertTitle(alert: (typeof alerts)[0]): string {
+  switch (alert.id) {
+    case 'al1':
+      return '3 Unpaid Dues'
+    case 'al2':
+      return '2 Low Attendance'
+    case 'al3':
+      return '4 PNMs Follow-up'
+    case 'al4':
+      return 'Venue Deposit Due'
+    default:
+      return alert.title.split(' ').slice(0, 4).join(' ')
+  }
+}
 
 export default function ExecutiveDashboard() {
+  const { chapter, languagePack } = useChapter()
+  const { profile } = useAuth()
+  const { posts } = useCommunications()
+  const { events } = useChapterOps()
   const activeMembers = members.filter((m) => m.status === 'Active' || m.status === 'New Member')
   const avgAttendance = Math.round(
     activeMembers.reduce((s, m) => s + m.attendancePct, 0) / activeMembers.length
   )
   const duesCollected = members.reduce((s, m) => s + m.duesPaid, 0)
-  const duesExpected = members
-    .filter((m) => m.status !== 'Alumni')
-    .reduce((s, m) => s + m.duesExpected, 0)
   const activeProspects = prospects.filter((p) => !['Accepted', 'New Member'].includes(p.status))
+  const pendingExcuses = rsvpExcuses.filter((e) => e.status === 'pending').length
+  const chapterPosts = posts.filter((p) => p.kind === 'announcement')
 
   const stats = [
-    {
-      label: 'Active Members',
-      value: activeMembers.length.toString(),
-      icon: Users,
-      detail: '+2 new members',
-    },
-    {
-      label: 'Avg Attendance',
-      value: `${avgAttendance}%`,
-      icon: CalendarCheck,
-      detail: 'Chapter meetings',
-    },
-    {
-      label: 'Dues Collected',
-      value: `$${duesCollected.toLocaleString()}`,
-      icon: DollarSign,
-      detail: `$${duesExpected.toLocaleString()} expected`,
-    },
-    {
-      label: 'Active Prospects',
-      value: activeProspects.length.toString(),
-      icon: UserPlus,
-      detail: 'In pipeline',
-    },
-    {
-      label: 'Outstanding Tasks',
-      value: '7',
-      icon: ClipboardList,
-      detail: '3 overdue',
-    },
+    { label: 'MEMBERS', value: String(activeMembers.length) },
+    { label: 'ATTENDANCE', value: `${avgAttendance}%` },
+    { label: 'DUES', value: `$${(duesCollected / 1000).toFixed(1)}K` },
+    { label: languagePack.recruitmentTerm.toUpperCase(), value: String(activeProspects.length) },
+  ]
+
+  const quickActions = [
+    { label: 'Post', icon: Megaphone, to: '/announcements' },
+    { label: 'Excuses', icon: ClipboardCheck, to: '/excuses', badge: pendingExcuses },
+    { label: 'Library', icon: BookOpen, to: '/library-hours' },
+    { label: 'Setup', icon: Settings, to: '/chapter-setup' },
   ]
 
   const upcomingEvents = events
     .filter((e) => new Date(e.date) >= new Date('2025-08-23'))
     .slice(0, 4)
 
-  return (
-    <>
-      <TopBar
-        title={`Good afternoon, Marcus`}
-        subtitle={`${CHAPTER.name} · ${CHAPTER.school} · ${CHAPTER.semester}`}
-      />
+  const chapterTag = chapter.chapterDesignation.toUpperCase()
 
-      <div className="space-y-6 p-8">
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          {stats.map(({ label, value, icon: Icon, detail }) => (
-            <Card key={label}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-navy">{value}</p>
-                  <p className="mt-1 text-xs text-slate-400">{detail}</p>
-                </div>
-                <div className="rounded-lg bg-navy/5 p-2 text-navy">
-                  <Icon size={18} />
-                </div>
-              </div>
-            </Card>
+  return (
+    <PageShell className="space-y-0 py-8">
+      {/* Editorial header */}
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule)] pb-6">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {chapterTag} CHAPTER
+          </p>
+          <h1 className="mt-2 font-serif text-4xl tracking-tight text-[var(--ink)] md:text-[2.25rem]">
+            Hey, {profile.firstName || 'Member'}
+          </h1>
+          <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+            {chapter.orgName} · {chapter.university}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map(({ label, icon: Icon, to, badge }) => (
+            <Link key={label} to={to} className="btn-ghost relative gap-1.5 px-3 py-2 text-xs">
+              <Icon size={13} strokeWidth={1.75} />
+              {label}
+              {badge != null && badge > 0 && (
+                <span className="metric ml-1 text-[10px] text-red-700">{badge}</span>
+              )}
+            </Link>
           ))}
         </div>
+      </header>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Chapter health */}
-          <Card className="lg:col-span-2">
-            <CardHeader title="Chapter Health" subtitle="Semester performance overview" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {chapterHealth.map(({ label, score, trend }) => (
-                <div key={label} className="rounded-lg border border-border p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
-                    <span
-                      className={`flex items-center gap-0.5 text-xs font-medium ${
-                        trend.startsWith('+') ? 'text-emerald-600' : 'text-red-500'
-                      }`}
-                    >
-                      <TrendingUp size={12} className={trend.startsWith('-') ? 'rotate-180' : ''} />
-                      {trend}
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex items-end justify-between">
-                      <span className="text-2xl font-bold text-navy">{score}</span>
-                      <span className="text-xs text-slate-400">/ 100</span>
-                    </div>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-navy to-gold transition-all"
-                        style={{ width: `${score}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Editorial Ledger Bar */}
+      <div className="ledger-bar mb-10 grid-cols-2 lg:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="ledger-cell">
+            <p className="font-serif text-3xl tracking-tight text-[var(--ink)]">{s.value}</p>
+            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              {s.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Asymmetric main grid */}
+      <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr]">
+        {/* Announcements */}
+        <section>
+          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+            <h2 className="font-serif text-xl tracking-tight">Chapter Announcements</h2>
+            <Link
+              to="/announcements"
+              className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              View all
+            </Link>
+          </div>
+          <ul className="list-editorial">
+            {chapterPosts.slice(0, 5).map((a) => (
+              <li key={a.id}>
+                <Link
+                  to="/announcements"
+                  className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                >
+                  <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                    {formatTime(a.createdAt)}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
+                    {a.pinned && (
+                      <span className="tag mr-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--primary)]">
+                        Pin
+                      </span>
+                    )}
+                    {a.title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8">
+            <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+              <h2 className="font-serif text-xl tracking-tight">Upcoming</h2>
+              <Link
+                to="/calendar"
+                className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+              >
+                Full calendar
+              </Link>
             </div>
-          </Card>
-
-          {/* Alerts */}
-          <Card>
-            <CardHeader
-              title="Alerts"
-              subtitle={`${alerts.filter((a) => a.priority === 'high').length} high priority`}
-            />
-            <ul className="space-y-3">
-              {alerts.map((alert) => (
-                <li key={alert.id}>
+            <ul className="list-editorial">
+              {upcomingEvents.map((event) => (
+                <li key={event.id}>
                   <Link
-                    to={alert.link ?? '#'}
-                    className="group flex gap-3 rounded-lg border border-border p-3 transition hover:border-gold/40 hover:bg-gold/5"
+                    to={`/events/${event.id}`}
+                    className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
                   >
-                    <AlertTriangle
-                      size={16}
-                      className={`mt-0.5 shrink-0 ${
-                        alert.priority === 'high' ? 'text-red-500' : 'text-amber-500'
-                      }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-navy group-hover:text-gold-dark">
-                          {alert.title}
-                        </p>
-                        <StatusPill
-                          label={alert.priority}
-                          variant={priorityVariant(alert.priority)}
-                        />
-                      </div>
-                      <p className="mt-0.5 text-xs text-slate-500">{alert.description}</p>
-                    </div>
+                    <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {new Date(event.date + 'T12:00:00')
+                        .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        .toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 text-[15px] text-[var(--ink)]">{event.name}</span>
+                    {event.required && (
+                      <span className="tag text-[9px] font-semibold uppercase tracking-wider text-red-700">
+                        Req
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
             </ul>
-          </Card>
-        </div>
-
-        {/* Upcoming events */}
-        <Card>
-          <CardHeader
-            title="Upcoming Events"
-            subtitle="Next 30 days"
-            action={
-              <Link
-                to="/events/e2"
-                className="flex items-center gap-1 text-xs font-medium text-gold hover:text-gold-dark"
-              >
-                View calendar <ArrowRight size={14} />
-              </Link>
-            }
-          />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {upcomingEvents.map((event) => (
-              <Link
-                key={event.id}
-                to={`/events/${event.id}`}
-                className="group rounded-lg border border-border p-4 transition hover:border-navy/20 hover:shadow-md"
-              >
-                <div className="flex items-center gap-2">
-                  <StatusPill label={event.type} variant="gold" />
-                  {event.required && <StatusPill label="Required" variant="high" />}
-                </div>
-                <h4 className="mt-2 text-sm font-semibold text-navy group-hover:text-gold-dark">
-                  {event.name}
-                </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  {new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}{' '}
-                  · {event.time}
-                </p>
-                <p className="mt-1 truncate text-xs text-slate-400">{event.location}</p>
-                <p className="mt-2 text-xs font-medium text-gold">{event.points} pts</p>
-              </Link>
-            ))}
           </div>
-        </Card>
+        </section>
+
+        {/* Action Ledger */}
+        <section>
+          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+            <h2 className="font-serif text-xl tracking-tight">Action Ledger</h2>
+            {pendingExcuses > 0 && (
+              <span className="metric text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                {pendingExcuses} excuse{pendingExcuses === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <div className="border border-[var(--rule)]">
+            <div className="grid grid-cols-[56px_1fr_24px] border-b border-[var(--rule)] bg-[var(--primary)] px-3 py-2 text-[var(--primary-foreground)]">
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em]">Pri</span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em]">Item</span>
+              <span />
+            </div>
+            <ul>
+              {alerts.slice(0, 6).map((alert) => (
+                <li key={alert.id} className="border-b border-[var(--rule)] last:border-0">
+                  <Link
+                    to={alert.link ?? '/excuses'}
+                    className="grid grid-cols-[56px_1fr_24px] items-center px-3 py-3 transition hover:bg-black/[0.02]"
+                  >
+                    <span
+                      className={`tag text-[9px] font-semibold uppercase tracking-wider ${
+                        alert.priority === 'high'
+                          ? 'text-red-700'
+                          : alert.priority === 'medium'
+                            ? 'text-amber-800'
+                            : 'text-[var(--muted)]'
+                      }`}
+                    >
+                      {priorityLabel(alert.priority)}
+                    </span>
+                    <span className="truncate text-sm text-[var(--ink)]">{alertTitle(alert)}</span>
+                    <ArrowUpRight size={14} className="justify-self-end text-[var(--muted)]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
       </div>
-    </>
+    </PageShell>
   )
 }

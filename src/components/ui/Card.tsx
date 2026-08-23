@@ -4,13 +4,10 @@ interface CardProps {
   padding?: boolean
 }
 
+/** Editorial surface — sharp border, no floating wash */
 export function Card({ children, className = '', padding = true }: CardProps) {
   return (
-    <div
-      className={`rounded-xl border border-border bg-white shadow-sm ${padding ? 'p-5' : ''} ${className}`}
-    >
-      {children}
-    </div>
+    <div className={`theme-card ${padding ? 'p-5' : ''} ${className}`}>{children}</div>
   )
 }
 
@@ -24,10 +21,14 @@ export function CardHeader({
   action?: React.ReactNode
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-4">
+    <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--rule)] pb-3">
       <div>
-        <h3 className="text-sm font-semibold text-navy">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        <h3 className="font-serif text-xl tracking-tight text-[var(--ink)]">{title}</h3>
+        {subtitle && (
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+            {subtitle}
+          </p>
+        )}
       </div>
       {action}
     </div>

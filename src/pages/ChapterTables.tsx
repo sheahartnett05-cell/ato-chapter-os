@@ -192,7 +192,6 @@ export default function ChapterTables() {
                           >
                             <option value="Yes">Yes</option>
                             <option value="No">No</option>
-                            <option value="Maybe">Maybe</option>
                           </select>
                         ) : col.type === 'dropdown' && col.id === 'transportation' ? (
                           <select

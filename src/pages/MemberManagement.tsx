@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Plus, Filter, ChevronDown } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { Card } from '../components/ui/Card'
@@ -9,25 +9,12 @@ import {
   memberStatusVariant,
 } from '../components/ui/StatusPill'
 import { Modal } from '../components/ui/Modal'
-import { members } from '../data/mockData'
+import { useMembers } from '../context/MembersContext'
 import type { DuesStatus, MemberStatus } from '../types'
-
-const statusFilters: (MemberStatus | 'All')[] = [
-  'All',
-  'Active',
-  'New Member',
-  'Alumni',
-]
-const duesFilters: (DuesStatus | 'All')[] = [
-  'All',
-  'Paid',
-  'Partially Paid',
-  'Outstanding',
-  'Overdue',
-]
 
 export default function MemberManagement() {
   const navigate = useNavigate()
+  const { members } = useMembers()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'All'>('All')
@@ -36,6 +23,20 @@ export default function MemberManagement() {
   const [showFilters, setShowFilters] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'dues'>('name')
+
+  const statusFilters: (MemberStatus | 'All')[] = [
+    'All',
+    'Active',
+    'New Member',
+    'Alumni',
+  ]
+  const duesFilters: (DuesStatus | 'All')[] = [
+    'All',
+    'Paid',
+    'Partially Paid',
+    'Outstanding',
+    'Overdue',
+  ]
 
   useEffect(() => {
     const filter = searchParams.get('filter')
@@ -65,7 +66,7 @@ export default function MemberManagement() {
       return b.duesPaid - a.duesPaid
     })
     return result
-  }, [search, statusFilter, duesFilter, execOnly, sortBy])
+  }, [members, search, statusFilter, duesFilter, execOnly, sortBy])
 
   return (
     <>
@@ -73,14 +74,23 @@ export default function MemberManagement() {
         title="Member Management"
         subtitle={`${filtered.length} members`}
         actions={
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-gold-dark"
-          >
-            <Plus size={16} />
-            Add Member
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/settings"
+              state={{ tab: 'invites' }}
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-surface"
+            >
+              Invite codes
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-gold-dark"
+            >
+              <Plus size={16} />
+              Add Member
+            </button>
+          </div>
         }
       />
 
@@ -134,7 +144,7 @@ export default function MemberManagement() {
                       key={s}
                       type="button"
                       onClick={() => setStatusFilter(s)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                      className={`rounded-sm px-3 py-1 text-xs font-medium transition ${
                         statusFilter === s
                           ? 'bg-navy text-white'
                           : 'bg-white text-slate-600 ring-1 ring-border hover:bg-surface'
@@ -153,7 +163,7 @@ export default function MemberManagement() {
                       key={d}
                       type="button"
                       onClick={() => setDuesFilter(d)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                      className={`rounded-sm px-3 py-1 text-xs font-medium transition ${
                         duesFilter === d
                           ? 'bg-navy text-white'
                           : 'bg-white text-slate-600 ring-1 ring-border hover:bg-surface'
@@ -189,7 +199,7 @@ export default function MemberManagement() {
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-xs font-bold text-white">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-navy text-xs font-bold text-white">
                           {member.avatar}
                         </div>
                         <div>
@@ -222,9 +232,9 @@ export default function MemberManagement() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-sm bg-slate-100">
                           <div
-                            className={`h-full rounded-full ${
+                            className={`h-full rounded-sm ${
                               member.attendancePct >= 80
                                 ? 'bg-emerald-500'
                                 : member.attendancePct >= 70

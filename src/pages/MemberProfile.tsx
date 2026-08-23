@@ -15,7 +15,10 @@ import {
   memberStatusVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { getMember, events } from '../data/mockData'
+import { getMember } from '../data/mockData'
+import { useMembers } from '../context/MembersContext'
+import { useChapter } from '../context/ChapterContext'
+import { useChapterOps } from '../context/ChapterOpsContext'
 
 const tabs = [
   'Overview',
@@ -31,8 +34,11 @@ type Tab = (typeof tabs)[number]
 
 export default function MemberProfile() {
   const { id } = useParams<{ id: string }>()
-  const member = getMember(id ?? '')
+  const { getMemberById } = useMembers()
+  const { events } = useChapterOps()
+  const member = getMemberById(id ?? '') ?? getMember(id ?? '')
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
+  const { languagePack } = useChapter()
 
   if (!member) {
     return (
@@ -47,7 +53,10 @@ export default function MemberProfile() {
     )
   }
 
-  const memberEvents = events.slice(0, 4)
+  const memberEvents = events
+    .filter((e) => e.date >= '2025-08-23')
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 4)
 
   return (
     <>
@@ -146,13 +155,13 @@ export default function MemberProfile() {
               <dl className="space-y-3 text-sm">
                 {member.big && (
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Big Brother</dt>
+                    <dt className="text-slate-500">Big {languagePack.memberSingular}</dt>
                     <dd className="font-medium text-navy">{member.big}</dd>
                   </div>
                 )}
                 {member.little && (
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Little Brother</dt>
+                    <dt className="text-slate-500">Little {languagePack.memberSingular}</dt>
                     <dd className="font-medium text-navy">{member.little}</dd>
                   </div>
                 )}
@@ -161,7 +170,7 @@ export default function MemberProfile() {
                   <dd className="font-medium text-navy">{member.committee ?? '—'}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-slate-500">Pledge Class</dt>
+                  <dt className="text-slate-500">{languagePack.candidateTerm} Class</dt>
                   <dd className="font-medium text-navy">{member.pledgeClass}</dd>
                 </div>
               </dl>

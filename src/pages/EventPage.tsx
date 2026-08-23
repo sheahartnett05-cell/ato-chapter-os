@@ -10,136 +10,178 @@ import {
   Calendar,
 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
-import { Card, CardHeader } from '../components/ui/Card'
+import { PageShell, Section, ListRow } from '../components/ui/Section'
+import { Modal } from '../components/ui/Modal'
 import {
   StatusPill,
   rsvpVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { getEvent, getMember, rsvps, attendance, events } from '../data/mockData'
+import { getMember, rsvps, attendance, CURRENT_MEMBER_ID } from '../data/mockData'
+import { useChapterOps } from '../context/ChapterOpsContext'
+import { rsvpExcuses } from '../data/featureData'
+import type { RsvpExcuse } from '../types/features'
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
-  const event = getEvent(id ?? '')
+  const { events: chapterEvents } = useChapterOps()
+  const event = chapterEvents.find((e) => e.id === id)
   const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
+  const [myRsvp, setMyRsvp] = useState<'Going' | 'Not Going' | null>(() => {
+    const existing = rsvps[event?.id ?? '']?.find((r) => r.memberId === CURRENT_MEMBER_ID)
+    return existing?.status ?? null
+  })
+  const [showExcuseModal, setShowExcuseModal] = useState(false)
+  const [excuseReason, setExcuseReason] = useState('')
+  const [localExcuses, setLocalExcuses] = useState<RsvpExcuse[]>(rsvpExcuses)
 
   if (!event) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="text-navy">Event not found</p>
+      <div className="flex h-screen flex-col items-center justify-center gap-3">
+        <p className="text-neutral-900">Event not found</p>
+        <Link to="/calendar" className="text-sm font-semibold text-[var(--accent)]">
+          Back to calendar
+        </Link>
       </div>
     )
   }
 
   const eventRsvps = rsvps[event.id] ?? []
   const eventAttendance = attendance[event.id] ?? []
+  const eventExcuses = localExcuses.filter((e) => e.eventId === event.id)
 
   const goingCount = eventRsvps.filter((r) => r.status === 'Going').length
-  const maybeCount = eventRsvps.filter((r) => r.status === 'Maybe').length
+  const notGoingCount = eventRsvps.filter((r) => r.status === 'Not Going').length
+
+  const handleRsvp = (status: 'Going' | 'Not Going') => {
+    if (status === 'Not Going' && event.required) {
+      setShowExcuseModal(true)
+      return
+    }
+    setMyRsvp(status)
+  }
+
+  const submitExcuse = () => {
+    if (!excuseReason.trim()) return
+    const newExcuse: RsvpExcuse = {
+      id: `ex-${Date.now()}`,
+      eventId: event.id,
+      memberId: CURRENT_MEMBER_ID,
+      reason: excuseReason.trim(),
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+    }
+    setLocalExcuses((prev) => [...prev, newExcuse])
+    setMyRsvp('Not Going')
+    setShowExcuseModal(false)
+    setExcuseReason('')
+  }
 
   return (
     <>
       <TopBar
         title={event.name}
-        subtitle={`${event.type} · ${new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`}
+        subtitle={`${event.type} · ${new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`}
         actions={
           <Link
-            to="/"
-            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-slate-600 hover:bg-surface"
+            to="/calendar"
+            className="flex items-center gap-2 rounded-sm border border-black/5 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
           >
             <ArrowLeft size={16} />
-            Dashboard
+            Calendar
           </Link>
         }
       />
 
-      <div className="p-8">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Event details */}
-          <Card className="lg:col-span-2">
-            <div className="flex flex-wrap items-center gap-2">
+      <PageShell>
+        {/* Member RSVP bar */}
+        <div className="flex items-center gap-2">
+          {(['Going', 'Not Going'] as const).map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => handleRsvp(status)}
+              className={`rounded-sm px-4 py-2 text-sm font-semibold transition ${
+                myRsvp === status
+                  ? 'bg-accent text-white'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              {status === 'Going' ? 'Accept' : 'Decline'}
+            </button>
+          ))}
+          {myRsvp === 'Not Going' && eventExcuses.some((e) => e.memberId === CURRENT_MEMBER_ID) && (
+            <StatusPill
+              label={
+                eventExcuses.find((e) => e.memberId === CURRENT_MEMBER_ID)?.status === 'pending'
+                  ? 'Excuse pending'
+                  : 'Excuse approved'
+              }
+              variant="maybe"
+            />
+          )}
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <div className="flex flex-wrap gap-2">
               <StatusPill label={event.type} variant="gold" />
               {event.required && <StatusPill label="Required" variant="high" />}
               {event.rsvpRequired && <StatusPill label="RSVP Required" variant="active" />}
-              {event.guestAllowed && <StatusPill label="Guests Allowed" variant="default" />}
             </div>
-            <p className="mt-4 text-slate-600 leading-relaxed">{event.description}</p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-lg bg-surface p-3">
-                <Clock size={18} className="text-gold" />
-                <div>
-                  <p className="text-xs text-slate-500">Time</p>
-                  <p className="text-sm font-medium text-navy">{event.time}</p>
+            <p className="text-sm leading-relaxed text-neutral-600">{event.description}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { icon: Clock, label: 'Time', value: event.time },
+                { icon: MapPin, label: 'Location', value: event.location },
+                { icon: Star, label: 'Points', value: `${event.points} pts` },
+                { icon: Users, label: 'Dress', value: event.dressCode },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="rounded-2xl bg-neutral-50 px-4 py-3">
+                  <div className="flex items-center gap-2 text-neutral-500">
+                    <Icon size={16} />
+                    <span className="text-xs font-medium">{label}</span>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-neutral-900">{value}</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-surface p-3">
-                <MapPin size={18} className="text-gold" />
-                <div>
-                  <p className="text-xs text-slate-500">Location</p>
-                  <p className="text-sm font-medium text-navy">{event.location}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-surface p-3">
-                <Star size={18} className="text-gold" />
-                <div>
-                  <p className="text-xs text-slate-500">Points</p>
-                  <p className="text-sm font-medium text-navy">{event.points} points</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-surface p-3">
-                <Users size={18} className="text-gold" />
-                <div>
-                  <p className="text-xs text-slate-500">Dress Code</p>
-                  <p className="text-sm font-medium text-navy">{event.dressCode}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          </Card>
+          </div>
 
-          {/* Stats sidebar */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader title="RSVP Summary" />
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Going</span>
-                  <span className="font-bold text-emerald-600">{goingCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Maybe</span>
-                  <span className="font-bold text-amber-600">{maybeCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Not Going</span>
-                  <span className="font-bold text-slate-600">
-                    {eventRsvps.filter((r) => r.status === 'Not Going').length}
-                  </span>
-                </div>
+          <div className="space-y-4 rounded-2xl bg-neutral-50 p-6">
+            <p className="text-xs font-medium text-neutral-500">RSVP summary</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Going</span>
+                <span className="font-semibold text-emerald-600">{goingCount}</span>
               </div>
-            </Card>
-            {event.name.includes('Formal') ? (
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Declined</span>
+                <span className="font-semibold text-neutral-600">{notGoingCount}</span>
+              </div>
+            </div>
+            {event.name.includes('Formal') && (
               <Link
                 to="/tables/t1"
-                className="block rounded-xl border border-gold/30 bg-gold/5 p-4 text-center transition hover:bg-gold/10"
+                className="mt-4 block rounded-sm bg-accent/10 py-2.5 text-center text-sm font-semibold text-accent"
               >
-                <p className="text-sm font-semibold text-gold-dark">View Fall Formal Table</p>
-                <p className="mt-1 text-xs text-slate-500">RSVPs, guests & seating</p>
+                Fall Formal table →
               </Link>
-            ) : null}
+            )}
           </div>
         </div>
 
-        {/* Section tabs */}
-        <div className="mt-8 flex gap-1 border-b border-border">
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-black/5">
           {(['rsvp', 'attendance', 'points'] as const).map((section) => (
             <button
               key={section}
               type="button"
               onClick={() => setActiveSection(section)}
-              className={`border-b-2 px-4 py-2.5 text-sm font-medium capitalize transition ${
+              className={`border-b-2 px-4 py-3 text-sm font-semibold capitalize transition ${
                 activeSection === section
-                  ? 'border-gold text-gold-dark'
-                  : 'border-transparent text-slate-500 hover:text-navy'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-900'
               }`}
             >
               {section}
@@ -147,181 +189,178 @@ export default function EventPage() {
           ))}
         </div>
 
-        <Card className="mt-4" padding={false}>
-          {activeSection === 'rsvp' && (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
-                  <th className="px-5 py-3">Member</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Guest</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {eventRsvps.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-5 py-8 text-center text-slate-500">
-                      No RSVPs yet
-                    </td>
-                  </tr>
-                ) : (
-                  eventRsvps.map((rsvp) => {
-                    const member = getMember(rsvp.memberId)
-                    if (!member) return null
-                    return (
-                      <tr
-                        key={rsvp.memberId}
-                        className="hover:bg-surface/50"
+        <Section title={activeSection === 'rsvp' ? 'RSVPs' : activeSection}>
+          <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
+            {activeSection === 'rsvp' &&
+              (eventRsvps.length === 0 ? (
+                <p className="p-8 text-center text-sm text-neutral-500">No RSVPs yet</p>
+              ) : (
+                eventRsvps.map((rsvp) => {
+                  const member = getMember(rsvp.memberId)
+                  if (!member) return null
+                  const excuse = eventExcuses.find((e) => e.memberId === rsvp.memberId)
+                  return (
+                    <ListRow key={rsvp.memberId}>
+                      <Link
+                        to={`/members/${member.id}`}
+                        className="flex flex-1 items-center justify-between gap-4 px-2"
                       >
-                        <td className="px-5 py-3">
-                          <Link
-                            to={`/members/${member.id}`}
-                            className="flex items-center gap-3 font-medium text-navy hover:text-gold-dark"
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-9 w-9 items-center justify-center rounded-sm text-xs font-bold text-white ring-2 ring-accent/30"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-xs font-bold text-white">
-                              {member.avatar}
-                            </div>
-                            {member.firstName} {member.lastName}
-                          </Link>
-                        </td>
-                        <td className="px-5 py-3">
-                          <StatusPill label={rsvp.status} variant={rsvpVariant(rsvp.status)} />
-                        </td>
-                        <td className="px-5 py-3 text-slate-600">{rsvp.guest ?? '—'}</td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          )}
+                            {member.avatar}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-neutral-900">
+                              {member.firstName} {member.lastName}
+                            </p>
+                            {excuse && (
+                              <p className="text-xs text-neutral-500 line-clamp-1">
+                                Excuse: {excuse.reason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <StatusPill label={rsvp.status} variant={rsvpVariant(rsvp.status)} />
+                      </Link>
+                    </ListRow>
+                  )
+                })
+              ))}
 
-          {activeSection === 'attendance' && (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
-                  <th className="px-5 py-3">Member</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Check-in</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {eventAttendance.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-5 py-8 text-center text-slate-500">
-                      Attendance not recorded yet — event hasn't occurred
-                    </td>
-                  </tr>
-                ) : (
-                  eventAttendance.map((entry) => {
-                    const member = getMember(entry.memberId)
-                    if (!member) return null
-                    return (
-                      <tr key={entry.memberId}>
-                        <td className="px-5 py-3">
-                          <Link
-                            to={`/members/${member.id}`}
-                            className="font-medium text-navy hover:text-gold-dark"
-                          >
-                            {member.firstName} {member.lastName}
-                          </Link>
-                        </td>
-                        <td className="px-5 py-3">
+            {activeSection === 'attendance' &&
+              (eventAttendance.length === 0 ? (
+                <p className="p-8 text-center text-sm text-neutral-500">
+                  Attendance not recorded yet
+                </p>
+              ) : (
+                eventAttendance.map((entry) => {
+                  const member = getMember(entry.memberId)
+                  if (!member) return null
+                  return (
+                    <ListRow key={entry.memberId}>
+                      <div className="flex flex-1 items-center justify-between px-2">
+                        <p className="font-semibold text-neutral-900">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        <div className="flex items-center gap-2">
                           <StatusPill
                             label={entry.status}
                             variant={attendanceVariant(entry.status)}
                           />
-                        </td>
-                        <td className="px-5 py-3 text-slate-500">
                           {entry.status === 'Present' && (
-                            <span className="flex items-center gap-1 text-emerald-600">
-                              <CheckCircle2 size={14} /> Checked in
-                            </span>
+                            <CheckCircle2 size={14} className="text-emerald-600" />
                           )}
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
+                    </ListRow>
+                  )
+                })
+              ))}
+
+            {activeSection === 'points' &&
+              (eventAttendance.length > 0
+                ? eventAttendance.map((entry) => {
+                    const member = getMember(entry.memberId)
+                    if (!member) return null
+                    return (
+                      <ListRow key={entry.memberId}>
+                        <div className="flex flex-1 justify-between px-2">
+                          <span className="font-semibold text-neutral-900">
+                            {member.firstName} {member.lastName}
+                          </span>
+                          <span className="font-semibold text-accent">+{entry.pointsEarned}</span>
+                        </div>
+                      </ListRow>
                     )
                   })
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {activeSection === 'points' && (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
-                  <th className="px-5 py-3">Member</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Points Earned</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {eventAttendance.length > 0
-                  ? eventAttendance.map((entry) => {
-                      const member = getMember(entry.memberId)
-                      if (!member) return null
-                      return (
-                        <tr key={entry.memberId}>
-                          <td className="px-5 py-3 font-medium text-navy">
+                : eventRsvps.map((entry) => {
+                    const member = getMember(entry.memberId)
+                    if (!member) return null
+                    const pts = entry.status === 'Going' ? event.points : 0
+                    return (
+                      <ListRow key={entry.memberId}>
+                        <div className="flex flex-1 justify-between px-2">
+                          <span className="font-semibold text-neutral-900">
                             {member.firstName} {member.lastName}
-                          </td>
-                          <td className="px-5 py-3 text-slate-600">{entry.status}</td>
-                          <td className="px-5 py-3 font-medium text-gold">+{entry.pointsEarned}</td>
-                        </tr>
-                      )
-                    })
-                  : eventRsvps.map((entry) => {
-                      const member = getMember(entry.memberId)
-                      if (!member) return null
-                      const pts = entry.status === 'Going' ? event.points : 0
-                      return (
-                        <tr key={entry.memberId}>
-                          <td className="px-5 py-3 font-medium text-navy">
-                            {member.firstName} {member.lastName}
-                          </td>
-                          <td className="px-5 py-3 text-slate-600">{entry.status}</td>
-                          <td className="px-5 py-3 font-medium text-gold">+{pts}</td>
-                        </tr>
-                      )
-                    })}
-              </tbody>
-            </table>
-          )}
-        </Card>
+                          </span>
+                          <span className="font-semibold text-accent">+{pts}</span>
+                        </div>
+                      </ListRow>
+                    )
+                  }))}
+          </div>
+        </Section>
 
-        {/* Mini calendar */}
-        <Card className="mt-6">
-          <CardHeader title="Event Calendar" subtitle="Click an event to view details" />
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((e) => (
-              <Link
-                key={e.id}
-                to={`/events/${e.id}`}
-                className={`flex items-center gap-3 rounded-lg border p-3 transition ${
-                  e.id === event.id
-                    ? 'border-gold bg-gold/5'
-                    : 'border-border hover:border-navy/20'
-                }`}
-              >
-                <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-navy text-white">
-                  <span className="text-[10px] uppercase">
-                    {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' })}
-                  </span>
-                  <span className="text-sm font-bold">
-                    {new Date(e.date + 'T12:00:00').getDate()}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-navy">{e.name}</p>
-                  <p className="text-xs text-slate-500">{e.time}</p>
-                </div>
-                <Calendar size={14} className="ml-auto shrink-0 text-slate-400" />
-              </Link>
+        <Section
+          title="All events"
+          action={
+            <Link
+              to="/calendar"
+              className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              Calendar
+            </Link>
+          }
+        >
+          <div className="divide-y divide-black/5">
+            {[...chapterEvents]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((e) => (
+              <ListRow key={e.id}>
+                <Link
+                  to={`/events/${e.id}`}
+                  className={`flex flex-1 items-center gap-4 px-2 ${
+                    e.id === event.id ? 'text-accent' : ''
+                  }`}
+                >
+                  <div className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-neutral-100 text-neutral-900">
+                    <span className="text-[9px] font-medium uppercase">
+                      {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' })}
+                    </span>
+                    <span className="text-sm font-bold">
+                      {new Date(e.date + 'T12:00:00').getDate()}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-neutral-900">{e.name}</p>
+                    <p className="text-xs text-neutral-500">{e.time}</p>
+                  </div>
+                  <Calendar size={14} className="text-neutral-300" />
+                </Link>
+              </ListRow>
             ))}
           </div>
-        </Card>
-      </div>
+        </Section>
+      </PageShell>
+
+      <Modal
+        open={showExcuseModal}
+        onClose={() => setShowExcuseModal(false)}
+        title="Submit excuse"
+      >
+        <p className="mb-4 text-sm text-neutral-600">
+          This event is required. Please explain why you cannot attend — your excuse will be sent
+          for approval.
+        </p>
+        <textarea
+          value={excuseReason}
+          onChange={(e) => setExcuseReason(e.target.value)}
+          placeholder="Reason for absence…"
+          rows={4}
+          className="w-full rounded-xl border border-black/5 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-accent/40"
+        />
+        <button
+          type="button"
+          onClick={submitExcuse}
+          disabled={!excuseReason.trim()}
+          className="mt-4 w-full rounded-sm bg-accent py-3 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          Submit for approval
+        </button>
+      </Modal>
     </>
   )
 }

@@ -1,3 +1,40 @@
+export type {
+  Announcement,
+  ChapterPosition,
+  ExecSlide,
+  ExcuseStatus,
+  LibraryHoursEntry,
+  RsvpExcuse,
+} from './features'
+
+export type {
+  JBoardCase,
+  JBoardCategory,
+  JBoardCaseStatus,
+  SanctionType,
+  Fine,
+  FineStatus,
+  Committee,
+  GroupAnnouncement,
+  CommitteeTask,
+  FineScheduleRule,
+  GovernanceConfig,
+} from './governance'
+
+export type {
+  OrgType,
+  MemberSingular,
+  MemberPlural,
+  RecruitmentTerm,
+  CandidateTerm,
+  LanguagePack,
+  OrgTheme,
+  OrganizationChapter,
+  ChapterBrandKit,
+} from './theme'
+
+export type { ChapterBrandKit as LegacyChapterBrandKit } from './chapter'
+
 export type MemberStatus = 'Active' | 'New Member' | 'Alumni' | 'Inactive'
 export type DuesStatus = 'Paid' | 'Partially Paid' | 'Outstanding' | 'Overdue'
 export type PipelineStage =
@@ -54,8 +91,9 @@ export interface Event {
 
 export interface RsvpEntry {
   memberId: string
-  status: 'Going' | 'Maybe' | 'Not Going'
+  status: 'Going' | 'Not Going'
   guest?: string
+  excuseId?: string
 }
 
 export interface AttendanceEntry {

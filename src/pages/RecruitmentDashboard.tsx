@@ -5,8 +5,10 @@ import { Card, CardHeader } from '../components/ui/Card'
 import { StatusPill } from '../components/ui/StatusPill'
 import { prospects, PIPELINE_STAGES } from '../data/mockData'
 import type { PipelineStage } from '../types'
+import { useChapter } from '../context/ChapterContext'
 
 export default function RecruitmentDashboard() {
+  const { languagePack } = useChapter()
   const stageCounts = PIPELINE_STAGES.reduce(
     (acc, stage) => {
       acc[stage] = prospects.filter((p) => p.status === stage).length
@@ -31,12 +33,12 @@ export default function RecruitmentDashboard() {
   return (
     <>
       <TopBar
-        title="Recruitment Dashboard"
-        subtitle="Fall 2025 Rush Cycle"
+        title={`${languagePack.recruitmentTerm} Dashboard`}
+        subtitle={`Fall 2025 ${languagePack.recruitmentTerm} Cycle`}
         actions={
           <Link
             to="/recruitment/pipeline"
-            className="flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white hover:bg-gold-dark"
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-gold-dark"
           >
             Open Pipeline
             <ArrowRight size={16} />
@@ -129,7 +131,7 @@ export default function RecruitmentDashboard() {
                 to={`/recruitment/pnm/${p.id}`}
                 className="flex items-center gap-4 rounded-xl border border-border p-4 transition hover:border-navy/20 hover:shadow-md"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-navy to-navy-light text-sm font-bold text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-gradient-to-br from-navy to-navy-light text-sm font-bold text-white">
                   {p.avatar}
                 </div>
                 <div className="min-w-0 flex-1">

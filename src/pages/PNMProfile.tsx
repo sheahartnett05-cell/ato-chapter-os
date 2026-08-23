@@ -16,6 +16,7 @@ import { Card, CardHeader } from '../components/ui/Card'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Modal } from '../components/ui/Modal'
 import { getProspect, pnmActivities } from '../data/mockData'
+import { useChapter } from '../context/ChapterContext'
 
 export default function PNMProfile() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +24,7 @@ export default function PNMProfile() {
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [notes, setNotes] = useState(prospect?.notes ?? '')
+  const { languagePack } = useChapter()
 
   if (!prospect) {
     return (
@@ -160,10 +162,10 @@ export default function PNMProfile() {
             </Card>
 
             <Card>
-              <CardHeader title="Recruitment Info" />
+              <CardHeader title={`${languagePack.recruitmentTerm} Info`} />
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-slate-500">Main Contact</dt>
+                  <dt className="text-slate-500">Assigned {languagePack.memberSingular}</dt>
                   <dd className="font-medium text-navy">{prospect.assignedBrother}</dd>
                 </div>
                 <div className="flex justify-between">
@@ -187,7 +189,7 @@ export default function PNMProfile() {
                 {prospect.interests.map((interest) => (
                   <span
                     key={interest}
-                    className="rounded-full bg-navy/5 px-3 py-1 text-xs font-medium text-navy"
+                    className="rounded-sm bg-navy/5 px-3 py-1 text-xs font-medium text-navy"
                   >
                     {interest}
                   </span>
@@ -217,7 +219,7 @@ export default function PNMProfile() {
                     {i < activities.length - 1 && (
                       <div className="absolute left-[15px] top-8 h-full w-px bg-border" />
                     )}
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10 text-sm">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-gold/10 text-sm">
                       {activityIcons[activity.type] ?? '📌'}
                     </div>
                     <div className="min-w-0 flex-1 rounded-lg border border-border p-4">

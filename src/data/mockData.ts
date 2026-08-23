@@ -360,7 +360,6 @@ export const rsvps: Record<string, RsvpEntry[]> = {
     { memberId: 'm2', status: 'Going' },
     { memberId: 'm3', status: 'Going' },
     { memberId: 'm4', status: 'Going' },
-    { memberId: 'm5', status: 'Maybe' },
     { memberId: 'm6', status: 'Not Going' },
     { memberId: 'm7', status: 'Going' },
     { memberId: 'm8', status: 'Not Going' },
