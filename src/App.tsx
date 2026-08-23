@@ -1,10 +1,15 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ChapterProvider } from './context/ChapterContext'
+import { ChapterPositionsProvider } from './context/ChapterPositionsContext'
+import { ChapterFeaturesProvider } from './context/ChapterFeaturesContext'
 import { GovernanceProvider } from './context/GovernanceContext'
 import { MembersProvider } from './context/MembersContext'
 import { ChapterOpsProvider } from './context/ChapterOpsContext'
 import { CommunicationsProvider } from './context/CommunicationsContext'
+import { ChapterResourcesProvider } from './context/ChapterResourcesContext'
+import { ChapterTablesProvider } from './context/ChapterTablesContext'
+import { RecruitmentProvider } from './context/RecruitmentContext'
 import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
 import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
 import ExecutiveDashboard from './pages/ExecutiveDashboard'
@@ -13,6 +18,7 @@ import MemberProfile from './pages/MemberProfile'
 import MyProfile from './pages/MyProfile'
 import EventPage from './pages/EventPage'
 import ChapterTables from './pages/ChapterTables'
+import TablesIndex from './pages/TablesIndex'
 import RecruitmentDashboard from './pages/RecruitmentDashboard'
 import RecruitmentPipeline from './pages/RecruitmentPipeline'
 import PNMProfile from './pages/PNMProfile'
@@ -22,7 +28,10 @@ import ExcuseApprovals from './pages/ExcuseApprovals'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
 import ExecSlides from './pages/ExecSlides'
+import BylawsPage from './pages/Bylaws'
+import HouseMaintenancePage from './pages/HouseMaintenance'
 import JudicialBoard from './pages/JudicialBoard'
+import StandardsSetupPage from './pages/StandardsSetup'
 import Committees from './pages/Committees'
 import CommitteeDetail from './pages/CommitteeDetail'
 import Settings from './pages/Settings'
@@ -33,9 +42,14 @@ export default function App() {
   return (
     <ChapterProvider>
       <MembersProvider>
+        <ChapterPositionsProvider>
+        <ChapterFeaturesProvider>
         <AuthProvider>
           <GovernanceProvider>
             <CommunicationsProvider>
+            <ChapterResourcesProvider>
+            <ChapterTablesProvider>
+            <RecruitmentProvider>
             <ChapterOpsProvider>
               <BrowserRouter>
               <Routes>
@@ -117,6 +131,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/tables"
+                  element={
+                    <ExecShell>
+                      <TablesIndex />
+                    </ExecShell>
+                  }
+                />
+                <Route
                   path="/tables/:id"
                   element={
                     <ExecShell>
@@ -149,13 +171,22 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/judicial-board"
+                  path="/standards"
                   element={
                     <ExecShell>
                       <JudicialBoard />
                     </ExecShell>
                   }
                 />
+                <Route
+                  path="/standards/setup"
+                  element={
+                    <ExecShell>
+                      <StandardsSetupPage />
+                    </ExecShell>
+                  }
+                />
+                <Route path="/judicial-board" element={<Navigate to="/standards" replace />} />
                 <Route
                   path="/committees"
                   element={
@@ -186,6 +217,22 @@ export default function App() {
                     <ExecShell>
                       <ExecSlides />
                     </ExecShell>
+                  }
+                />
+                <Route
+                  path="/bylaws"
+                  element={
+                    <AdaptiveShell>
+                      <BylawsPage />
+                    </AdaptiveShell>
+                  }
+                />
+                <Route
+                  path="/house"
+                  element={
+                    <AdaptiveShell>
+                      <HouseMaintenancePage />
+                    </AdaptiveShell>
                   }
                 />
 
@@ -221,9 +268,14 @@ export default function App() {
               </Routes>
             </BrowserRouter>
             </ChapterOpsProvider>
+            </RecruitmentProvider>
+            </ChapterTablesProvider>
+            </ChapterResourcesProvider>
             </CommunicationsProvider>
           </GovernanceProvider>
         </AuthProvider>
+        </ChapterFeaturesProvider>
+        </ChapterPositionsProvider>
       </MembersProvider>
     </ChapterProvider>
   )

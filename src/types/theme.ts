@@ -35,6 +35,3 @@ export interface OrganizationChapter extends OrgTheme {
   university: string
   semester: string
 }
-
-/** @deprecated use OrganizationChapter */
-export type ChapterBrandKit = OrganizationChapter

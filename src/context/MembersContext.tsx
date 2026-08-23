@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { members as seedMembers } from '../data/mockData'
+import { DEMO_MEMBERS as seedMembers } from '../data/mockData'
+import { allowDemoData } from '../lib/demoSeed'
 import { generateInviteCode, SEED_INVITE_CODES } from '../data/inviteData'
 import type { ChapterLock, InviteCode, MemberAccount } from '../types/memberAccount'
 import type { Member } from '../types'
@@ -65,13 +66,16 @@ interface MembersContextValue {
     userId: string
     profile: UserProfile
     role: UserRole
-    inviteCodeId: string
+    inviteCodeId?: string
     orgId: string
     chapterDesignation: string
     university: string
     email?: string
   }) => { memberId: string; account: MemberAccount }
   updateMemberProfile: (memberId: string, patch: Partial<UserProfile>) => void
+  updateMemberDetails: (memberId: string, patch: Partial<Member>) => void
+  /** President: change a member's app role / permission set */
+  assignMemberRole: (memberId: string, role: UserRole) => void
   lockChapter: (lock: Omit<ChapterLock, 'lockedAt' | 'lockedByUserId'>, userId: string) => void
 }
 
@@ -79,14 +83,15 @@ const MembersContext = createContext<MembersContextValue | null>(null)
 
 export function MembersProvider({ children }: { children: ReactNode }) {
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>(() =>
-    readJson(INVITES_KEY, SEED_INVITE_CODES)
+    readJson(INVITES_KEY, allowDemoData() ? SEED_INVITE_CODES : [])
   )
   const [accounts, setAccounts] = useState<MemberAccount[]>(() =>
     readJson(ACCOUNTS_KEY, [])
   )
   const [roster, setRoster] = useState<Member[]>(() => {
     const stored = readJson<Member[] | null>(MEMBERS_KEY, null)
-    return stored ?? seedMembers
+    if (stored) return stored
+    return allowDemoData() ? seedMembers : []
   })
   const [chapterLock, setChapterLock] = useState<ChapterLock | null>(() =>
     readJson(CHAPTER_LOCK_KEY, null)
@@ -200,7 +205,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       userId: string
       profile: UserProfile
       role: UserRole
-      inviteCodeId: string
+      inviteCodeId?: string
       orgId: string
       chapterDesignation: string
       university: string
@@ -214,24 +219,25 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         id: memberId,
         firstName: input.profile.firstName,
         lastName: input.profile.lastName,
-        email: input.email ?? `${input.profile.firstName.toLowerCase()}@chapter.local`,
+        email: input.email ?? input.profile.email ?? `${input.profile.firstName.toLowerCase()}@chapter.local`,
         phone: input.profile.phone,
-        major: 'Undeclared',
+        major: input.profile.major ?? 'Undeclared',
         graduationYear: input.profile.graduationYear,
         pledgeClass: 'Fall 2025',
         status,
         isExec,
         role: input.role,
-        birthday: '2000-01-01',
-        shirtSize: 'M',
-        emergencyContact: '',
-        emergencyPhone: '',
+        birthday: input.profile.birthday ?? '2000-01-01',
+        shirtSize: input.profile.shirtSize ?? 'M',
+        emergencyContact: input.profile.emergencyContact ?? '',
+        emergencyPhone: input.profile.emergencyPhone ?? '',
         duesStatus: 'Outstanding',
         duesPaid: 0,
         duesExpected: 850,
         attendancePct: 100,
         points: 0,
         avatar: input.profile.avatar,
+        photoUrl: input.profile.photoUrl,
       }
 
       const account: MemberAccount = {
@@ -241,7 +247,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         profile: input.profile,
         role: input.role,
         email: input.email,
-        inviteCodeId: input.inviteCodeId,
+        inviteCodeId: input.inviteCodeId ?? 'self-register',
         joinedAt: new Date().toISOString(),
       }
 
@@ -274,8 +280,15 @@ export function MembersProvider({ children }: { children: ReactNode }) {
                 firstName: patch.firstName ?? m.firstName,
                 lastName: patch.lastName ?? m.lastName,
                 phone: patch.phone ?? m.phone,
+                email: patch.email ?? m.email,
                 graduationYear: patch.graduationYear ?? m.graduationYear,
                 avatar: patch.avatar ?? m.avatar,
+                photoUrl: patch.photoUrl !== undefined ? patch.photoUrl : m.photoUrl,
+                major: patch.major ?? m.major,
+                birthday: patch.birthday ?? m.birthday,
+                shirtSize: patch.shirtSize ?? m.shirtSize,
+                emergencyContact: patch.emergencyContact ?? m.emergencyContact,
+                emergencyPhone: patch.emergencyPhone ?? m.emergencyPhone,
               }
             : m
         )
@@ -283,9 +296,41 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       persistAccounts(
         accounts.map((a) =>
           a.memberId === memberId
-            ? { ...a, profile: { ...a.profile, ...patch } }
+            ? { ...a, profile: { ...a.profile, ...patch }, email: patch.email ?? a.email }
             : a
         )
+      )
+    },
+    [roster, accounts, persistRoster, persistAccounts]
+  )
+
+  const updateMemberDetails = useCallback(
+    (memberId: string, patch: Partial<Member>) => {
+      persistRoster(
+        roster.map((m) => (m.id === memberId ? { ...m, ...patch } : m))
+      )
+    },
+    [roster, persistRoster]
+  )
+
+  const assignMemberRole = useCallback(
+    (memberId: string, role: UserRole) => {
+      const isExec = !['ActiveMember', 'NewMember'].includes(role)
+      const status = role === 'NewMember' ? 'New Member' : 'Active'
+      persistRoster(
+        roster.map((m) =>
+          m.id === memberId
+            ? {
+                ...m,
+                role,
+                isExec,
+                status: status as Member['status'],
+              }
+            : m
+        )
+      )
+      persistAccounts(
+        accounts.map((a) => (a.memberId === memberId ? { ...a, role } : a))
       )
     },
     [roster, accounts, persistRoster, persistAccounts]
@@ -306,6 +351,8 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       toggleInvite,
       registerMember,
       updateMemberProfile,
+      updateMemberDetails,
+      assignMemberRole,
       lockChapter,
     }),
     [
@@ -322,6 +369,8 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       toggleInvite,
       registerMember,
       updateMemberProfile,
+      updateMemberDetails,
+      assignMemberRole,
       lockChapter,
     ]
   )

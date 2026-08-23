@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Plus, Filter, ChevronDown } from 'lucide-react'
+import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { TopBar } from '../components/layout/TopBar'
 import { Card } from '../components/ui/Card'
 import {
@@ -199,9 +200,11 @@ export default function MemberManagement() {
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-navy text-xs font-bold text-white">
-                          {member.avatar}
-                        </div>
+                        <MemberAvatar
+                          photoUrl={member.photoUrl}
+                          initials={member.avatar}
+                          size="sm"
+                        />
                         <div>
                           <p className="font-medium text-navy">
                             {member.firstName} {member.lastName}

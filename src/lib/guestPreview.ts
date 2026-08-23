@@ -40,9 +40,10 @@ export const GUEST_PRESETS: Record<
 }
 
 export const GUEST_CHAPTER = {
-  orgId: 'ato',
-  chapterDesignation: 'Epsilon Pi',
-  university: 'University of West Florida',
+  /** Neutral product brand until a real chapter is chosen in onboarding */
+  orgId: 'agora',
+  chapterDesignation: 'Sample Chapter',
+  university: 'Demo University',
 } as const
 
 export function markGuestPreview(active: boolean) {

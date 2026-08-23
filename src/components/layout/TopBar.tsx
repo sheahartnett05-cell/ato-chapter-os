@@ -1,6 +1,6 @@
 import { Bell, Search } from 'lucide-react'
 import { useState } from 'react'
-import { useChapter } from '../../context/ChapterContext'
+import { Logo } from './Logo'
 
 interface TopBarProps {
   title: string
@@ -10,20 +10,13 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, actions }: TopBarProps) {
   const [search, setSearch] = useState('')
-  const { chapter } = useChapter()
 
   return (
     <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
       <div className="flex items-center justify-between gap-4 px-6 py-5 lg:px-10">
         <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="hidden h-9 w-9 shrink-0 items-center justify-center font-serif text-xs sm:flex"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'var(--primary-foreground)',
-            }}
-          >
-            {chapter.letters}
+          <div className="hidden sm:block">
+            <Logo compact onDark={false} />
           </div>
           <div className="min-w-0">
             <h1 className="truncate font-serif text-2xl tracking-tight text-[var(--ink)]">{title}</h1>

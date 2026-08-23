@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { Scale, DollarSign, Calendar, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Scale, DollarSign, Calendar, Plus, Settings2 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
+import { usePermissions } from '../context/AuthContext'
+import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 import { getMember, members } from '../data/mockData'
 import type { JBoardCategory } from '../types/governance'
 
@@ -33,6 +36,8 @@ function statusPill(status: string) {
 
 export default function JudicialBoard() {
   const { cases, fines, fineSchedule, fileCase, issueFine, updateFineStatus } = useGovernance()
+  const permissions = usePermissions()
+  const { moduleName, configured } = useStandardsModuleConfig()
   const [tab, setTab] = useState<Tab>('overview')
   const [fineFilter, setFineFilter] = useState<FineFilter>('All')
   const [showFile, setShowFile] = useState(false)
@@ -49,6 +54,9 @@ export default function JudicialBoard() {
     .filter((f) => f.status === 'Unpaid')
     .reduce((s, f) => s + f.amount, 0)
   const hearings = cases.filter((c) => c.status === 'Hearing Scheduled')
+
+  const canConfigure =
+    permissions.canAccessAdminSettings || permissions.canAccessJBoardSettings
 
   const filteredFines = fines.filter((f) => {
     if (fineFilter === 'All') return true
@@ -89,10 +97,19 @@ export default function JudicialBoard() {
   return (
     <>
       <TopBar
-        title="Judicial Board"
-        subtitle="Standards · Fines · Hearings"
+        title={moduleName || 'Standards & Accountability'}
+        subtitle="Cases · Fines · Hearings"
         actions={
           <div className="flex gap-1.5">
+            {canConfigure && (
+              <Link
+                to="/standards/setup"
+                className="flex items-center gap-1 rounded-sm border border-[var(--rule)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)] hover:bg-black/[0.02]"
+              >
+                <Settings2 size={12} />
+                {configured ? 'Reconfigure' : 'Configure'}
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setShowFile(true)}
@@ -112,6 +129,19 @@ export default function JudicialBoard() {
       />
 
       <PageShell className="space-y-4">
+        {canConfigure && !configured && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--rule)] bg-neutral-50 px-4 py-3">
+            <p className="text-sm text-[var(--ink)]">
+              Set up terminology, fine matrix, and excuse policy for this module.
+            </p>
+            <Link
+              to="/standards/setup"
+              className="rounded-sm bg-[var(--ink)] px-4 py-2 text-xs font-semibold text-white"
+            >
+              Start setup wizard
+            </Link>
+          </div>
+        )}
         <div className="flex gap-1">
           {(['overview', 'cases', 'fines'] as Tab[]).map((t) => (
             <button

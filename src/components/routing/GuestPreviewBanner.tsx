@@ -1,25 +1,26 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { isGuestPreviewActive, markGuestPreview } from '../../lib/guestPreview'
+import { clearDemoData } from '../../lib/demoSeed'
 
-/** Fixed banner for collaborator / demo sessions */
+/** Compact top banner for collaborator / demo sessions */
 export function GuestPreviewBanner() {
   const { onboarding, resetOnboarding } = useAuth()
-  const navigate = useNavigate()
   const show = onboarding?.isGuest === true || isGuestPreviewActive()
 
   if (!show) return null
 
   const exit = () => {
+    clearDemoData()
     markGuestPreview(false)
     resetOnboarding()
-    navigate('/preview', { replace: true })
+    window.location.assign('/preview')
   }
 
   return (
     <div
-      className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b px-4 py-2"
+      className="relative z-[60] flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2"
       style={{
         background: 'var(--accent)',
         color: 'var(--accent-foreground)',
@@ -39,7 +40,7 @@ export function GuestPreviewBanner() {
           }}
           className="font-mono text-[10px] uppercase tracking-wider underline-offset-2 hover:underline"
         >
-          Switch preview
+          Switch
         </Link>
         <button
           type="button"

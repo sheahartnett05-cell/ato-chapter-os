@@ -18,9 +18,12 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Star } from 'lucide-react'
+import { GripVertical, Plus, Star } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
-import { prospects as initialProspects, PIPELINE_STAGES } from '../data/mockData'
+import { MemberAvatar } from '../components/ui/MemberAvatar'
+import { AddProspectModal } from '../components/recruitment/AddProspectModal'
+import { PIPELINE_STAGES } from '../data/mockData'
+import { useRecruitment } from '../context/RecruitmentContext'
 import type { PipelineStage, Prospect } from '../types'
 import { useChapter } from '../context/ChapterContext'
 
@@ -40,14 +43,14 @@ function ProspectCard({ prospect, isOverlay }: { prospect: Prospect; isOverlay?:
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-border bg-white p-3 shadow-sm transition hover:shadow-md"
+      className="rounded-lg border border-black/5 bg-white p-3 shadow-sm transition hover:shadow-md"
     >
       <div className="flex items-start gap-2">
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+          className="mt-0.5 cursor-grab text-neutral-300 hover:text-neutral-500 active:cursor-grabbing"
         >
           <GripVertical size={14} />
         </button>
@@ -55,14 +58,23 @@ function ProspectCard({ prospect, isOverlay }: { prospect: Prospect; isOverlay?:
           className="min-w-0 flex-1 cursor-pointer"
           onClick={() => navigate(`/recruitment/pnm/${prospect.id}`)}
         >
-          <p className="text-sm font-semibold text-navy">
-            {prospect.firstName} {prospect.lastName}
-          </p>
-          <p className="text-xs text-slate-500">{prospect.major}</p>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-[10px] text-slate-400">{prospect.assignedBrother}</span>
+          <div className="flex items-center gap-2">
+            <MemberAvatar
+              photoUrl={prospect.photoUrl}
+              initials={prospect.avatar}
+              size="sm"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-neutral-900">
+                {prospect.firstName} {prospect.lastName}
+              </p>
+              <p className="text-xs text-neutral-500">{prospect.major || 'Undeclared'}</p>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-between pl-11">
+            <span className="truncate text-[10px] text-neutral-400">{prospect.assignedBrother || 'Unassigned'}</span>
             {prospect.rating > 0 && (
-              <span className="flex items-center gap-0.5 text-xs text-gold">
+              <span className="flex items-center gap-0.5 text-xs text-accent">
                 <Star size={10} fill="currentColor" />
                 {prospect.rating}
               </span>
@@ -87,14 +99,14 @@ function PipelineColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-surface/50 transition ${
-        isOver ? 'border-gold bg-gold/5' : 'border-border'
+      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-neutral-50/60 transition ${
+        isOver ? 'border-accent bg-accent/5' : 'border-black/5'
       }`}
     >
-      <div className="border-b border-border px-4 py-3">
+      <div className="border-b border-black/5 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-navy">{stage}</h3>
-          <span className="rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy">
+          <h3 className="text-sm font-semibold text-neutral-900">{stage}</h3>
+          <span className="rounded-sm bg-neutral-900/10 px-2 py-0.5 text-xs font-medium text-neutral-900">
             {stageProspects.length}
           </span>
         </div>
@@ -108,7 +120,7 @@ function PipelineColumn({
             <ProspectCard key={p.id} prospect={p} />
           ))}
           {stageProspects.length === 0 && (
-            <p className="py-8 text-center text-xs text-slate-400">Drop prospects here</p>
+            <p className="py-8 text-center text-xs text-neutral-400">Drop prospects here</p>
           )}
         </div>
       </SortableContext>
@@ -118,8 +130,9 @@ function PipelineColumn({
 
 export default function RecruitmentPipeline() {
   const { languagePack } = useChapter()
-  const [prospects, setProspects] = useState(initialProspects)
+  const { prospects, updateProspectStatus, templates } = useRecruitment()
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -149,9 +162,7 @@ export default function RecruitmentPipeline() {
     }
 
     if (newStage) {
-      setProspects((prev) =>
-        prev.map((p) => (p.id === prospectId ? { ...p, status: newStage! } : p))
-      )
+      updateProspectStatus(prospectId, newStage)
     }
   }
 
@@ -159,18 +170,38 @@ export default function RecruitmentPipeline() {
     <>
       <TopBar
         title={`${languagePack.recruitmentTerm} Pipeline`}
-        subtitle="Drag prospects between stages"
+        subtitle="Drag prospects between stages · intake forms with photos"
         actions={
-          <Link
-            to="/recruitment"
-            className="rounded-lg border border-border px-3 py-2 text-sm text-slate-600 hover:bg-surface"
-          >
-            ← Dashboard
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to="/recruitment"
+              className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+            >
+              ← Dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white"
+            >
+              <Plus size={16} />
+              Add PNM
+            </button>
+          </div>
         }
       />
 
-      <div className="p-8">
+      <div className="space-y-6 p-8">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {templates.map((t) => (
+            <div key={t.id} className="rounded-2xl bg-neutral-50 px-4 py-3">
+              <p className="text-sm font-semibold text-neutral-900">{t.name}</p>
+              <p className="mt-1 text-xs text-neutral-500">{t.description}</p>
+              <p className="mt-2 text-xs text-neutral-400">{t.fields.length} fields</p>
+            </div>
+          ))}
+        </div>
+
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -190,6 +221,8 @@ export default function RecruitmentPipeline() {
           </DragOverlay>
         </DndContext>
       </div>
+
+      <AddProspectModal open={addOpen} onClose={() => setAddOpen(false)} />
     </>
   )
 }

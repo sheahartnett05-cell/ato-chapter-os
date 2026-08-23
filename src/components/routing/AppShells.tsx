@@ -1,7 +1,8 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { usePermissions } from '../../context/AuthContext'
+import { usePermissions, useAuth } from '../../context/AuthContext'
 import { isOnboardingCompleteInStorage } from '../../lib/onboardingStorage'
+import { isGuestPreviewActive } from '../../lib/guestPreview'
 import { Sidebar } from '../layout/Sidebar'
 import { GuestPreviewBanner } from './GuestPreviewBanner'
 
@@ -9,16 +10,49 @@ function useOnboarded(): boolean {
   return isOnboardingCompleteInStorage()
 }
 
-function withGuestBanner(content: ReactNode) {
+function useShowGuestBanner(): boolean {
+  const { onboarding } = useAuth()
+  return onboarding?.isGuest === true || isGuestPreviewActive()
+}
+
+/** Shared exec chrome: guest banner + sidebar + scrollable content */
+function ExecChrome({ children }: { children: ReactNode }) {
+  const showGuest = useShowGuestBanner()
+
   return (
-    <>
-      <GuestPreviewBanner />
-      {content}
-    </>
+    <div
+      className="flex h-dvh flex-col overflow-hidden"
+      style={{ background: 'var(--surface-tint)' }}
+    >
+      {showGuest && <GuestPreviewBanner />}
+      <div className="flex min-h-0 flex-1">
+        <Sidebar />
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="theme-stripe" />
+          <div className="min-h-full" style={{ background: 'var(--surface-card)' }}>
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
   )
 }
 
-/** Exec app shell — flat route wrapper (no nested Outlet) */
+function MemberChrome({ children }: { children: ReactNode }) {
+  const showGuest = useShowGuestBanner()
+
+  return (
+    <div
+      className="flex h-dvh flex-col overflow-hidden"
+      style={{ background: 'var(--surface-tint)' }}
+    >
+      {showGuest && <GuestPreviewBanner />}
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</div>
+    </div>
+  )
+}
+
+/** Exec app shell */
 export function ExecShell({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
   const { isMemberView } = usePermissions()
@@ -26,41 +60,24 @@ export function ExecShell({ children }: { children: ReactNode }) {
   if (!onboarded) return <Navigate to="/preview" replace />
   if (isMemberView) return <Navigate to="/my-dashboard" replace />
 
-  return withGuestBanner(
-    <div className="min-h-screen text-[var(--ink)]" style={{ background: 'var(--surface-tint)' }}>
-      <Sidebar />
-      <main className="ml-56 min-h-screen">
-        <div className="theme-stripe sticky top-0 z-40" />
-        <div className="min-h-[calc(100vh-2px)] bg-[var(--surface-card)]">{children}</div>
-      </main>
-    </div>
-  )
+  return <ExecChrome>{children}</ExecChrome>
 }
 
 /** Member-facing pages */
 export function MemberShell({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
   if (!onboarded) return <Navigate to="/preview" replace />
-  return withGuestBanner(<>{children}</>)
+  return <MemberChrome>{children}</MemberChrome>
 }
 
-/** Exec sidebar for officers; standalone for active/new members */
+/** Exec sidebar for officers; standalone for members */
 export function AdaptiveShell({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
   const { isMemberView } = usePermissions()
 
   if (!onboarded) return <Navigate to="/preview" replace />
-  if (isMemberView) return withGuestBanner(<>{children}</>)
-
-  return withGuestBanner(
-    <div className="min-h-screen text-[var(--ink)]" style={{ background: 'var(--surface-tint)' }}>
-      <Sidebar />
-      <main className="ml-56 min-h-screen">
-        <div className="theme-stripe sticky top-0 z-40" />
-        <div className="min-h-[calc(100vh-2px)] bg-[var(--surface-card)]">{children}</div>
-      </main>
-    </div>
-  )
+  if (isMemberView) return <MemberChrome>{children}</MemberChrome>
+  return <ExecChrome>{children}</ExecChrome>
 }
 
 /** Settings — exec gets sidebar, members get standalone */
@@ -69,15 +86,6 @@ export function SettingsShellPage({ children }: { children: ReactNode }) {
   const { isMemberView } = usePermissions()
 
   if (!onboarded) return <Navigate to="/preview" replace />
-  if (isMemberView) return withGuestBanner(<>{children}</>)
-
-  return withGuestBanner(
-    <div className="min-h-screen text-[var(--ink)]" style={{ background: 'var(--surface-tint)' }}>
-      <Sidebar />
-      <main className="ml-56 min-h-screen">
-        <div className="theme-stripe sticky top-0 z-40" />
-        <div className="min-h-[calc(100vh-2px)] bg-[var(--surface-card)]">{children}</div>
-      </main>
-    </div>
-  )
+  if (isMemberView) return <MemberChrome>{children}</MemberChrome>
+  return <ExecChrome>{children}</ExecChrome>
 }

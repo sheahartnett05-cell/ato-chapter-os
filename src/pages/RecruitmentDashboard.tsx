@@ -1,14 +1,21 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Users, Phone, Calendar, TrendingUp } from 'lucide-react'
+import { ArrowRight, Users, Phone, Calendar, TrendingUp, Plus } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { Card, CardHeader } from '../components/ui/Card'
+import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { StatusPill } from '../components/ui/StatusPill'
-import { prospects, PIPELINE_STAGES } from '../data/mockData'
+import { AddProspectModal } from '../components/recruitment/AddProspectModal'
+import { PIPELINE_STAGES } from '../data/mockData'
+import { useRecruitment } from '../context/RecruitmentContext'
 import type { PipelineStage } from '../types'
 import { useChapter } from '../context/ChapterContext'
 
 export default function RecruitmentDashboard() {
   const { languagePack } = useChapter()
+  const { prospects } = useRecruitment()
+  const [addOpen, setAddOpen] = useState(false)
+
   const stageCounts = PIPELINE_STAGES.reduce(
     (acc, stage) => {
       acc[stage] = prospects.filter((p) => p.status === stage).length
@@ -36,123 +43,123 @@ export default function RecruitmentDashboard() {
         title={`${languagePack.recruitmentTerm} Dashboard`}
         subtitle={`Fall 2025 ${languagePack.recruitmentTerm} Cycle`}
         actions={
-          <Link
-            to="/recruitment/pipeline"
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-gold-dark"
-          >
-            Open Pipeline
-            <ArrowRight size={16} />
-          </Link>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+            >
+              <Plus size={16} />
+              Add PNM
+            </button>
+            <Link
+              to="/recruitment/pipeline"
+              className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white"
+            >
+              Open Pipeline
+              <ArrowRight size={16} />
+            </Link>
+          </div>
         }
       />
 
       <div className="space-y-6 p-8">
-        {/* Pipeline metrics */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {PIPELINE_STAGES.map((stage) => (
             <Link
               key={stage}
               to="/recruitment/pipeline"
-              className="rounded-xl border border-border bg-white p-4 text-center transition hover:border-gold/40 hover:shadow-md"
+              className="rounded-xl border border-black/5 bg-white p-4 text-center transition hover:border-accent/40 hover:shadow-md"
             >
-              <p className="text-2xl font-bold text-navy">{stageCounts[stage]}</p>
-              <p className="mt-1 text-xs font-medium text-slate-500">{stage}</p>
+              <p className="text-2xl font-bold text-neutral-900">{stageCounts[stage]}</p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">{stage}</p>
             </Link>
           ))}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Overview stats */}
-          <Card className="lg:col-span-2">
-            <CardHeader title="Cycle Overview" subtitle="Key recruitment metrics" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: 'Active Prospects', value: totalActive, icon: Users },
-                { label: 'Contacted This Week', value: 6, icon: Phone },
-                { label: 'Events This Month', value: 3, icon: Calendar },
-                { label: 'Conversion Rate', value: '42%', icon: TrendingUp },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="rounded-lg border border-border p-4">
-                  <Icon size={18} className="text-gold" />
-                  <p className="mt-2 text-2xl font-bold text-navy">{value}</p>
-                  <p className="text-xs text-slate-500">{label}</p>
-                </div>
-              ))}
+          <Card>
+            <CardHeader title="Cycle overview" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl bg-neutral-50 p-4">
+                <Users size={20} className="text-accent" />
+                <p className="mt-2 text-2xl font-bold text-neutral-900">{totalActive}</p>
+                <p className="text-xs text-neutral-500">Active prospects</p>
+              </div>
+              <div className="rounded-xl bg-neutral-50 p-4">
+                <TrendingUp size={20} className="text-emerald-600" />
+                <p className="mt-2 text-2xl font-bold text-neutral-900">
+                  {stageCounts.Bid + stageCounts.Accepted}
+                </p>
+                <p className="text-xs text-neutral-500">Bids / accepted</p>
+              </div>
             </div>
           </Card>
 
-          {/* Follow-ups needed */}
-          <Card>
+          <Card className="lg:col-span-2">
             <CardHeader
-              title="Follow-ups Due"
-              subtitle={`${needsFollowUp.length} this week`}
+              title="Follow-ups due"
+              action={
+                <span className="flex items-center gap-1 text-xs text-neutral-500">
+                  <Calendar size={12} /> By Aug 26
+                </span>
+              }
             />
-            <ul className="space-y-2">
-              {needsFollowUp.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    to={`/recruitment/pnm/${p.id}`}
-                    className="flex items-center justify-between rounded-lg border border-border p-3 transition hover:border-gold/40 hover:bg-gold/5"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-navy">
-                        {p.firstName} {p.lastName}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Due {new Date(p.nextFollowUp + 'T12:00:00').toLocaleDateString()}
-                      </p>
-                    </div>
-                    <StatusPill label={p.status} variant="gold" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {needsFollowUp.length === 0 ? (
+              <p className="text-sm text-neutral-500">All caught up</p>
+            ) : (
+              <ul className="divide-y divide-black/5">
+                {needsFollowUp.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      to={`/recruitment/pnm/${p.id}`}
+                      className="flex items-center justify-between gap-3 py-3 hover:bg-neutral-50/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <MemberAvatar photoUrl={p.photoUrl} initials={p.avatar} size="sm" />
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-900">
+                            {p.firstName} {p.lastName}
+                          </p>
+                          <p className="text-xs text-neutral-500">{p.assignedBrother}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusPill label={p.status} variant="gold" />
+                        <Phone size={14} className="text-neutral-400" />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
 
-        {/* Top prospects */}
         <Card>
-          <CardHeader
-            title="Top Prospects"
-            subtitle="Rated 4+ stars"
-            action={
-              <Link
-                to="/recruitment/pipeline"
-                className="text-xs font-medium text-gold hover:text-gold-dark"
-              >
-                View all →
-              </Link>
-            }
-          />
+          <CardHeader title="Top-rated prospects" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {topProspects.map((p) => (
               <Link
                 key={p.id}
                 to={`/recruitment/pnm/${p.id}`}
-                className="flex items-center gap-4 rounded-xl border border-border p-4 transition hover:border-navy/20 hover:shadow-md"
+                className="flex items-center gap-3 rounded-xl border border-black/5 p-4 transition hover:border-accent/30"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-gradient-to-br from-navy to-navy-light text-sm font-bold text-white">
-                  {p.avatar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-navy">
+                <MemberAvatar photoUrl={p.photoUrl} initials={p.avatar} size="md" />
+                <div>
+                  <p className="font-semibold text-neutral-900">
                     {p.firstName} {p.lastName}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    {p.major} · {p.hometown}
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <StatusPill label={p.status} variant="gold" />
-                    <span className="text-xs text-gold">
-                      {'★'.repeat(p.rating)}{'☆'.repeat(5 - p.rating)}
-                    </span>
-                  </div>
+                  <p className="text-xs text-neutral-500">{p.major}</p>
+                  <p className="mt-1 text-xs font-medium text-accent">{p.rating}/5 rating</p>
                 </div>
               </Link>
             ))}
           </div>
         </Card>
       </div>
+
+      <AddProspectModal open={addOpen} onClose={() => setAddOpen(false)} />
     </>
   )
 }

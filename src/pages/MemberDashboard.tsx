@@ -49,15 +49,9 @@ import { roleLabel } from '../types/permissions'
 
 import type { Event } from '../types'
 
-
-
 type RsvpChoice = 'Going' | 'Not Going'
 
-
-
 const TODAY = '2025-08-23'
-
-
 
 function loadMemberRsvps(memberId: string): Record<string, RsvpChoice | null> {
 
@@ -75,8 +69,6 @@ function loadMemberRsvps(memberId: string): Record<string, RsvpChoice | null> {
 
 }
 
-
-
 function formatBuzzTime(iso: string) {
 
   return new Date(iso).toLocaleDateString('en-US', {
@@ -88,8 +80,6 @@ function formatBuzzTime(iso: string) {
   }).toUpperCase()
 
 }
-
-
 
 function formatEventDay(iso: string) {
 
@@ -104,8 +94,6 @@ function formatEventDay(iso: string) {
   })
 
 }
-
-
 
 export default function MemberDashboard() {
 
@@ -129,15 +117,11 @@ export default function MemberDashboard() {
 
   } = useChapterOps()
 
-
-
   const member =
 
     (memberId ? getMemberById(memberId) : undefined) ?? getMember(CURRENT_MEMBER_ID)!
 
   const resolvedMemberId = member.id
-
-
 
   const { myCases, myFines, submitAppeal, submitFineAppeal } =
 
@@ -148,8 +132,6 @@ export default function MemberDashboard() {
   const [declineTarget, setDeclineTarget] = useState<Event | null>(null)
 
   const [excuseReason, setExcuseReason] = useState('')
-
-
 
   const duesBalance = memberDuesBalance(resolvedMemberId) || member.duesExpected - member.duesPaid
 
@@ -169,8 +151,6 @@ export default function MemberDashboard() {
 
   const studyPct = Math.min(100, Math.round((studyHoursLogged / studyHoursRequired) * 100))
 
-
-
   const { posts } = useCommunications()
 
   const sortedBuzz = useMemo(
@@ -187,8 +167,6 @@ export default function MemberDashboard() {
   const activePolls = sortedBuzz.filter((a) => a.kind === 'poll').slice(0, 1)
   const activeSignups = sortedBuzz.filter((a) => a.kind === 'signup').slice(0, 1)
 
-
-
   const todayEvents = useMemo(
 
     () =>
@@ -202,8 +180,6 @@ export default function MemberDashboard() {
     [chapterEvents]
 
   )
-
-
 
   const upcomingRsvp = useMemo(
 
@@ -221,23 +197,17 @@ export default function MemberDashboard() {
 
   )
 
-
-
   const unpaidFines = myFines.filter((f) => f.status === 'Unpaid')
 
   const pendingCases = myCases.filter((c) => c.status === 'Pending' && !c.appealSubmitted)
 
   const needsAction = unpaidFines.length + pendingCases.length + (duesBalance > 0 ? 1 : 0)
 
-
-
   const accept = (eventId: string) => {
 
     setMemberRsvps((prev) => ({ ...prev, [eventId]: 'Going' }))
 
   }
-
-
 
   const startDecline = (event: Event) => {
 
@@ -253,8 +223,6 @@ export default function MemberDashboard() {
 
   }
 
-
-
   const submitDecline = () => {
 
     if (!declineTarget || !excuseReason.trim()) return
@@ -267,21 +235,15 @@ export default function MemberDashboard() {
 
   }
 
-
-
   const displayName = profile.firstName || member.firstName
 
   const initials = profile.avatar || `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
-
-
 
   return (
 
     <div className="min-h-screen pb-24" style={{ background: 'var(--surface-tint)' }}>
 
       <div className="theme-stripe" />
-
-
 
       {/* Chapter Room hero */}
 
@@ -319,8 +281,6 @@ export default function MemberDashboard() {
 
         </div>
 
-
-
         <div className="relative z-10 mt-8">
 
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
@@ -353,8 +313,6 @@ export default function MemberDashboard() {
 
         </div>
 
-
-
         <div className="relative z-10 mt-6 flex gap-px">
 
           {[chapter.primaryColor, chapter.accentColor, chapter.secondaryColor].map((c) => (
@@ -366,8 +324,6 @@ export default function MemberDashboard() {
         </div>
 
       </header>
-
-
 
       <main className="mx-auto max-w-lg px-4 py-6 space-y-8 md:max-w-2xl">
 
@@ -402,8 +358,6 @@ export default function MemberDashboard() {
           ))}
 
         </div>
-
-
 
         {/* Action queue */}
 
@@ -577,8 +531,6 @@ export default function MemberDashboard() {
 
         )}
 
-
-
         {/* Quick access — one tap hub like MCR, cleaner grid */}
 
         <section>
@@ -669,8 +621,6 @@ export default function MemberDashboard() {
 
         </section>
 
-
-
         {/* Today */}
 
         {todayEvents.length > 0 && (
@@ -729,8 +679,6 @@ export default function MemberDashboard() {
 
         )}
 
-
-
         {/* Buzz — announcements feed */}
 
         <section>
@@ -746,8 +694,6 @@ export default function MemberDashboard() {
             </h2>
 
           </div>
-
-
 
           {pinned && (
 
@@ -782,8 +728,6 @@ export default function MemberDashboard() {
             </article>
 
           )}
-
-
 
           <ul className="list-editorial">
             {feed.map((a) => (
@@ -836,8 +780,6 @@ export default function MemberDashboard() {
           </section>
         ))}
 
-
-
         {/* RSVP queue — core MCR calendar + excuse flow, cleaner */}
 
         <section>
@@ -859,8 +801,6 @@ export default function MemberDashboard() {
             </Link>
 
           </div>
-
-
 
           <ul className="space-y-0 divide-y divide-[var(--rule)] border border-[var(--rule)]">
 
@@ -992,8 +932,6 @@ export default function MemberDashboard() {
 
         </section>
 
-
-
         {/* Study hours progress */}
 
         <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
@@ -1060,8 +998,6 @@ export default function MemberDashboard() {
 
       </main>
 
-
-
       {/* Bottom nav */}
 
       <nav
@@ -1117,8 +1053,6 @@ export default function MemberDashboard() {
         </div>
 
       </nav>
-
-
 
       <Modal
 
@@ -1181,5 +1115,4 @@ export default function MemberDashboard() {
   )
 
 }
-
 

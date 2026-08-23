@@ -143,7 +143,7 @@ export function InviteCodesPanel() {
       )}
 
       <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-        Demo codes: CHAPTER-FOUNDER · ATO-MEMBER · ATO-TREASURER
+        Demo codes: CHAPTER-FOUNDER · CHAPTER-MEMBER · CHAPTER-TREASURER
       </p>
     </div>
   )

@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { events as seedEvents } from '../data/mockData'
+import { DEMO_EVENTS as seedEvents } from '../data/mockData'
+import { allowDemoData, EMPTY_BILL_HIGHWAY } from '../lib/demoSeed'
 import {
   SEMESTER_STUDY_HOURS_REQUIRED,
   calendarExtraEvents,
@@ -74,13 +75,14 @@ function seedEventList(): Event[] {
 function readEvents(): Event[] {
   try {
     const raw = localStorage.getItem(EVENTS_KEY)
-    if (!raw) return seedEventList()
-    const stored = JSON.parse(raw) as Event[]
-    if (!Array.isArray(stored) || stored.length === 0) return seedEventList()
-    return stored
+    if (raw) {
+      const stored = JSON.parse(raw) as Event[]
+      if (Array.isArray(stored)) return stored
+    }
   } catch {
-    return seedEventList()
+    /* ignore */
   }
+  return allowDemoData() ? seedEventList() : []
 }
 
 function writeEvents(next: Event[]) {
@@ -93,12 +95,16 @@ function writeEvents(next: Event[]) {
 
 export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(readEvents)
-  const [studyLocations, setStudyLocations] = useState(initialStudyLocations)
-  const [studyLogs, setStudyLogs] = useState(initialStudyLogs)
+  const [studyLocations, setStudyLocations] = useState(() =>
+    allowDemoData() ? initialStudyLocations : []
+  )
+  const [studyLogs, setStudyLogs] = useState(() => (allowDemoData() ? initialStudyLogs : []))
   const [studyHoursRequired, setStudyHoursRequired] = useState(SEMESTER_STUDY_HOURS_REQUIRED)
-  const [duesCharges, setDuesCharges] = useState(initialDuesCharges)
-  const [duesPayments, setDuesPayments] = useState(initialDuesPayments)
-  const [billHighway, setBillHighway] = useState(initialBillHighway)
+  const [duesCharges, setDuesCharges] = useState(() => (allowDemoData() ? initialDuesCharges : []))
+  const [duesPayments, setDuesPayments] = useState(() => (allowDemoData() ? initialDuesPayments : []))
+  const [billHighway, setBillHighway] = useState(() =>
+    allowDemoData() ? initialBillHighway : EMPTY_BILL_HIGHWAY
+  )
 
   const persistEvents = useCallback((updater: (prev: Event[]) => Event[]) => {
     setEvents((prev) => {

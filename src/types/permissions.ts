@@ -15,8 +15,15 @@ export interface UserProfile {
   firstName: string
   lastName: string
   phone: string
+  email?: string
   graduationYear: number
   avatar: string
+  photoUrl?: string
+  major?: string
+  birthday?: string
+  shirtSize?: string
+  emergencyContact?: string
+  emergencyPhone?: string
 }
 
 export interface OnboardingData {
@@ -28,9 +35,11 @@ export interface OnboardingData {
   role: UserRole
   memberId: string
   userId: string
-  inviteCodeId: string
+  inviteCodeId?: string
   /** Demo / collaborator preview session — skip real invite flow */
   isGuest?: boolean
+  /** Joined by creating a profile (no invite) */
+  selfRegistered?: boolean
 }
 
 export interface PermissionFlags {
@@ -63,7 +72,7 @@ const EXEC_OFFICERS: AssignableRole[] = [
 export const ONBOARDING_ROLES: { id: UserRole; label: string }[] = [
   { id: 'President', label: 'President' },
   { id: 'Treasurer', label: 'Treasurer' },
-  { id: 'JBoardChair', label: 'J-Board Chair' },
+  { id: 'JBoardChair', label: 'Standards Chair' },
   { id: 'RecruitmentChair', label: 'Recruitment Chair' },
   { id: 'ScholarshipChair', label: 'Scholarship Chair' },
   { id: 'ActiveMember', label: 'Active Member' },

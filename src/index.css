@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #002147;
-  --secondary: #001a38;
-  --accent: #ffc72c;
-  --accent-raw: #ffc72c;
+  --primary: #1a1a1a;
+  --secondary: #333333;
+  --accent: #c4a35a;
+  --accent-raw: #c4a35a;
   --primary-foreground: #ffffff;
   --accent-foreground: #171717;
   --surface-tint: #f4f2ee;
   --surface-card: #faf9f7;
-  --accent-subtle: rgba(255, 199, 44, 0.14);
-  --primary-subtle: rgba(0, 33, 71, 0.06);
+  --accent-subtle: rgba(196, 163, 90, 0.14);
+  --primary-subtle: rgba(26, 26, 26, 0.06);
   --rule: rgb(0 0 0 / 0.12);
   --ink: #141414;
   --muted: #6b6b6b;
@@ -36,19 +36,25 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
   background: var(--surface-tint);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
-  letter-spacing: 0;
 }
 
 h1,
 h2,
 h3,
-.font-display {
+.font-display,
+.font-serif {
   font-family: var(--font-serif);
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -57,7 +63,8 @@ h3,
 .metric,
 .tag,
 .timestamp,
-.amount {
+.amount,
+.font-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
@@ -71,6 +78,7 @@ h3,
 .theme-stripe {
   height: 2px;
   background: var(--accent);
+  flex-shrink: 0;
 }
 
 .theme-card {
@@ -96,37 +104,6 @@ h3,
   color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.theme-stat-icon {
-  color: var(--primary);
-}
-
-.editorial-rule {
-  border-color: var(--rule);
-}
-
-.ledger-bar {
-  display: grid;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-}
-
-.ledger-cell {
-  padding: 1rem 1.25rem;
-  border-right: 1px solid var(--rule);
-}
-
-.ledger-cell:last-child {
-  border-right: none;
-}
-
-.list-editorial {
-  border-top: 1px solid var(--rule);
-}
-
-.list-editorial > * {
-  border-bottom: 1px solid var(--rule);
 }
 
 .btn-primary {
@@ -176,6 +153,29 @@ h3,
 
 .input-editorial:focus {
   border-color: var(--primary);
+}
+
+.list-editorial {
+  border-top: 1px solid var(--rule);
+}
+
+.list-editorial > * {
+  border-bottom: 1px solid var(--rule);
+}
+
+.ledger-bar {
+  display: grid;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.ledger-cell {
+  padding: 1rem 1.25rem;
+  border-right: 1px solid var(--rule);
+}
+
+.ledger-cell:last-child {
+  border-right: none;
 }
 
 ::-webkit-scrollbar {

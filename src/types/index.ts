@@ -30,10 +30,7 @@ export type {
   LanguagePack,
   OrgTheme,
   OrganizationChapter,
-  ChapterBrandKit,
 } from './theme'
-
-export type { ChapterBrandKit as LegacyChapterBrandKit } from './chapter'
 
 export type MemberStatus = 'Active' | 'New Member' | 'Alumni' | 'Inactive'
 export type DuesStatus = 'Paid' | 'Partially Paid' | 'Outstanding' | 'Overdue'
@@ -72,6 +69,8 @@ export interface Member {
   points: number
   committee?: string
   avatar: string
+  /** Data URL or remote URL for profile photo */
+  photoUrl?: string
 }
 
 export interface Event {
@@ -121,6 +120,9 @@ export interface Prospect {
   interests: string[]
   notes: string
   avatar: string
+  photoUrl?: string
+  templateId?: string
+  customFields?: Record<string, string | boolean | number>
 }
 
 export interface ActivityItem {
@@ -135,19 +137,28 @@ export interface TableColumn {
   id: string
   name: string
   type: 'text' | 'dropdown' | 'checkbox' | 'date' | 'number' | 'member'
+  /** Dropdown options when type is dropdown */
+  options?: string[]
 }
 
 export interface TableRow {
   id: string
+  /** Links row to roster for guest-list sync */
+  memberId?: string
   cells: Record<string, string | boolean | number>
 }
 
-export interface ChapterTable {
+/** Event-linked spreadsheet form (chapter builder style) */
+export interface ChapterTableForm {
   id: string
   name: string
   description: string
+  eventId: string
+  templateId: string
   columns: TableColumn[]
   rows: TableRow[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Alert {

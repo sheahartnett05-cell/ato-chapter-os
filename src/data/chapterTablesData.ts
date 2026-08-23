@@ -1,0 +1,138 @@
+import type { ChapterTableForm } from '../types'
+
+export const DEMO_CHAPTER_TABLES: ChapterTableForm[] = [
+  {
+    id: 't1',
+    name: 'Fall Formal 2025 — Guest & seating',
+    description: 'RSVP, guest names, payment, transportation, and table #.',
+    eventId: 'e5',
+    templateId: 'formal-logistics',
+    columns: [
+      { id: 'member', name: 'Member', type: 'member' },
+      { id: 'rsvp', name: 'RSVP', type: 'dropdown', options: ['Yes', 'No'] },
+      { id: 'guest', name: 'Guest', type: 'text' },
+      { id: 'paid', name: 'Paid', type: 'checkbox' },
+      {
+        id: 'transportation',
+        name: 'Transportation',
+        type: 'dropdown',
+        options: ['', 'Own ride', 'Chapter van', 'Need ride'],
+      },
+      { id: 'table', name: 'Table #', type: 'number' },
+    ],
+    rows: [
+      {
+        id: 'r1',
+        memberId: 'm1',
+        cells: {
+          member: 'Marcus Chen',
+          rsvp: 'Yes',
+          guest: 'Sarah Mitchell',
+          paid: true,
+          transportation: 'Own ride',
+          table: 1,
+        },
+      },
+      {
+        id: 'r2',
+        memberId: 'm2',
+        cells: {
+          member: 'Tyler Brooks',
+          rsvp: 'Yes',
+          guest: '',
+          paid: true,
+          transportation: 'Chapter van',
+          table: 1,
+        },
+      },
+      {
+        id: 'r3',
+        memberId: 'm3',
+        cells: {
+          member: 'Ethan Walsh',
+          rsvp: 'Yes',
+          guest: 'Emily Chen',
+          paid: true,
+          transportation: 'Own ride',
+          table: 2,
+        },
+      },
+      {
+        id: 'r4',
+        memberId: 'm4',
+        cells: {
+          member: 'Jordan Hayes',
+          rsvp: 'Yes',
+          guest: '',
+          paid: true,
+          transportation: 'Chapter van',
+          table: 2,
+        },
+      },
+      {
+        id: 'r5',
+        memberId: 'm5',
+        cells: {
+          member: 'Cameron Foster',
+          rsvp: 'Yes',
+          guest: 'Jessica Torres',
+          paid: false,
+          transportation: 'Need ride',
+          table: 3,
+        },
+      },
+      {
+        id: 'r6',
+        memberId: 'm6',
+        cells: {
+          member: 'Derek Nguyen',
+          rsvp: 'No',
+          guest: '',
+          paid: false,
+          transportation: '',
+          table: 0,
+        },
+      },
+      {
+        id: 'r7',
+        memberId: 'm9',
+        cells: {
+          member: 'Logan Pierce',
+          rsvp: 'Yes',
+          guest: 'Amanda Lee',
+          paid: true,
+          transportation: 'Own ride',
+          table: 3,
+        },
+      },
+    ],
+    createdAt: '2025-08-01T12:00:00.000Z',
+    updatedAt: '2025-08-20T10:00:00.000Z',
+  },
+  {
+    id: 't2',
+    name: 'Fall Recruitment Cookout — Guest list',
+    description: 'Who is coming and any guest notes for the cookout.',
+    eventId: 'e2',
+    templateId: 'guest-list',
+    columns: [
+      { id: 'member', name: 'Member', type: 'member' },
+      {
+        id: 'rsvp',
+        name: 'RSVP',
+        type: 'dropdown',
+        options: ['Yes', 'No', 'Maybe'],
+      },
+      { id: 'guest', name: 'Guest name', type: 'text' },
+      { id: 'notes', name: 'Notes', type: 'text' },
+    ],
+    rows: [
+      { id: 'c1', memberId: 'm1', cells: { member: 'Marcus Chen', rsvp: 'Yes', guest: '', notes: '' } },
+      { id: 'c2', memberId: 'm2', cells: { member: 'Tyler Brooks', rsvp: 'Yes', guest: '', notes: 'Grill lead' } },
+      { id: 'c3', memberId: 'm3', cells: { member: 'Ethan Walsh', rsvp: 'Yes', guest: '', notes: '' } },
+      { id: 'c4', memberId: 'm6', cells: { member: 'Derek Nguyen', rsvp: 'No', guest: '', notes: 'Work conflict' } },
+    ],
+    createdAt: '2025-08-10T09:00:00.000Z',
+    updatedAt: '2025-08-18T14:00:00.000Z',
+  },
+]

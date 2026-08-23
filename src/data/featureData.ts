@@ -1,3 +1,8 @@
+import { isGuestPreviewActive } from '../lib/guestPreview'
+
+function allowDemoData() {
+  return isGuestPreviewActive()
+}
 import type {
 
   Announcement,
@@ -12,9 +17,7 @@ import type {
 
 } from '../types/features'
 
-
-
-export const announcements: Announcement[] = [
+const DEMO_ANNOUNCEMENTS: Announcement[] = [
 
   {
 
@@ -44,7 +47,7 @@ export const announcements: Announcement[] = [
 
     title: 'Fall Formal ticket deadline',
 
-    body: 'Guest tickets close Friday at noon. Venmo @ATO-UWF with your name + guest count.',
+    body: 'Guest tickets close Friday at noon. Venmo the social chair with your name + guest count.',
 
     author: 'Tyler Brooks',
 
@@ -62,7 +65,7 @@ export const announcements: Announcement[] = [
 
     title: 'Scholarship hours due Sunday',
 
-    body: 'Log library hours in Chapter OS before midnight. Scholarship board reviews Monday.',
+    body: 'Log library hours in Agora before midnight. Scholarship board reviews Monday.',
 
     author: 'Ethan Walsh',
 
@@ -148,14 +151,12 @@ export const announcements: Announcement[] = [
 
 ]
 
-
-
-export const execSlides: ExecSlide[] = [
+const DEMO_EXEC_SLIDES: ExecSlide[] = [
   {
     id: 's1',
     position: 'President',
     title: 'Chapter President',
-    description: 'Leads the chapter, sets vision, and represents ATO on campus.',
+    description: 'Leads the chapter, sets vision, and represents the organization on campus.',
     responsibilities: [
       'Run weekly exec meetings',
       'Approve major spending & events',
@@ -244,18 +245,19 @@ export const execSlides: ExecSlide[] = [
   },
 ]
 
-export const chapterPositions: ChapterPosition[] = [
+const DEMO_CHAPTER_POSITIONS: ChapterPosition[] = [
   { id: 'p1', title: 'President', assignedMemberId: 'm1', isCustom: false },
   { id: 'p2', title: 'Vice President', assignedMemberId: 'm2', isCustom: false },
   { id: 'p3', title: 'Treasurer', assignedMemberId: 'm3', isCustom: false },
   { id: 'p4', title: 'Recruitment Chair', assignedMemberId: 'm4', isCustom: false },
   { id: 'p5', title: 'Secretary', isCustom: false },
   { id: 'p6', title: 'Scholarship Chair', isCustom: false },
+  { id: 'p6b', title: 'Standards Chair', isCustom: false },
   { id: 'p7', title: 'Social Chair', assignedMemberId: 'm2', isCustom: false },
   { id: 'p8', title: 'Philanthropy Chair', isCustom: false },
 ]
 
-export const rsvpExcuses: RsvpExcuse[] = [
+const DEMO_RSVP_EXCUSES: RsvpExcuse[] = [
   {
     id: 'ex1',
     eventId: 'e2',
@@ -276,7 +278,7 @@ export const rsvpExcuses: RsvpExcuse[] = [
   },
 ]
 
-export const libraryHours: LibraryHoursEntry[] = [
+const DEMO_LIBRARY_HOURS: LibraryHoursEntry[] = [
   {
     id: 'lh1',
     memberId: 'm5',
@@ -312,3 +314,26 @@ export const libraryHours: LibraryHoursEntry[] = [
     verified: true,
   },
 ]
+
+
+function gateArray<T>(demo: T[]): T[] {
+  return new Proxy([] as T[], {
+    get(_t, prop) {
+      const src = allowDemoData() ? demo : []
+      const v = Reflect.get(src, prop)
+      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(src) : v
+    },
+    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : []),
+    getOwnPropertyDescriptor: (_t, p) =>
+      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : [], p),
+    has: (_t, p) => Reflect.has(allowDemoData() ? demo : [], p),
+  })
+}
+
+export const announcements = gateArray(DEMO_ANNOUNCEMENTS)
+export const execSlides = gateArray(DEMO_EXEC_SLIDES)
+export const chapterPositions = gateArray(DEMO_CHAPTER_POSITIONS)
+export const rsvpExcuses = gateArray(DEMO_RSVP_EXCUSES)
+export const libraryHours = gateArray(DEMO_LIBRARY_HOURS)
+
+export { DEMO_ANNOUNCEMENTS, DEMO_EXEC_SLIDES, DEMO_CHAPTER_POSITIONS }

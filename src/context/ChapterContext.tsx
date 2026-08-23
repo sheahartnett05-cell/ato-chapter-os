@@ -41,6 +41,8 @@ interface ChapterContextValue {
   selectedOrgId: string
   setSelectedOrg: (id: string) => void
   setChapterMeta: (meta: ChapterMeta) => void
+  /** Persist chapter designation / university (president settings) */
+  saveChapterMeta: (meta: ChapterMeta) => void
 }
 
 const ChapterContext = createContext<ChapterContextValue | null>(null)
@@ -67,6 +69,15 @@ function readStoredOrgId(): string {
 }
 
 function readInitialChapterMeta(): ChapterMeta {
+  try {
+    const raw = localStorage.getItem('chapter-os-chapter-meta')
+    if (raw) {
+      const parsed = JSON.parse(raw) as ChapterMeta
+      if (parsed.chapterDesignation || parsed.university) return parsed
+    }
+  } catch {
+    /* ignore */
+  }
   const fromOnboarding = readOnboardingChapterMeta()
   if (fromOnboarding.chapterDesignation || fromOnboarding.university) {
     return fromOnboarding
@@ -113,7 +124,7 @@ function applyThemeCssVariables(org: OrganizationChapter) {
 
   root.setAttribute('data-org', id)
   document.body.style.backgroundColor = lightenHex(primaryColor, 0.96)
-  document.title = `${org.nickname} · ${org.orgName}`
+  document.title = org.id === 'agora' || org.id === 'chapter-os' ? 'Agora' : `${org.nickname} · ${org.orgName}`
 }
 
 export function ChapterProvider({ children }: { children: ReactNode }) {
@@ -141,6 +152,30 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
     setChapterMetaState(meta)
   }, [])
 
+  const saveChapterMeta = useCallback((meta: ChapterMeta) => {
+    setChapterMetaState(meta)
+    try {
+      localStorage.setItem(
+        'chapter-os-chapter-meta',
+        JSON.stringify(meta)
+      )
+      const raw = localStorage.getItem(ONBOARDING_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>
+        localStorage.setItem(
+          ONBOARDING_KEY,
+          JSON.stringify({
+            ...parsed,
+            chapterDesignation: meta.chapterDesignation,
+            university: meta.university,
+          })
+        )
+      }
+    } catch {
+      /* storage unavailable */
+    }
+  }, [])
+
   useEffect(() => {
     applyThemeCssVariables(chapter)
   }, [chapter])
@@ -153,8 +188,9 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
       selectedOrgId: chapter.id,
       setSelectedOrg,
       setChapterMeta,
+      saveChapterMeta,
     }),
-    [chapter, setSelectedOrg, setChapterMeta]
+    [chapter, setSelectedOrg, setChapterMeta, saveChapterMeta]
   )
 
   return (

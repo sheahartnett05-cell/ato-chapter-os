@@ -128,8 +128,8 @@ export const fines: Fine[] = [
 export const committees: Committee[] = [
   {
     id: 'c-jboard',
-    name: 'Judicial Board',
-    description: 'Standards & accountability',
+    name: 'Standards & Accountability',
+    description: 'Conduct, fines, and hearings',
     chairId: 'm2',
     memberIds: ['m1', 'm2', 'm4'],
     isPrivate: true,

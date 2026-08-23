@@ -42,7 +42,7 @@ export const calendarExtraEvents: Event[] = [
     type: 'Education',
     date: '2025-08-27',
     time: '8:00 PM',
-    location: 'ATO Chapter House',
+    location: 'Chapter House',
     description: 'Weekly new member education session.',
     required: true,
     points: 5,
@@ -68,7 +68,7 @@ export const initialStudyLocations: StudyLocation[] = [
   {
     id: 'loc3',
     name: 'Chapter House Study Room',
-    address: 'ATO Chapter House',
+    address: 'Chapter House',
     active: true,
   },
   {
@@ -196,7 +196,7 @@ export const initialDuesPayments: DuesPayment[] = [
 export const initialBillHighway: BillHighwayConfig = {
   enabled: true,
   payUrl: 'https://www.billhighway.co/pay',
-  chapterCode: 'ATO-UWF-EP',
+  chapterCode: 'CHAPTER-DEMO',
   lastSyncedAt: '2025-08-22T18:00:00',
 }
 

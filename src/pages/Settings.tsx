@@ -204,7 +204,9 @@ function JBoardPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] font-semibold uppercase text-neutral-400">J-Board committee</p>
+      <p className="text-[10px] font-semibold uppercase text-neutral-400">
+        Standards committee
+      </p>
       <select
         value={localConfig.standardsChairId}
         onChange={(e) =>
@@ -225,15 +227,18 @@ function JBoardPanel() {
 
       <p className="text-[10px] font-semibold uppercase text-neutral-400">Strike policy</p>
       <ul className="space-y-1 text-sm">
-        {['1st — Warning', '2nd — $25 fine', '3rd — J-Board hearing'].map((line) => (
+        {['1st — Warning', '2nd — $25 fine', '3rd — Standards hearing'].map((line) => (
           <li key={line} className="rounded-xl px-3 py-2 theme-pill-muted">
             {line}
           </li>
         ))}
       </ul>
 
-      <Link to="/judicial-board" className="text-xs font-semibold text-[var(--accent)]">
-        Open J-Board →
+      <Link to="/standards" className="text-xs font-semibold text-[var(--accent)]">
+        Open Standards & Accountability →
+      </Link>
+      <Link to="/standards/setup" className="block text-xs font-semibold text-[var(--ink)]">
+        Configure module wizard →
       </Link>
 
       <button
@@ -259,6 +264,30 @@ function AdminPanel() {
 
   return (
     <div className="space-y-5">
+      <div>
+        <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">
+          Chapter administration
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/chapter-setup"
+            className="theme-pill-active rounded-sm px-4 py-2 text-xs font-semibold"
+          >
+            Assign positions, features & editors
+          </Link>
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            className="theme-pill-muted rounded-sm px-4 py-2 text-xs font-semibold"
+          >
+            Invites & account
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-neutral-500">
+          Edit chapter name, toggle features, seat officers, and choose who can edit each area.
+        </p>
+      </div>
+
       <div>
         <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Onboarding</p>
         <button
@@ -289,7 +318,9 @@ function AdminPanel() {
             <span key={c} className="h-6 flex-1 rounded-lg ring-1 ring-black/5" style={{ backgroundColor: c }} />
           ))}
         </div>
-        <p className="mt-2 text-[10px] text-neutral-400">Switch org via setup wizard</p>
+        <p className="mt-2 text-[10px] text-neutral-400">
+          Brand colors follow the national org selected at onboarding
+        </p>
       </div>
     </div>
   )
@@ -308,6 +339,21 @@ function PositionDashboard() {
     <div className="space-y-6">
       <p className="text-sm font-semibold text-neutral-900">{roleLabel(role)} tools</p>
 
+      {permissions.canAccessAdminSettings && (
+        <section className="rounded-xl border border-black/5 bg-neutral-50 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase text-neutral-400">President</p>
+          <p className="mt-1 text-sm text-neutral-600">
+            Assign officers, edit chapter profile, and manage who can access each tool.
+          </p>
+          <Link
+            to="/chapter-setup"
+            className="mt-3 inline-block text-xs font-semibold text-[var(--accent)]"
+          >
+            Open Chapter Setup →
+          </Link>
+        </section>
+      )}
+
       {permissions.canAccessTreasurerSettings && (
         <section>
           {(role === 'President' || role === 'Treasurer') && (
@@ -324,7 +370,7 @@ function PositionDashboard() {
       {permissions.canAccessJBoardSettings && (
         <section>
           <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
-            Standards / J-Board
+            Standards & Accountability
           </p>
           <JBoardPanel />
         </section>

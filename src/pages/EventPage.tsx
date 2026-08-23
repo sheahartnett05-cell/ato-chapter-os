@@ -19,13 +19,17 @@ import {
 } from '../components/ui/StatusPill'
 import { getMember, rsvps, attendance, CURRENT_MEMBER_ID } from '../data/mockData'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { useChapterTables } from '../context/ChapterTablesContext'
 import { rsvpExcuses } from '../data/featureData'
+import { eventTypeColor } from '../lib/eventColors'
 import type { RsvpExcuse } from '../types/features'
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
   const { events: chapterEvents } = useChapterOps()
+  const { getTableForEvent } = useChapterTables()
   const event = chapterEvents.find((e) => e.id === id)
+  const eventTable = id ? getTableForEvent(id) : undefined
   const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
   const [myRsvp, setMyRsvp] = useState<'Going' | 'Not Going' | null>(() => {
     const existing = rsvps[event?.id ?? '']?.find((r) => r.memberId === CURRENT_MEMBER_ID)
@@ -80,12 +84,12 @@ export default function EventPage() {
   return (
     <>
       <TopBar
-        title={event.name}
-        subtitle={`${event.type} · ${new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`}
+        title="Events"
+        subtitle={`${chapterEvents.length} scheduled · select below`}
         actions={
           <Link
             to="/calendar"
-            className="flex items-center gap-2 rounded-sm border border-black/5 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+            className="flex items-center gap-2 rounded-sm border border-[var(--rule)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-black/[0.02]"
           >
             <ArrowLeft size={16} />
             Calendar
@@ -93,8 +97,77 @@ export default function EventPage() {
         }
       />
 
-      <PageShell>
-        {/* Member RSVP bar */}
+      <PageShell className="space-y-8">
+        {/* All events — top */}
+        <Section
+          title="All events"
+          subtitle="Tap an event to view details below"
+        >
+          <div className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+            {[...chapterEvents]
+              .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+              .map((e) => {
+                const color = eventTypeColor(e.type)
+                const active = e.id === event.id
+                return (
+                  <ListRow key={e.id}>
+                    <Link
+                      to={`/events/${e.id}`}
+                      className={`flex flex-1 items-center gap-4 px-2 py-1 transition ${
+                        active ? 'bg-[var(--primary-subtle)]' : 'hover:bg-black/[0.02]'
+                      }`}
+                    >
+                      <div
+                        className="flex h-10 w-1 shrink-0 self-stretch"
+                        style={{ backgroundColor: color }}
+                        aria-hidden
+                      />
+                      <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center border border-[var(--rule)] bg-[var(--surface-card)] font-mono">
+                        <span className="text-[9px] font-medium uppercase text-[var(--muted)]">
+                          {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', {
+                            month: 'short',
+                          })}
+                        </span>
+                        <span className="text-sm font-bold text-[var(--ink)]">
+                          {new Date(e.date + 'T12:00:00').getDate()}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-[var(--ink)]">{e.name}</p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                          {e.time} · {e.type}
+                        </p>
+                      </div>
+                      <Calendar size={14} className="shrink-0 text-[var(--muted)]" />
+                    </Link>
+                  </ListRow>
+                )
+              })}
+          </div>
+        </Section>
+
+        {/* Selected event details — below */}
+        <Section title="Event details" subtitle={event.name}>
+        <div
+          className="mb-4 flex items-center gap-2 border border-[var(--rule)] px-3 py-2"
+          style={{ borderLeftWidth: 4, borderLeftColor: eventTypeColor(event.type) }}
+        >
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: eventTypeColor(event.type) }}
+          >
+            {event.type}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            ·{' '}
+            {new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
           {(['Going', 'Not Going'] as const).map((status) => (
             <button
@@ -160,12 +233,12 @@ export default function EventPage() {
                 <span className="font-semibold text-neutral-600">{notGoingCount}</span>
               </div>
             </div>
-            {event.name.includes('Formal') && (
+            {eventTable && (
               <Link
-                to="/tables/t1"
+                to={`/tables/${eventTable.id}`}
                 className="mt-4 block rounded-sm bg-accent/10 py-2.5 text-center text-sm font-semibold text-accent"
               >
-                Fall Formal table →
+                {eventTable.name} →
               </Link>
             )}
           </div>
@@ -293,46 +366,6 @@ export default function EventPage() {
                   }))}
           </div>
         </Section>
-
-        <Section
-          title="All events"
-          action={
-            <Link
-              to="/calendar"
-              className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
-            >
-              Calendar
-            </Link>
-          }
-        >
-          <div className="divide-y divide-black/5">
-            {[...chapterEvents]
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .map((e) => (
-              <ListRow key={e.id}>
-                <Link
-                  to={`/events/${e.id}`}
-                  className={`flex flex-1 items-center gap-4 px-2 ${
-                    e.id === event.id ? 'text-accent' : ''
-                  }`}
-                >
-                  <div className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-neutral-100 text-neutral-900">
-                    <span className="text-[9px] font-medium uppercase">
-                      {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' })}
-                    </span>
-                    <span className="text-sm font-bold">
-                      {new Date(e.date + 'T12:00:00').getDate()}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-neutral-900">{e.name}</p>
-                    <p className="text-xs text-neutral-500">{e.time}</p>
-                  </div>
-                  <Calendar size={14} className="text-neutral-300" />
-                </Link>
-              </ListRow>
-            ))}
-          </div>
         </Section>
       </PageShell>
 

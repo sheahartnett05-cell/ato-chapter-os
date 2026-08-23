@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { announcements as seedPosts } from '../data/featureData'
+import { DEMO_ANNOUNCEMENTS as seedPosts } from '../data/featureData'
+import { allowDemoData } from '../lib/demoSeed'
 import { ANNOUNCEMENT_TEMPLATES } from '../data/templateData'
 import type {
   Announcement,
@@ -23,11 +24,13 @@ function normalizePost(p: Announcement): Announcement {
 function readPosts(): Announcement[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedPosts
-    return (JSON.parse(raw) as Announcement[]).map(normalizePost)
+    if (raw) {
+      return (JSON.parse(raw) as Announcement[]).map(normalizePost)
+    }
   } catch {
-    return seedPosts
+    /* ignore */
   }
+  return allowDemoData() ? seedPosts.map(normalizePost) : []
 }
 
 function writePosts(posts: Announcement[]) {

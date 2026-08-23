@@ -13,6 +13,8 @@ import {
   type UserProfile,
   type UserRole,
 } from '../types/permissions'
+import { useChapterFeaturesOptional } from './ChapterFeaturesContext'
+import type { EditorCapabilityId } from '../types/chapterFeatures'
 
 const STORAGE_KEY = 'chapter-os-onboarding'
 
@@ -52,6 +54,7 @@ function writeOnboarding(data: OnboardingData) {
 }
 
 import { markGuestPreview } from '../lib/guestPreview'
+import { clearDemoData } from '../lib/demoSeed'
 
 function clearOnboardingStorage() {
   try {
@@ -59,6 +62,7 @@ function clearOnboardingStorage() {
   } catch {
     /* storage unavailable */
   }
+  clearDemoData()
   markGuestPreview(false)
 }
 
@@ -72,6 +76,8 @@ interface AuthContextValue {
   permissions: PermissionFlags
   completeOnboarding: (data: Omit<OnboardingData, 'completed'>) => void
   updateProfile: (patch: Partial<UserProfile>) => void
+  /** President (or self) can change the signed-in user's role */
+  updateRole: (role: UserRole) => void
   resetOnboarding: () => void
 }
 
@@ -98,6 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const updateRole = useCallback((role: UserRole) => {
+    setOnboarding((prev) => {
+      if (!prev) return prev
+      const next = { ...prev, role }
+      writeOnboarding(next)
+      return next
+    })
+  }, [])
+
   const resetOnboarding = useCallback(() => {
     clearOnboardingStorage()
     setOnboarding(null)
@@ -119,9 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions,
       completeOnboarding,
       updateProfile,
+      updateRole,
       resetOnboarding,
     }
-  }, [onboarding, completeOnboarding, updateProfile, resetOnboarding])
+  }, [onboarding, completeOnboarding, updateProfile, updateRole, resetOnboarding])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
@@ -132,7 +148,66 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-/** Boolean capability flags for the active user's role */
+/** Boolean capability flags for the active user's role, plus president-assigned editors */
 export function usePermissions(): PermissionFlags {
-  return useAuth().permissions
+  const { permissions, memberId, role } = useAuth()
+  const features = useChapterFeaturesOptional()
+
+  if (role === 'President' || !memberId || !features) return permissions
+
+  const { canMemberEdit, isFeatureEnabled } = features
+
+  const or = (flag: boolean, capability: EditorCapabilityId, featureOk = true) =>
+    flag || (featureOk && canMemberEdit(capability, memberId))
+
+  return {
+    ...permissions,
+    canPostAnnouncements: or(
+      permissions.canPostAnnouncements,
+      'editAnnouncements',
+      isFeatureEnabled('announcements')
+    ),
+    canManageRoster: or(permissions.canManageRoster, 'editRoster', isFeatureEnabled('roster')),
+    canManageRecruitment: or(
+      permissions.canManageRecruitment,
+      'editRecruitment',
+      isFeatureEnabled('recruitment')
+    ),
+    canViewJBoardCases: or(
+      permissions.canViewJBoardCases,
+      'editStandards',
+      isFeatureEnabled('standards')
+    ),
+    canAccessJBoardSettings: or(
+      permissions.canAccessJBoardSettings,
+      'editStandards',
+      isFeatureEnabled('standards')
+    ),
+    canManageFines:
+      or(permissions.canManageFines, 'editStandards', isFeatureEnabled('standards')) ||
+      or(permissions.canManageFines, 'editDues', isFeatureEnabled('dues')),
+    canAccessTreasurerSettings: or(
+      permissions.canAccessTreasurerSettings,
+      'editDues',
+      isFeatureEnabled('dues')
+    ),
+    canManageStudyLocations: or(
+      permissions.canManageStudyLocations,
+      'editStudyHours',
+      isFeatureEnabled('studyHours')
+    ),
+    canVerifyStudyHours: or(
+      permissions.canVerifyStudyHours,
+      'editStudyHours',
+      isFeatureEnabled('studyHours')
+    ),
+    canAccessExecTools:
+      permissions.canAccessExecTools ||
+      canMemberEdit('editCalendar', memberId) ||
+      canMemberEdit('editHouse', memberId) ||
+      canMemberEdit('editTables', memberId),
+    canAccessAdminSettings:
+      permissions.canAccessAdminSettings || canMemberEdit('editChapterSetup', memberId),
+    canManageInvites: or(permissions.canManageInvites, 'manageInvites'),
+  }
 }

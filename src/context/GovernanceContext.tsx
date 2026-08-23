@@ -17,6 +17,7 @@ import {
   CURRENT_EXEC_ID,
   canViewAllCases,
 } from '../data/governanceData'
+import { allowDemoData } from '../lib/demoSeed'
 import type {
   Committee,
   CommitteeTask,
@@ -51,12 +52,16 @@ interface GovernanceContextValue {
 const GovernanceContext = createContext<GovernanceContextValue | null>(null)
 
 export function GovernanceProvider({ children }: { children: ReactNode }) {
-  const [cases, setCases] = useState(initialCases)
-  const [finesList, setFinesList] = useState(initialFines)
-  const [committees] = useState(initialCommittees)
-  const [announcements, setAnnouncements] = useState(initialAnnouncements)
-  const [tasks] = useState(initialTasks)
-  const [fineSchedule, setFineSchedule] = useState(initialFineSchedule)
+  const [cases, setCases] = useState(() => (allowDemoData() ? initialCases : []))
+  const [finesList, setFinesList] = useState(() => (allowDemoData() ? initialFines : []))
+  const [committees] = useState(() => (allowDemoData() ? initialCommittees : []))
+  const [announcements, setAnnouncements] = useState(() =>
+    allowDemoData() ? initialAnnouncements : []
+  )
+  const [tasks] = useState(() => (allowDemoData() ? initialTasks : []))
+  const [fineSchedule, setFineSchedule] = useState(() =>
+    allowDemoData() ? initialFineSchedule : []
+  )
   const [config, setConfig] = useState(initialConfig)
 
   const viewerId = CURRENT_EXEC_ID

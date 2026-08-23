@@ -138,12 +138,12 @@ function mkMgc(
 }
 
 const FRATERNITIES: NationalOrg[] = [
-  mkFrat('ato', 'Alpha Tau Omega', 'ATO', 'ΑΤΩ', ['#002147', '#001a38', '#FFC72C']),
   mkFrat('alpha-delta-phi', 'Alpha Delta Phi', 'ADPhi', 'ΑΔΦ', ['#003087', '#FFD700', '#FFFFFF']),
   mkFrat('alpha-epsilon-pi', 'Alpha Epsilon Pi', 'AEPi', 'ΑΕΠ', ['#003087', '#FFD700', '#FFFFFF']),
   mkFrat('alpha-gamma-rho', 'Alpha Gamma Rho', 'AGR', 'ΑΓΡ', ['#003087', '#FFD700', '#FFFFFF']),
   mkFrat('alpha-kappa-lambda', 'Alpha Kappa Lambda', 'AKL', 'ΑΚΛ', ['#8B0000', '#FFD700', '#FFFFFF']),
   mkFrat('alpha-sigma-phi', 'Alpha Sigma Phi', 'Alpha Sig', 'ΑΣΦ', ['#8B0000', '#FFD700', '#FFFFFF']),
+  mkFrat('ato', 'Alpha Tau Omega', 'ATO', 'ΑΤΩ', ['#002147', '#001a38', '#FFC72C']),
   mkFrat('beta-chi-theta', 'Beta Chi Theta', 'Beta Chi', 'ΒΧΘ', ['#003087', '#FFFFFF', '#FFD700']),
   mkFrat('beta-theta-pi', 'Beta Theta Pi', 'Beta', 'ΒΘΠ', ['#8B0000', '#5c0000', '#FFFFFF']),
   mkFrat('chi-phi', 'Chi Phi', 'Chi Phi', 'ΧΦ', ['#8B0000', '#FFD700', '#FFFFFF']),
@@ -235,15 +235,34 @@ const MGC_ORGS: NationalOrg[] = [
   mkMgc('kappa-delta-chi', 'Kappa Delta Chi', 'KDChi', 'ΚΔΧ', ['#003087', '#FFD700', '#FFFFFF']),
 ]
 
+/** Neutral product brand — landing / preview before a chapter selects their org */
+export const AGORA_PRODUCT: NationalOrg = {
+  id: 'agora',
+  orgName: 'Agora',
+  nickname: 'Agora',
+  letters: 'AG',
+  category: 'fraternity',
+  orgType: 'IFC',
+  primaryColor: '#1a1a1a',
+  secondaryColor: '#333333',
+  accentColor: '#c4a35a',
+  languagePack: FRAT_LANG,
+}
+
 /** Deduplicated by id — national fraternity & sorority directory */
 export const NATIONAL_ORGS: NationalOrg[] = [
+  AGORA_PRODUCT,
   ...FRATERNITIES.filter((o, i, arr) => arr.findIndex((x) => x.id === o.id) === i),
   ...SORORITIES,
   ...NPHC_ORGS,
   ...MGC_ORGS,
-].sort((a, b) => a.orgName.localeCompare(b.orgName))
+].sort((a, b) => {
+  if (a.id === 'agora') return -1
+  if (b.id === 'agora') return 1
+  return a.orgName.localeCompare(b.orgName)
+})
 
-export const DEFAULT_ORG_ID = 'ato'
+export const DEFAULT_ORG_ID = 'agora'
 
 export const ORG_CATEGORIES: { id: OrgCategory; label: string }[] = [
   { id: 'fraternity', label: 'Fraternities' },
@@ -253,7 +272,7 @@ export const ORG_CATEGORIES: { id: OrgCategory; label: string }[] = [
 ]
 
 export function orgsInCategory(category: OrgCategory): NationalOrg[] {
-  return NATIONAL_ORGS.filter((o) => o.category === category)
+  return NATIONAL_ORGS.filter((o) => o.category === category && o.id !== 'agora')
 }
 
 export function getNationalOrgById(id: string): NationalOrg | undefined {
@@ -262,6 +281,7 @@ export function getNationalOrgById(id: string): NationalOrg | undefined {
 }
 
 const LEGACY_ORG_IDS: Record<string, string> = {
+  'chapter-os': 'agora',
   'ato-uwf': 'ato',
   'zta-uf': 'zeta-tau-alpha',
   'ks-uab': 'kappa-sigma',

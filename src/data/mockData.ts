@@ -2,7 +2,6 @@ import type {
   ActivityItem,
   Alert,
   AttendanceEntry,
-  ChapterTable,
   Event,
   Member,
   Prospect,
@@ -10,17 +9,17 @@ import type {
 } from '../types'
 
 export const CHAPTER = {
-  name: 'Alpha Tau Omega',
-  school: 'University of West Florida',
+  name: 'Demo Chapter',
+  school: 'Demo University',
   semester: 'Fall 2025',
 }
 
-export const members: Member[] = [
+const DEMO_MEMBERS: Member[] = [
   {
     id: 'm1',
     firstName: 'Marcus',
     lastName: 'Chen',
-    email: 'mchen@students.uwf.edu',
+    email: 'mchen@students.demo.edu',
     phone: '(850) 555-0142',
     major: 'Finance',
     graduationYear: 2026,
@@ -46,7 +45,7 @@ export const members: Member[] = [
     id: 'm2',
     firstName: 'Tyler',
     lastName: 'Brooks',
-    email: 'tbrooks@students.uwf.edu',
+    email: 'tbrooks@students.demo.edu',
     phone: '(850) 555-0178',
     major: 'Marketing',
     graduationYear: 2027,
@@ -72,7 +71,7 @@ export const members: Member[] = [
     id: 'm3',
     firstName: 'Ethan',
     lastName: 'Walsh',
-    email: 'ewalsh@students.uwf.edu',
+    email: 'ewalsh@students.demo.edu',
     phone: '(850) 555-0231',
     major: 'Accounting',
     graduationYear: 2026,
@@ -98,7 +97,7 @@ export const members: Member[] = [
     id: 'm4',
     firstName: 'Jordan',
     lastName: 'Hayes',
-    email: 'jhayes@students.uwf.edu',
+    email: 'jhayes@students.demo.edu',
     phone: '(850) 555-0299',
     major: 'Computer Science',
     graduationYear: 2027,
@@ -124,7 +123,7 @@ export const members: Member[] = [
     id: 'm5',
     firstName: 'Cameron',
     lastName: 'Foster',
-    email: 'cfoster@students.uwf.edu',
+    email: 'cfoster@students.demo.edu',
     phone: '(850) 555-0312',
     major: 'Biology',
     graduationYear: 2026,
@@ -149,7 +148,7 @@ export const members: Member[] = [
     id: 'm6',
     firstName: 'Derek',
     lastName: 'Nguyen',
-    email: 'dnguyen@students.uwf.edu',
+    email: 'dnguyen@students.demo.edu',
     phone: '(850) 555-0345',
     major: 'Mechanical Engineering',
     graduationYear: 2027,
@@ -172,7 +171,7 @@ export const members: Member[] = [
     id: 'm7',
     firstName: 'Austin',
     lastName: 'Reeves',
-    email: 'areeves@students.uwf.edu',
+    email: 'areeves@students.demo.edu',
     phone: '(850) 555-0389',
     major: 'Criminal Justice',
     graduationYear: 2028,
@@ -195,7 +194,7 @@ export const members: Member[] = [
     id: 'm8',
     firstName: 'Brandon',
     lastName: 'Sullivan',
-    email: 'bsullivan@students.uwf.edu',
+    email: 'bsullivan@students.demo.edu',
     phone: '(850) 555-0412',
     major: 'Communications',
     graduationYear: 2026,
@@ -218,7 +217,7 @@ export const members: Member[] = [
     id: 'm9',
     firstName: 'Logan',
     lastName: 'Pierce',
-    email: 'lpierce@students.uwf.edu',
+    email: 'lpierce@students.demo.edu',
     phone: '(850) 555-0456',
     major: 'Economics',
     graduationYear: 2027,
@@ -242,7 +241,7 @@ export const members: Member[] = [
     id: 'm10',
     firstName: 'Ryan',
     lastName: 'Patterson',
-    email: 'rpatterson@alumni.uwf.edu',
+    email: 'rpatterson@alumni.demo.edu',
     phone: '(850) 555-0500',
     major: 'Business Administration',
     graduationYear: 2024,
@@ -262,14 +261,14 @@ export const members: Member[] = [
   },
 ]
 
-export const events: Event[] = [
+const DEMO_EVENTS: Event[] = [
   {
     id: 'e1',
     name: 'Weekly Chapter Meeting',
     type: 'Chapter',
     date: '2025-08-25',
     time: '7:00 PM',
-    location: 'ATO Chapter House — Main Room',
+    location: 'Chapter House — Main Room',
     description:
       'Weekly business meeting covering dues updates, upcoming events, and committee reports. Attendance required for all active members.',
     required: true,
@@ -284,12 +283,12 @@ export const events: Event[] = [
     type: 'Recruitment',
     date: '2025-08-28',
     time: '5:30 PM',
-    location: 'ATO Chapter House — Back Lawn',
+    location: 'Chapter House — Back Lawn',
     description:
       'Kickoff recruitment event with burgers, yard games, and chapter tours. All brothers expected to attend and engage with PNMs.',
     required: true,
     points: 10,
-    dressCode: 'ATO Polo + Khakis',
+    dressCode: 'Chapter polo + khakis',
     rsvpRequired: true,
     guestAllowed: true,
   },
@@ -344,7 +343,7 @@ export const events: Event[] = [
     type: 'Executive',
     date: '2025-08-24',
     time: '6:00 PM',
-    location: 'ATO Chapter House — Conference Room',
+    location: 'Chapter House — Conference Room',
     description: 'Pre-semester executive planning session. Exec-only attendance.',
     required: true,
     points: 0,
@@ -354,7 +353,7 @@ export const events: Event[] = [
   },
 ]
 
-export const rsvps: Record<string, RsvpEntry[]> = {
+const DEMO_RSVPS: Record<string, RsvpEntry[]> = {
   e2: [
     { memberId: 'm1', status: 'Going' },
     { memberId: 'm2', status: 'Going' },
@@ -377,7 +376,7 @@ export const rsvps: Record<string, RsvpEntry[]> = {
   ],
 }
 
-export const attendance: Record<string, AttendanceEntry[]> = {
+const DEMO_ATTENDANCE: Record<string, AttendanceEntry[]> = {
   e1: [
     { memberId: 'm1', status: 'Present', pointsEarned: 5 },
     { memberId: 'm2', status: 'Present', pointsEarned: 5 },
@@ -391,7 +390,7 @@ export const attendance: Record<string, AttendanceEntry[]> = {
   ],
 }
 
-export const prospects: Prospect[] = [
+const DEMO_PROSPECTS: Prospect[] = [
   {
     id: 'p1',
     firstName: 'James',
@@ -402,7 +401,7 @@ export const prospects: Prospect[] = [
     major: 'Finance',
     graduationYear: 2028,
     phone: '(850) 555-1201',
-    email: 'jwhitfield@students.uwf.edu',
+    email: 'jwhitfield@students.demo.edu',
     instagram: '@jwhitfield_uwf',
     hometown: 'Mobile, AL',
     source: 'Member Referral',
@@ -423,7 +422,7 @@ export const prospects: Prospect[] = [
     major: 'Computer Science',
     graduationYear: 2028,
     phone: '(850) 555-1202',
-    email: 'cmatthews@students.uwf.edu',
+    email: 'cmatthews@students.demo.edu',
     instagram: '@connor_codes',
     hometown: 'Pensacola, FL',
     source: 'Rush Event',
@@ -443,7 +442,7 @@ export const prospects: Prospect[] = [
     major: 'Marketing',
     graduationYear: 2029,
     phone: '(850) 555-1203',
-    email: 'mcaldwell@students.uwf.edu',
+    email: 'mcaldwell@students.demo.edu',
     instagram: '@mason_caldwell',
     hometown: 'Destin, FL',
     source: 'Instagram',
@@ -463,7 +462,7 @@ export const prospects: Prospect[] = [
     major: 'Mechanical Engineering',
     graduationYear: 2028,
     phone: '(850) 555-1204',
-    email: 'hreynolds@students.uwf.edu',
+    email: 'hreynolds@students.demo.edu',
     instagram: '@hunter_reynolds',
     hometown: 'Birmingham, AL',
     source: 'IFC',
@@ -483,7 +482,7 @@ export const prospects: Prospect[] = [
     major: 'Pre-Law',
     graduationYear: 2027,
     phone: '(850) 555-1205',
-    email: 'ncross@students.uwf.edu',
+    email: 'ncross@students.demo.edu',
     instagram: '@nathan_cross',
     hometown: 'Tallahassee, FL',
     source: 'Member Referral',
@@ -503,7 +502,7 @@ export const prospects: Prospect[] = [
     major: 'Accounting',
     graduationYear: 2028,
     phone: '(850) 555-1206',
-    email: 'gsimmons@students.uwf.edu',
+    email: 'gsimmons@students.demo.edu',
     instagram: '@garrett_simmons',
     hometown: 'Fort Walton Beach, FL',
     source: 'Rush Event',
@@ -523,7 +522,7 @@ export const prospects: Prospect[] = [
     major: 'Business Administration',
     graduationYear: 2028,
     phone: '(850) 555-1207',
-    email: 'cbennett@students.uwf.edu',
+    email: 'cbennett@students.demo.edu',
     instagram: '@cole_bennett',
     hometown: 'Panama City, FL',
     source: 'Member Referral',
@@ -543,7 +542,7 @@ export const prospects: Prospect[] = [
     major: 'Kinesiology',
     graduationYear: 2028,
     phone: '(850) 555-1208',
-    email: 'darcher@students.uwf.edu',
+    email: 'darcher@students.demo.edu',
     instagram: '@dylan_archer',
     hometown: 'Gulf Breeze, FL',
     source: 'Rush Event',
@@ -555,7 +554,7 @@ export const prospects: Prospect[] = [
   },
 ]
 
-export const pnmActivities: Record<string, ActivityItem[]> = {
+const DEMO_PNM_ACTIVITIES: Record<string, ActivityItem[]> = {
   p1: [
     {
       id: 'a1',
@@ -604,100 +603,7 @@ export const pnmActivities: Record<string, ActivityItem[]> = {
   ],
 }
 
-export const fallFormalTable: ChapterTable = {
-  id: 't1',
-  name: 'Fall Formal 2025',
-  description: 'RSVP, guest, payment, and seating logistics for Fall Formal.',
-  columns: [
-    { id: 'member', name: 'Member', type: 'member' },
-    { id: 'rsvp', name: 'RSVP', type: 'dropdown' },
-    { id: 'guest', name: 'Guest', type: 'text' },
-    { id: 'paid', name: 'Paid', type: 'checkbox' },
-    { id: 'transportation', name: 'Transportation', type: 'dropdown' },
-    { id: 'table', name: 'Table #', type: 'number' },
-  ],
-  rows: [
-    {
-      id: 'r1',
-      cells: {
-        member: 'Marcus Chen',
-        rsvp: 'Yes',
-        guest: 'Sarah Mitchell',
-        paid: true,
-        transportation: 'Own ride',
-        table: 1,
-      },
-    },
-    {
-      id: 'r2',
-      cells: {
-        member: 'Tyler Brooks',
-        rsvp: 'Yes',
-        guest: '',
-        paid: true,
-        transportation: 'Chapter van',
-        table: 1,
-      },
-    },
-    {
-      id: 'r3',
-      cells: {
-        member: 'Ethan Walsh',
-        rsvp: 'Yes',
-        guest: 'Emily Chen',
-        paid: true,
-        transportation: 'Own ride',
-        table: 2,
-      },
-    },
-    {
-      id: 'r4',
-      cells: {
-        member: 'Jordan Hayes',
-        rsvp: 'Yes',
-        guest: '',
-        paid: true,
-        transportation: 'Chapter van',
-        table: 2,
-      },
-    },
-    {
-      id: 'r5',
-      cells: {
-        member: 'Cameron Foster',
-        rsvp: 'Yes',
-        guest: 'Jessica Torres',
-        paid: false,
-        transportation: 'Need ride',
-        table: 3,
-      },
-    },
-    {
-      id: 'r6',
-      cells: {
-        member: 'Derek Nguyen',
-        rsvp: 'No',
-        guest: '',
-        paid: false,
-        transportation: '',
-        table: 0,
-      },
-    },
-    {
-      id: 'r7',
-      cells: {
-        member: 'Logan Pierce',
-        rsvp: 'Yes',
-        guest: 'Amanda Lee',
-        paid: true,
-        transportation: 'Own ride',
-        table: 3,
-      },
-    },
-  ],
-}
-
-export const alerts: Alert[] = [
+const DEMO_ALERTS: Alert[] = [
   {
     id: 'al1',
     type: 'dues',
@@ -731,7 +637,7 @@ export const alerts: Alert[] = [
   },
 ]
 
-export const chapterHealth = [
+const DEMO_CHAPTER_HEALTH = [
   { label: 'Recruitment', score: 82, trend: '+12%' },
   { label: 'Finances', score: 71, trend: '-3%' },
   { label: 'Attendance', score: 84, trend: '+5%' },
@@ -752,15 +658,76 @@ export const PIPELINE_STAGES = [
 ] as const
 
 export function getMember(id: string): Member | undefined {
-  return members.find((m) => m.id === id)
+  return liveMembers().find((m) => m.id === id)
 }
 
 export function getEvent(id: string): Event | undefined {
-  return events.find((e) => e.id === id)
+  return liveEvents().find((e) => e.id === id)
 }
 
 export function getProspect(id: string): Prospect | undefined {
-  return prospects.find((p) => p.id === id)
+  return liveProspects().find((p) => p.id === id)
 }
 
-export const CURRENT_MEMBER_ID = 'm5' // Cameron Foster — regular member demo view
+import { isGuestPreviewActive } from '../lib/guestPreview'
+
+function allowDemoData() {
+  return isGuestPreviewActive()
+}
+
+
+
+function liveMembers() {
+  return allowDemoData() ? DEMO_MEMBERS : []
+}
+function liveEvents() {
+  return allowDemoData() ? DEMO_EVENTS : []
+}
+function liveProspects() {
+  return allowDemoData() ? DEMO_PROSPECTS : []
+}
+
+function gateArray<T>(demo: T[]): T[] {
+  return new Proxy([] as T[], {
+    get(_t, prop) {
+      const src = allowDemoData() ? demo : []
+      const v = Reflect.get(src, prop)
+      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(src) : v
+    },
+    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : []),
+    getOwnPropertyDescriptor: (_t, p) =>
+      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : [], p),
+    has: (_t, p) => Reflect.has(allowDemoData() ? demo : [], p),
+  })
+}
+
+function gateRecord<T extends object>(demo: T, empty: T): T {
+  return new Proxy(empty, {
+    get(_t, prop) {
+      return Reflect.get(allowDemoData() ? demo : empty, prop)
+    },
+    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : empty),
+    getOwnPropertyDescriptor: (_t, p) =>
+      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : empty, p),
+    has: (_t, p) => Reflect.has(allowDemoData() ? demo : empty, p),
+  }) as T
+}
+
+export const members = gateArray(DEMO_MEMBERS)
+export const events = gateArray(DEMO_EVENTS)
+export const prospects = gateArray(DEMO_PROSPECTS)
+export const alerts = gateArray(DEMO_ALERTS)
+export const rsvps = gateRecord(DEMO_RSVPS, {} as typeof DEMO_RSVPS)
+export const attendance = gateRecord(DEMO_ATTENDANCE, {} as typeof DEMO_ATTENDANCE)
+export const pnmActivities = gateRecord(DEMO_PNM_ACTIVITIES, {} as typeof DEMO_PNM_ACTIVITIES)
+export const chapterHealth = allowDemoData() ? DEMO_CHAPTER_HEALTH : []
+
+export {
+  DEMO_MEMBERS,
+  DEMO_EVENTS,
+  DEMO_PROSPECTS,
+  DEMO_PNM_ACTIVITIES,
+  DEMO_ALERTS,
+}
+
+export const CURRENT_MEMBER_ID = 'm5'

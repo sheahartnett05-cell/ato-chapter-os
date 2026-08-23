@@ -22,6 +22,7 @@ export function isLightColor(hex: string): boolean {
 }
 
 export function contrastText(hex: string): '#ffffff' | '#171717' {
+  if (!hex || !hex.startsWith('#')) return '#ffffff'
   return isLightColor(hex) ? '#171717' : '#ffffff'
 }
 

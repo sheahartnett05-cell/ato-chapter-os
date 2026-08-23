@@ -4,6 +4,8 @@ import { ArrowLeft, Mail, Phone, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
+import { PhotoUpload } from '../components/ui/PhotoUpload'
+import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { roleLabel } from '../types/permissions'
 import {
   StatusPill,
@@ -28,7 +30,8 @@ export default function MyProfile() {
   }
 
   const displayName = `${profile.firstName} ${profile.lastName}`.trim() || 'Member'
-  const initials = profile.avatar || displayName.slice(0, 2).toUpperCase()
+  const initials =
+    profile.avatar || `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase()
 
   return (
     <div className="min-h-screen pb-12" style={{ background: 'var(--surface-tint)' }}>
@@ -47,12 +50,22 @@ export default function MyProfile() {
         </div>
 
         <div className="mt-6 flex items-end gap-4">
-          <div
-            className="flex h-16 w-16 items-center justify-center font-serif text-xl text-white"
-            style={{ backgroundColor: chapter.primaryColor }}
-          >
-            {initials}
-          </div>
+          {editing ? (
+            <PhotoUpload
+              value={local.photoUrl}
+              initials={initials}
+              onChange={(url) => setLocal({ ...local, photoUrl: url })}
+              size="lg"
+              accentColor={chapter.primaryColor}
+            />
+          ) : (
+            <MemberAvatar
+              photoUrl={profile.photoUrl}
+              initials={initials}
+              size="lg"
+              accentColor={chapter.primaryColor}
+            />
+          )}
           <div>
             <h1 className="font-serif text-3xl tracking-tight text-white">{displayName}</h1>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">
@@ -62,7 +75,7 @@ export default function MyProfile() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-6 space-y-5">
+      <main className="mx-auto max-w-lg space-y-5 px-4 py-6">
         {member && (
           <div className="flex flex-wrap gap-2">
             <StatusPill label={member.status} variant={memberStatusVariant(member.status)} />
@@ -77,7 +90,7 @@ export default function MyProfile() {
         <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
           <div className="mb-4 flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              Contact
+              Your profile
             </p>
             {!editing ? (
               <button
@@ -91,7 +104,7 @@ export default function MyProfile() {
                 Edit
               </button>
             ) : (
-              <button type="button" onClick={save} className="btn-primary text-xs py-1.5 px-3">
+              <button type="button" onClick={save} className="btn-primary px-3 py-1.5 text-xs">
                 Save
               </button>
             )}
@@ -114,10 +127,23 @@ export default function MyProfile() {
                 />
               </div>
               <input
+                type="email"
+                value={local.email ?? ''}
+                onChange={(e) => setLocal({ ...local, email: e.target.value })}
+                className="input-editorial"
+                placeholder="Email"
+              />
+              <input
                 value={local.phone}
                 onChange={(e) => setLocal({ ...local, phone: e.target.value })}
                 className="input-editorial"
                 placeholder="Phone"
+              />
+              <input
+                value={local.major ?? ''}
+                onChange={(e) => setLocal({ ...local, major: e.target.value })}
+                className="input-editorial"
+                placeholder="Major"
               />
               <input
                 type="number"
@@ -126,6 +152,36 @@ export default function MyProfile() {
                   setLocal({ ...local, graduationYear: Number(e.target.value) })
                 }
                 className="input-editorial font-mono"
+                placeholder="Grad year"
+              />
+              <input
+                type="date"
+                value={local.birthday ?? ''}
+                onChange={(e) => setLocal({ ...local, birthday: e.target.value })}
+                className="input-editorial"
+              />
+              <select
+                value={local.shirtSize ?? 'M'}
+                onChange={(e) => setLocal({ ...local, shirtSize: e.target.value })}
+                className="input-editorial w-full"
+              >
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={local.emergencyContact ?? ''}
+                onChange={(e) => setLocal({ ...local, emergencyContact: e.target.value })}
+                className="input-editorial"
+                placeholder="Emergency contact name"
+              />
+              <input
+                value={local.emergencyPhone ?? ''}
+                onChange={(e) => setLocal({ ...local, emergencyPhone: e.target.value })}
+                className="input-editorial"
+                placeholder="Emergency contact phone"
               />
             </div>
           ) : (
@@ -134,15 +190,31 @@ export default function MyProfile() {
                 <Phone size={14} className="text-[var(--muted)]" />
                 {profile.phone || '—'}
               </li>
-              {member?.email && (
-                <li className="flex items-center gap-2">
-                  <Mail size={14} className="text-[var(--muted)]" />
-                  {member.email}
-                </li>
-              )}
+              <li className="flex items-center gap-2">
+                <Mail size={14} className="text-[var(--muted)]" />
+                {profile.email || member?.email || '—'}
+              </li>
+              <li>
+                <span className="text-[var(--muted)]">Major </span>
+                {profile.major || member?.major || '—'}
+              </li>
               <li className="font-mono text-xs text-[var(--muted)]">
                 Class of {profile.graduationYear}
               </li>
+              {profile.birthday && (
+                <li className="text-[var(--muted)]">
+                  Birthday {new Date(profile.birthday + 'T12:00:00').toLocaleDateString()}
+                </li>
+              )}
+              {profile.shirtSize && (
+                <li className="text-[var(--muted)]">Shirt size {profile.shirtSize}</li>
+              )}
+              {profile.emergencyContact && (
+                <li className="text-[var(--muted)]">
+                  Emergency: {profile.emergencyContact}
+                  {profile.emergencyPhone ? ` · ${profile.emergencyPhone}` : ''}
+                </li>
+              )}
             </ul>
           )}
         </section>
@@ -153,10 +225,6 @@ export default function MyProfile() {
               Chapter record
             </p>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <dt className="text-[var(--muted)]">Major</dt>
-                <dd className="font-medium">{member.major}</dd>
-              </div>
               <div>
                 <dt className="text-[var(--muted)]">Pledge class</dt>
                 <dd className="font-medium">{member.pledgeClass}</dd>
