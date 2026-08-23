@@ -51,12 +51,15 @@ function writeOnboarding(data: OnboardingData) {
   }
 }
 
+import { markGuestPreview } from '../lib/guestPreview'
+
 function clearOnboardingStorage() {
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch {
     /* storage unavailable */
   }
+  markGuestPreview(false)
 }
 
 interface AuthContextValue {

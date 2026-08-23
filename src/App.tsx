@@ -5,7 +5,7 @@ import { GovernanceProvider } from './context/GovernanceContext'
 import { MembersProvider } from './context/MembersContext'
 import { ChapterOpsProvider } from './context/ChapterOpsContext'
 import { CommunicationsProvider } from './context/CommunicationsContext'
-import { OnboardingPage, RootRedirect } from './components/routing/OnboardingPage'
+import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
 import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
 import ExecutiveDashboard from './pages/ExecutiveDashboard'
 import MemberManagement from './pages/MemberManagement'
@@ -39,6 +39,8 @@ export default function App() {
             <ChapterOpsProvider>
               <BrowserRouter>
               <Routes>
+                <Route path="/preview" element={<PreviewPage />} />
+                <Route path="/login" element={<PreviewPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/" element={<RootRedirect />} />
 

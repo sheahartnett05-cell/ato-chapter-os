@@ -582,6 +582,22 @@ export default function Onboarding() {
 
                 </p>
 
+                <p className="pt-3">
+
+                  <a
+
+                    href="/preview"
+
+                    className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline-offset-2 hover:underline"
+
+                  >
+
+                    Or continue as guest preview →
+
+                  </a>
+
+                </p>
+
               </div>
 
             )}

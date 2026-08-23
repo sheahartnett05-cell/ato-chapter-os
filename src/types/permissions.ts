@@ -29,6 +29,8 @@ export interface OnboardingData {
   memberId: string
   userId: string
   inviteCodeId: string
+  /** Demo / collaborator preview session — skip real invite flow */
+  isGuest?: boolean
 }
 
 export interface PermissionFlags {
