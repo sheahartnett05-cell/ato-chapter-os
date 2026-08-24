@@ -136,7 +136,7 @@ export interface ActivityItem {
 export interface TableColumn {
   id: string
   name: string
-  type: 'text' | 'dropdown' | 'checkbox' | 'date' | 'number' | 'member'
+  type: 'text' | 'dropdown' | 'checkbox' | 'date' | 'number' | 'member' | 'signature'
   /** Dropdown options when type is dropdown */
   options?: string[]
 }
@@ -148,6 +148,9 @@ export interface TableRow {
   cells: Record<string, string | boolean | number>
 }
 
+/** Spreadsheet grid vs member signature sign-off sheet */
+export type FormKind = 'spreadsheet' | 'signature'
+
 /** Event-linked spreadsheet form (chapter builder style) */
 export interface ChapterTableForm {
   id: string
@@ -155,6 +158,7 @@ export interface ChapterTableForm {
   description: string
   eventId: string
   templateId: string
+  formKind: FormKind
   columns: TableColumn[]
   rows: TableRow[]
   createdAt: string

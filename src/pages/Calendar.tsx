@@ -114,7 +114,7 @@ function EventListItem({
   )
 }
 
-function EventDetails({
+function EventDetailsContent({
   event,
   canEditPoints,
   onEditPoints,
@@ -125,10 +125,10 @@ function EventDetails({
 }) {
   const color = eventTypeColor(event.type)
   return (
-    <section className="border border-[var(--rule)] bg-[var(--surface-card)]">
+    <>
       <div
-        className="border-b border-[var(--rule)] px-5 py-4"
-        style={{ borderLeftWidth: 4, borderLeftColor: color }}
+        className="border-b border-[var(--rule)] pb-4"
+        style={{ borderLeftWidth: 4, borderLeftColor: color, paddingLeft: '1rem' }}
       >
         <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
           {formatDay(event.date)} · {event.time}
@@ -147,12 +147,12 @@ function EventDetails({
         </div>
       </div>
 
-      <div className="space-y-5 px-5 py-5">
+      <div className="mt-5 space-y-5">
         {event.description && (
           <p className="text-sm leading-relaxed text-[var(--muted)]">{event.description}</p>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           {[
             { icon: Clock, label: 'Time', value: event.time },
             { icon: MapPin, label: 'Location', value: event.location },
@@ -184,7 +184,7 @@ function EventDetails({
           )}
         </div>
       </div>
-    </section>
+    </>
   )
 }
 
@@ -216,7 +216,8 @@ export default function CalendarPage() {
   const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(DEMO_TODAY)))
   const [view, setView] = useState<ViewMode>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [dayModalDate, setDayModalDate] = useState<string | null>(null)
+  const [eventModalId, setEventModalId] = useState<string | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [pointsDraft, setPointsDraft] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
@@ -255,18 +256,12 @@ export default function CalendarPage() {
     [sortedEvents, todayIso]
   )
 
-  const listEvents = view === 'month'
-    ? selectedDate
-      ? byDate[selectedDate] ?? []
-      : []
-    : upcomingAgenda
+  const eventModalEvent = useMemo(
+    () => (eventModalId ? sortedEvents.find((e) => e.id === eventModalId) ?? null : null),
+    [eventModalId, sortedEvents]
+  )
 
-  const selectedEvent = useMemo(() => {
-    if (selectedEventId) {
-      return sortedEvents.find((e) => e.id === selectedEventId) ?? listEvents[0] ?? null
-    }
-    return listEvents[0] ?? null
-  }, [selectedEventId, sortedEvents, listEvents])
+  const dayModalEvents = dayModalDate ? byDate[dayModalDate] ?? [] : []
 
   const cells = useMemo(() => {
     const first = startOfMonth(cursor)
@@ -285,20 +280,30 @@ export default function CalendarPage() {
   const goToday = () => {
     setCursor(startOfMonth(parseEventDate(todayIso)))
     setSelectedDate(todayIso)
-    setSelectedEventId(null)
+    setEventModalId(null)
+    setDayModalDate(null)
     setView('month')
   }
 
-  const pickDate = (iso: string) => {
+  const openDayModal = (iso: string) => {
     setSelectedDate(iso)
-    setSelectedEventId(null)
+    setDayModalDate(iso)
+  }
+
+  const openEventModal = (eventId: string, dateIso?: string) => {
+    if (dateIso) setSelectedDate(dateIso)
+    setEventModalId(eventId)
+  }
+
+  const pickDate = (iso: string) => {
+    openDayModal(iso)
   }
 
   const pickEventFromGrid = (e: ReactMouseEvent, eventId: string, dateIso: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setSelectedDate(dateIso)
-    setSelectedEventId(eventId)
+    setDayModalDate(null)
+    openEventModal(eventId, dateIso)
   }
 
   const openPointsEditor = (event: Event) => {
@@ -329,7 +334,8 @@ export default function CalendarPage() {
     })
     setCreateOpen(false)
     setSelectedDate(newEvent.date)
-    setSelectedEventId(id)
+    setEventModalId(id)
+    setDayModalDate(null)
     setCursor(startOfMonth(parseEventDate(newEvent.date)))
     setView('month')
     setNewEvent({
@@ -345,16 +351,13 @@ export default function CalendarPage() {
     })
   }
 
-  const listTitle =
-    view === 'month'
-      ? selectedDate
-        ? parseEventDate(selectedDate).toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })
-        : 'Select a day'
-      : 'Upcoming events'
+  const dayModalTitle = dayModalDate
+    ? parseEventDate(dayModalDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      })
+    : ''
 
   return (
     <>
@@ -379,7 +382,7 @@ export default function CalendarPage() {
                 type="button"
                 onClick={() => {
                   setView('agenda')
-                  setSelectedEventId(null)
+                  setEventModalId(null)
                 }}
                 className={`flex items-center gap-1 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                   view === 'agenda'
@@ -412,61 +415,7 @@ export default function CalendarPage() {
       <PageShell className="space-y-6">
         <ColorLegend />
 
-        {/* Events list — top */}
-        <section>
-          <div className="mb-2 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-            <h3 className="font-serif text-xl tracking-tight">{listTitle}</h3>
-            <span className="metric text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              {listEvents.length} event{listEvents.length === 1 ? '' : 's'}
-            </span>
-          </div>
-
-          {listEvents.length === 0 ? (
-            <p className="border border-[var(--rule)] py-8 text-center font-mono text-xs text-[var(--muted)]">
-              {view === 'month' ? 'No events this day.' : 'No upcoming events.'}
-              {canEditPoints && view === 'month' && selectedDate && (
-                <>
-                  {' '}
-                  <button
-                    type="button"
-                    className="underline"
-                    onClick={() => {
-                      setNewEvent((n) => ({ ...n, date: selectedDate }))
-                      setCreateOpen(true)
-                    }}
-                  >
-                    Add one
-                  </button>
-                </>
-              )}
-            </p>
-          ) : (
-            <ul className="list-editorial border border-[var(--rule)]">
-              {listEvents.map((event) => (
-                <EventListItem
-                  key={event.id}
-                  event={event}
-                  selected={selectedEvent?.id === event.id}
-                  onSelect={() => setSelectedEventId(event.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Event details — below list */}
-        {selectedEvent ? (
-          <EventDetails
-            event={selectedEvent}
-            canEditPoints={canEditPoints}
-            onEditPoints={openPointsEditor}
-          />
-        ) : listEvents.length > 0 ? null : (
-          <p className="font-mono text-xs text-[var(--muted)]">Select an event to view details.</p>
-        )}
-
-        {/* Month grid — bottom (month view only) */}
-        {view === 'month' && (
+        {view === 'month' ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <button
@@ -538,7 +487,7 @@ export default function CalendarPage() {
                         <ul className="mt-1 space-y-0.5">
                           {dayEvents.slice(0, 3).map((e) => {
                             const color = eventTypeColor(e.type)
-                            const active = selectedEvent?.id === e.id
+                            const active = eventModalId === e.id
                             return (
                               <li key={e.id}>
                                 <button
@@ -568,8 +517,110 @@ export default function CalendarPage() {
               })}
             </div>
           </section>
+        ) : (
+          <section>
+            <div className="mb-2 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+              <h3 className="font-serif text-xl tracking-tight">Upcoming events</h3>
+              <span className="metric text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                {upcomingAgenda.length} event{upcomingAgenda.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {upcomingAgenda.length === 0 ? (
+              <p className="border border-[var(--rule)] py-8 text-center font-mono text-xs text-[var(--muted)]">
+                No upcoming events.
+              </p>
+            ) : (
+              <ul className="list-editorial border border-[var(--rule)]">
+                {upcomingAgenda.map((event) => (
+                  <EventListItem
+                    key={event.id}
+                    event={event}
+                    selected={eventModalId === event.id}
+                    onSelect={() => openEventModal(event.id, event.date)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
         )}
       </PageShell>
+
+      <Modal
+        open={dayModalDate != null}
+        onClose={() => setDayModalDate(null)}
+        title={dayModalTitle}
+        size="lg"
+      >
+        {dayModalEvents.length === 0 ? (
+          <div className="py-4 text-center">
+            <p className="font-mono text-xs text-[var(--muted)]">No events scheduled this day.</p>
+            {canEditPoints && dayModalDate && (
+              <button
+                type="button"
+                className="btn-primary mt-4 text-xs"
+                onClick={() => {
+                  setNewEvent((n) => ({ ...n, date: dayModalDate }))
+                  setDayModalDate(null)
+                  setCreateOpen(true)
+                }}
+              >
+                <Plus size={14} /> Add event
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              {dayModalEvents.length} event{dayModalEvents.length === 1 ? '' : 's'} · tap for details
+            </p>
+            <ul className="list-editorial border border-[var(--rule)]">
+              {dayModalEvents.map((event) => (
+                <EventListItem
+                  key={event.id}
+                  event={event}
+                  selected={eventModalId === event.id}
+                  onSelect={() => {
+                    setDayModalDate(null)
+                    openEventModal(event.id, event.date)
+                  }}
+                />
+              ))}
+            </ul>
+            {canEditPoints && dayModalDate && (
+              <button
+                type="button"
+                className="btn-ghost mt-4 w-full text-xs"
+                onClick={() => {
+                  setNewEvent((n) => ({ ...n, date: dayModalDate }))
+                  setDayModalDate(null)
+                  setCreateOpen(true)
+                }}
+              >
+                <Plus size={14} /> Add event this day
+              </button>
+            )}
+          </>
+        )}
+      </Modal>
+
+      <Modal
+        open={eventModalEvent != null}
+        onClose={() => setEventModalId(null)}
+        title="Event details"
+        size="lg"
+      >
+        {eventModalEvent && (
+          <EventDetailsContent
+            event={eventModalEvent}
+            canEditPoints={canEditPoints}
+            onEditPoints={(event) => {
+              setEventModalId(null)
+              openPointsEditor(event)
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal
         open={editingEvent != null}

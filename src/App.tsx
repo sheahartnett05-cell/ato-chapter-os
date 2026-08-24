@@ -12,6 +12,7 @@ import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
 import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
+import { BudgetProvider } from './context/BudgetContext'
 import ExecutiveDashboard from './pages/ExecutiveDashboard'
 import MemberManagement from './pages/MemberManagement'
 import MemberProfile from './pages/MemberProfile'
@@ -37,6 +38,8 @@ import CommitteeDetail from './pages/CommitteeDetail'
 import Settings from './pages/Settings'
 import CalendarPage from './pages/Calendar'
 import DuesPage from './pages/Dues'
+import BudgetsIndex from './pages/BudgetsIndex'
+import BudgetDetail from './pages/BudgetDetail'
 
 export default function App() {
   return (
@@ -51,6 +54,7 @@ export default function App() {
             <ChapterTablesProvider>
             <RecruitmentProvider>
             <ChapterOpsProvider>
+              <BudgetProvider>
               <BrowserRouter>
               <Routes>
                 <Route path="/preview" element={<PreviewPage />} />
@@ -128,6 +132,22 @@ export default function App() {
                     <AdaptiveShell>
                       <DuesPage />
                     </AdaptiveShell>
+                  }
+                />
+                <Route
+                  path="/budgets"
+                  element={
+                    <ExecShell>
+                      <BudgetsIndex />
+                    </ExecShell>
+                  }
+                />
+                <Route
+                  path="/budgets/:id"
+                  element={
+                    <ExecShell>
+                      <BudgetDetail />
+                    </ExecShell>
                   }
                 />
                 <Route
@@ -267,6 +287,7 @@ export default function App() {
                 <Route path="*" element={<RootRedirect />} />
               </Routes>
             </BrowserRouter>
+              </BudgetProvider>
             </ChapterOpsProvider>
             </RecruitmentProvider>
             </ChapterTablesProvider>

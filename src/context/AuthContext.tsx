@@ -191,6 +191,11 @@ export function usePermissions(): PermissionFlags {
       'editDues',
       isFeatureEnabled('dues')
     ),
+    canManageBudgets: or(
+      permissions.canManageBudgets,
+      'editBudgets',
+      isFeatureEnabled('budgets')
+    ),
     canManageStudyLocations: or(
       permissions.canManageStudyLocations,
       'editStudyHours',

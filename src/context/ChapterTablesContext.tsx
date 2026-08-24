@@ -96,6 +96,7 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
         description: template.description,
         eventId: input.eventId,
         templateId: input.templateId,
+        formKind: template.formKind,
         columns: template.columns.map((c) => ({ ...c })),
         rows: [],
         createdAt: now,

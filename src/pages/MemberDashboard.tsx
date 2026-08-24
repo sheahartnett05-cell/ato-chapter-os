@@ -97,7 +97,7 @@ function formatEventDay(iso: string) {
 
 export default function MemberDashboard() {
 
-  const { chapter, languagePack } = useChapter()
+  const { chapter } = useChapter()
 
   const { memberId, profile, role } = useAuth()
 
@@ -679,7 +679,7 @@ export default function MemberDashboard() {
 
         )}
 
-        {/* Buzz — announcements feed */}
+        {/* Chapter announcements feed */}
 
         <section>
 
@@ -689,7 +689,7 @@ export default function MemberDashboard() {
 
               <Megaphone size={16} className="text-[var(--primary)]" />
 
-              {languagePack.memberSingular} Buzz
+              Chapter Announcements
 
             </h2>
 

@@ -3,17 +3,18 @@ import {
   LayoutDashboard,
   Users,
   CalendarDays,
-  Table2,
   UserSearch,
   Kanban,
   Smartphone,
   Megaphone,
   BookOpen,
   ClipboardCheck,
+  ClipboardList,
   Settings,
   Presentation,
   Scale,
   UsersRound,
+  PieChart,
   Home,
   ScrollText,
 } from 'lucide-react'
@@ -45,9 +46,16 @@ const mainNav = [
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
   { to: '/excuses', label: 'Excuses', icon: ClipboardCheck, perm: 'canAccessExecTools' as const, feature: 'calendar' as const },
   { to: '/library-hours', label: 'Library Hours', icon: BookOpen, feature: 'studyHours' as const },
+  {
+    to: '/budgets',
+    label: 'Budgets',
+    icon: PieChart,
+    perm: 'canManageBudgets' as const,
+    feature: 'budgets' as const,
+  },
   { to: '/house', label: 'House', icon: Home, feature: 'house' as const },
   { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
-  { to: '/tables', label: 'Tables', icon: Table2, feature: 'tables' as const },
+  { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
 ]
 
 const recruitmentNav = [

@@ -15,6 +15,7 @@ import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { SignatureCell } from '../components/forms/SignatureCell'
 import type { TableColumn } from '../types'
 
 function CellEditor({
@@ -71,6 +72,9 @@ function CellEditor({
       />
     )
   }
+  if (col.type === 'signature') {
+    return <SignatureCell value={value} onChange={(v) => onChange(v)} />
+  }
   return (
     <input
       type="text"
@@ -111,7 +115,10 @@ export default function ChapterTables() {
   const [filterRsvp, setFilterRsvp] = useState<string>('All')
   const [synced, setSynced] = useState(false)
 
-  const rsvpColumnId = template?.guestListMapping.rsvpColumn ?? 'rsvp'
+  const rsvpColumnId = template?.guestListMapping?.rsvpColumn ?? 'rsvp'
+  const hasRsvpColumn = table?.columns.some((c) => c.id === rsvpColumnId) ?? false
+  const isSignatureForm = (table?.formKind ?? template?.formKind) === 'signature'
+  const canSyncGuestList = Boolean(template?.guestListMapping)
 
   const filteredRows = useMemo(() => {
     if (!table) return []
@@ -122,7 +129,7 @@ export default function ChapterTables() {
         Object.values(r.cells).some((v) => String(v).toLowerCase().includes(q))
       )
     }
-    if (filterRsvp !== 'All') {
+    if (filterRsvp !== 'All' && hasRsvpColumn) {
       rows = rows.filter((r) => r.cells[rsvpColumnId] === filterRsvp)
     }
     if (sortCol) {
@@ -134,7 +141,7 @@ export default function ChapterTables() {
       })
     }
     return rows
-  }, [table, search, sortCol, sortAsc, filterRsvp, rsvpColumnId])
+  }, [table, search, sortCol, sortAsc, filterRsvp, rsvpColumnId, hasRsvpColumn])
 
   const handleSort = (colId: string) => {
     if (sortCol === colId) setSortAsc(!sortAsc)
@@ -156,7 +163,7 @@ export default function ChapterTables() {
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
         <p className="text-neutral-600">Form not found</p>
         <Link to="/tables" className="text-sm font-semibold text-accent hover:underline">
-          ← Back to tables
+          ← Back to forms
         </Link>
       </div>
     )
@@ -185,14 +192,16 @@ export default function ChapterTables() {
                 {linkedEvent.name}
               </Link>
             )}
-            <button
-              type="button"
-              onClick={handleSync}
-              className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-            >
-              <RefreshCw size={15} className={synced ? 'text-emerald-600' : ''} />
-              {synced ? 'Synced' : 'Sync guest list'}
-            </button>
+            {canSyncGuestList && (
+              <button
+                type="button"
+                onClick={handleSync}
+                className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+              >
+                <RefreshCw size={15} className={synced ? 'text-emerald-600' : ''} />
+                {synced ? 'Synced' : isSignatureForm ? 'Sync roster' : 'Sync guest list'}
+              </button>
+            )}
             <button
               type="button"
               className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
@@ -211,7 +220,8 @@ export default function ChapterTables() {
             <button
               type="button"
               onClick={() => addRow(table.id)}
-              className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white"
+              disabled={table.columns.length === 0}
+              className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus size={15} />
               Add row
@@ -236,20 +246,22 @@ export default function ChapterTables() {
                 className="w-56 rounded-sm border border-black/5 bg-neutral-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-accent/40"
               />
             </div>
-            <select
-              value={filterRsvp}
-              onChange={(e) => setFilterRsvp(e.target.value)}
-              className="rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
-            >
-              <option value="All">All RSVPs</option>
-              <option value="Yes">RSVP: Yes</option>
-              <option value="No">RSVP: No</option>
-              <option value="Maybe">RSVP: Maybe</option>
-            </select>
+            {hasRsvpColumn && (
+              <select
+                value={filterRsvp}
+                onChange={(e) => setFilterRsvp(e.target.value)}
+                className="rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
+              >
+                <option value="All">All RSVPs</option>
+                <option value="Yes">RSVP: Yes</option>
+                <option value="No">RSVP: No</option>
+                <option value="Maybe">RSVP: Maybe</option>
+              </select>
+            )}
             <span className="text-xs text-neutral-500">{filteredRows.length} rows</span>
             {template && (
               <span className="ml-auto text-xs text-neutral-400">
-                Template: {template.name}
+                {isSignatureForm ? 'Signature' : 'Spreadsheet'} · {template.name}
               </span>
             )}
           </div>
@@ -276,10 +288,14 @@ export default function ChapterTables() {
                 {filteredRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={table.columns.length}
+                      colSpan={Math.max(table.columns.length, 1)}
                       className="px-4 py-12 text-center text-neutral-500"
                     >
-                      No rows yet — use &ldquo;Sync guest list&rdquo; to pull RSVPs from the event
+                      {table.columns.length === 0
+                        ? 'No columns yet — use "Add column" to define your grid, then add rows.'
+                        : canSyncGuestList
+                          ? `No rows yet — use "${isSignatureForm ? 'Sync roster' : 'Sync guest list'}" or Add row`
+                          : 'No rows yet — use "Add row" to start filling in data.'}
                     </td>
                   </tr>
                 ) : (
@@ -324,6 +340,7 @@ export default function ChapterTables() {
             <option value="date">Date</option>
             <option value="number">Number</option>
             <option value="member">Member reference</option>
+            <option value="signature">Signature</option>
           </select>
           <button
             type="button"

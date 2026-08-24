@@ -56,6 +56,7 @@ export interface PermissionFlags {
   canManageStudyLocations: boolean
   canVerifyStudyHours: boolean
   canEditEventPoints: boolean
+  canManageBudgets: boolean
   isMemberView: boolean
 }
 
@@ -99,6 +100,7 @@ export function getPermissions(role: UserRole): PermissionFlags {
       role === 'President' ||
       (role as AssignableRole) === 'Secretary',
     canEditEventPoints: isExec,
+    canManageBudgets: isExec,
     isMemberView: role === 'ActiveMember' || role === 'NewMember',
   }
 }

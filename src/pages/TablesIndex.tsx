@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Table2, CalendarDays, Users } from 'lucide-react'
+import { Plus, Table2, CalendarDays, Users, Grid3x3, PenLine } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { templatesForKind } from '../data/tableFormTemplates'
+import type { FormKind } from '../types'
 
 export default function TablesIndex() {
   const navigate = useNavigate()
@@ -13,8 +15,9 @@ export default function TablesIndex() {
   const { events } = useChapterOps()
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [formKind, setFormKind] = useState<FormKind>('spreadsheet')
   const [selectedEventId, setSelectedEventId] = useState('')
-  const [selectedTemplateId, setSelectedTemplateId] = useState('guest-list')
+  const [selectedTemplateId, setSelectedTemplateId] = useState('spreadsheet-empty')
   const [formName, setFormName] = useState('')
 
   const eventsWithTables = useMemo(() => {
@@ -34,10 +37,32 @@ export default function TablesIndex() {
   const eventName = (id: string) => events.find((e) => e.id === id)?.name ?? 'Unknown event'
   const eventDate = (id: string) => events.find((e) => e.id === id)?.date ?? ''
 
-  const rsvpEvents = useMemo(
-    () => events.filter((e) => e.rsvpRequired).sort((a, b) => a.date.localeCompare(b.date)),
+  const TODAY = '2025-08-23'
+
+  const linkableEvents = useMemo(
+    () =>
+      [...events]
+        .filter((e) => e.date >= TODAY)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
     [events]
   )
+
+  const formatEventOption = (event: (typeof events)[number]) => {
+    const dateLabel = new Date(event.date + 'T12:00:00').toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    return `${event.name} — ${dateLabel}`
+  }
+
+  const kindTemplates = useMemo(() => templatesForKind(formKind), [formKind])
+
+  const pickFormKind = (kind: FormKind) => {
+    setFormKind(kind)
+    const next = templatesForKind(kind)
+    setSelectedTemplateId(next[0]?.id ?? '')
+  }
 
   const handleCreate = () => {
     if (!selectedEventId) return
@@ -49,23 +74,28 @@ export default function TablesIndex() {
     setCreateOpen(false)
     setFormName('')
     setSelectedEventId('')
+    setFormKind('spreadsheet')
+    setSelectedTemplateId('spreadsheet-empty')
     navigate(`/tables/${table.id}`)
   }
 
-  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId)
+  const formKindLabel = (kind: FormKind) =>
+    kind === 'spreadsheet' ? 'Spreadsheet' : 'Signature'
+
+  const selectedTemplate = kindTemplates.find((t) => t.id === selectedTemplateId)
 
   return (
     <>
       <TopBar
-        title="Tables"
+        title="Forms"
         subtitle="Event forms — guest lists, logistics, and custom fields per event"
         actions={
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white"
+            className="btn-primary gap-2 px-5 py-2.5 text-sm font-bold shadow-sm"
           >
-            <Plus size={16} />
+            <Plus size={18} />
             New event form
           </button>
         }
@@ -82,8 +112,9 @@ export default function TablesIndex() {
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="mt-6 rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-white"
+                className="btn-primary mt-6 gap-2 px-6 py-3 text-sm font-bold shadow-sm"
               >
+                <Plus size={18} />
                 Create first form
               </button>
             </div>
@@ -117,7 +148,10 @@ export default function TablesIndex() {
                           <p className="font-semibold text-neutral-900 group-hover:text-accent">
                             {table.name}
                           </p>
-                          <p className="mt-1 text-xs text-neutral-500">{template?.name ?? 'Custom form'}</p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {formKindLabel(table.formKind ?? template?.formKind ?? 'spreadsheet')}
+                            {template ? ` · ${template.name}` : ''}
+                          </p>
                         </div>
                         <Table2 size={18} className="shrink-0 text-neutral-300 group-hover:text-accent" />
                       </div>
@@ -142,12 +176,15 @@ export default function TablesIndex() {
 
         <Section
           title="Form templates"
-          subtitle="Chapter builder schemas — pick one when creating a new event form"
+          subtitle="Spreadsheet grids and signature sheets — pick one when creating a new form"
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {templates.map((t) => (
               <div key={t.id} className="rounded-2xl bg-neutral-50 px-4 py-4">
-                <p className="text-sm font-semibold text-neutral-900">{t.name}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  {formKindLabel(t.formKind)}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-neutral-900">{t.name}</p>
                 <p className="mt-1 text-xs leading-relaxed text-neutral-500">{t.description}</p>
                 <p className="mt-3 text-xs text-neutral-400">
                   {t.columns.length} fields
@@ -162,6 +199,48 @@ export default function TablesIndex() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New event form">
         <div className="space-y-4">
           <div>
+            <label className="text-xs font-medium text-neutral-500">Form type</label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => pickFormKind('spreadsheet')}
+                className={`rounded-xl border px-4 py-3 text-left transition ${
+                  formKind === 'spreadsheet'
+                    ? 'border-accent bg-accent/5 ring-1 ring-accent/30'
+                    : 'border-black/5 bg-neutral-50 hover:border-black/10'
+                }`}
+              >
+                <Grid3x3
+                  size={18}
+                  className={formKind === 'spreadsheet' ? 'text-accent' : 'text-neutral-400'}
+                />
+                <p className="mt-2 text-sm font-semibold text-neutral-900">Spreadsheet</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Custom columns, rows, and cell data
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => pickFormKind('signature')}
+                className={`rounded-xl border px-4 py-3 text-left transition ${
+                  formKind === 'signature'
+                    ? 'border-accent bg-accent/5 ring-1 ring-accent/30'
+                    : 'border-black/5 bg-neutral-50 hover:border-black/10'
+                }`}
+              >
+                <PenLine
+                  size={18}
+                  className={formKind === 'signature' ? 'text-accent' : 'text-neutral-400'}
+                />
+                <p className="mt-2 text-sm font-semibold text-neutral-900">Signature</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Sign-off sheet with drawn signatures
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-neutral-500">Linked event</label>
             <select
               value={selectedEventId}
@@ -169,22 +248,33 @@ export default function TablesIndex() {
               className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
             >
               <option value="">Select event…</option>
-              {rsvpEvents.map((e) => (
+              {linkableEvents.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.name} — {e.date}
+                  {formatEventOption(e)}
                 </option>
               ))}
             </select>
+            {linkableEvents.length === 0 && (
+              <p className="mt-2 text-xs text-neutral-500">
+                No upcoming calendar events yet.{' '}
+                <Link to="/calendar" className="font-semibold text-accent hover:underline">
+                  Create one on the Calendar
+                </Link>
+                .
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="text-xs font-medium text-neutral-500">Form template</label>
+            <label className="text-xs font-medium text-neutral-500">
+              {formKind === 'spreadsheet' ? 'Starting layout' : 'Signature template'}
+            </label>
             <select
               value={selectedTemplateId}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
               className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
             >
-              {templates.map((t) => (
+              {kindTemplates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
@@ -192,6 +282,12 @@ export default function TablesIndex() {
             </select>
             {selectedTemplate && (
               <p className="mt-2 text-xs text-neutral-500">{selectedTemplate.description}</p>
+            )}
+            {formKind === 'spreadsheet' && selectedTemplateId === 'spreadsheet-empty' && (
+              <p className="mt-2 text-xs text-neutral-500">
+                After creating, use <span className="font-semibold">Add column</span> and{' '}
+                <span className="font-semibold">Add row</span> to build your grid.
+              </p>
             )}
           </div>
 
@@ -210,7 +306,7 @@ export default function TablesIndex() {
             type="button"
             onClick={handleCreate}
             disabled={!selectedEventId}
-            className="w-full rounded-sm bg-accent py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="btn-primary w-full py-3 text-sm font-bold shadow-sm disabled:opacity-50"
           >
             Create form
           </button>

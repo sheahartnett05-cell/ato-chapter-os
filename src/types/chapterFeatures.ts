@@ -7,6 +7,7 @@ export type ChapterFeatureId =
   | 'recruitment'
   | 'standards'
   | 'dues'
+  | 'budgets'
   | 'studyHours'
   | 'house'
   | 'tables'
@@ -21,6 +22,7 @@ export type EditorCapabilityId =
   | 'editRecruitment'
   | 'editStandards'
   | 'editDues'
+  | 'editBudgets'
   | 'editStudyHours'
   | 'editHouse'
   | 'editTables'
@@ -82,6 +84,12 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
     defaultEnabled: true,
   },
   {
+    id: 'budgets',
+    label: 'Budgets',
+    description: 'Custom chapter budgets and spending breakdowns',
+    defaultEnabled: true,
+  },
+  {
     id: 'studyHours',
     label: 'Study / library hours',
     description: 'Academic hour tracking',
@@ -95,8 +103,8 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
   },
   {
     id: 'tables',
-    label: 'Tables & forms',
-    description: 'Event spreadsheets and guest lists',
+    label: 'Forms',
+    description: 'Event forms, guest lists, and custom spreadsheets',
     defaultEnabled: true,
   },
   {
@@ -157,6 +165,12 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
     featureId: 'dues',
   },
   {
+    id: 'editBudgets',
+    label: 'Edit budgets',
+    description: 'Create budgets and update line items',
+    featureId: 'budgets',
+  },
+  {
     id: 'editStudyHours',
     label: 'Edit study hours',
     description: 'Verify hours and manage locations',
@@ -170,7 +184,7 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
   },
   {
     id: 'editTables',
-    label: 'Edit tables',
+    label: 'Edit forms',
     description: 'Build forms and edit spreadsheet rows',
     featureId: 'tables',
   },

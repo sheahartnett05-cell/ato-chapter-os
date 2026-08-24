@@ -7,6 +7,7 @@ export const DEMO_CHAPTER_TABLES: ChapterTableForm[] = [
     description: 'RSVP, guest names, payment, transportation, and table #.',
     eventId: 'e5',
     templateId: 'formal-logistics',
+    formKind: 'spreadsheet',
     columns: [
       { id: 'member', name: 'Member', type: 'member' },
       { id: 'rsvp', name: 'RSVP', type: 'dropdown', options: ['Yes', 'No'] },
@@ -115,6 +116,7 @@ export const DEMO_CHAPTER_TABLES: ChapterTableForm[] = [
     description: 'Who is coming and any guest notes for the cookout.',
     eventId: 'e2',
     templateId: 'guest-list',
+    formKind: 'spreadsheet',
     columns: [
       { id: 'member', name: 'Member', type: 'member' },
       {
