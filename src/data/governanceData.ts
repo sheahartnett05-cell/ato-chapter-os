@@ -1,6 +1,7 @@
 import { members } from './mockData'
 import type {
   Committee,
+  CommitteeChatMessage,
   CommitteeTask,
   Fine,
   FineScheduleRule,
@@ -243,6 +244,37 @@ export const committeeTasks: CommitteeTask[] = [
     assigneeId: 'm2',
     progress: 30,
     dueDate: '2025-08-25',
+  },
+]
+
+export const committeeChatMessages: CommitteeChatMessage[] = [
+  {
+    id: 'cm1',
+    committeeId: 'c-rush',
+    authorId: 'm4',
+    body: 'Setup crew — be at the house by 4:30. Grills and coolers are in the garage.',
+    timestamp: '2025-08-24T15:30:00',
+  },
+  {
+    id: 'cm2',
+    committeeId: 'c-rush',
+    authorId: 'm1',
+    body: "I'll handle check-in table. Send me the PNMs list when it's final.",
+    timestamp: '2025-08-24T16:05:00',
+  },
+  {
+    id: 'cm3',
+    committeeId: 'c-formal',
+    authorId: 'm2',
+    body: 'Venue confirmed deposit is due Tuesday. Who can run payment to the hotel?',
+    timestamp: '2025-08-23T11:20:00',
+  },
+  {
+    id: 'cm4',
+    committeeId: 'c-formal',
+    authorId: 'm9',
+    body: 'I can stop by tomorrow after class and drop off the check.',
+    timestamp: '2025-08-23T12:45:00',
   },
 ]
 

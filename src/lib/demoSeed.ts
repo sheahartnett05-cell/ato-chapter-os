@@ -7,6 +7,8 @@ import {
   initialDuesPayments,
   initialStudyLocations,
   initialStudyLogs,
+  DEFAULT_STUDY_HOURS_RESET,
+  DEFAULT_STUDY_HOURS_REQUIREMENTS,
   SEMESTER_STUDY_HOURS_REQUIRED,
 } from '../data/chapterOpsData'
 import {
@@ -21,6 +23,7 @@ import { SEED_INVITE_CODES } from '../data/inviteData'
 import {
   committeeTasks as demoTasks,
   committees as demoCommittees,
+  committeeChatMessages as demoCommitteeChat,
   fineSchedule as demoFineSchedule,
   fines as demoFines,
   governanceConfig as demoGovConfig,
@@ -39,6 +42,8 @@ export const STORAGE_KEYS = {
   studyLocations: 'chapter-os-study-locations',
   studyLogs: 'chapter-os-study-logs',
   studyRequired: 'chapter-os-study-required',
+  studyHoursRequirements: 'chapter-os-study-hours-requirements',
+  studyHoursReset: 'chapter-os-study-hours-reset',
   duesCharges: 'chapter-os-dues-charges',
   duesPayments: 'chapter-os-dues-payments',
   billHighway: 'chapter-os-bill-highway',
@@ -53,6 +58,8 @@ export const STORAGE_KEYS = {
   chapterMeta: 'chapter-os-chapter-meta',
   chapterFeatures: 'chapter-os-chapter-features',
   standardsConfig: 'chapter-os-standards-config',
+  committees: 'chapter-os-committees',
+  committeeChat: 'chapter-os-committee-chat',
   demoSeeded: 'chapter-os-demo-seeded',
 } as const
 
@@ -94,9 +101,13 @@ export function seedGuestDemo() {
   write(STORAGE_KEYS.studyLocations, initialStudyLocations)
   write(STORAGE_KEYS.studyLogs, initialStudyLogs)
   write(STORAGE_KEYS.studyRequired, SEMESTER_STUDY_HOURS_REQUIRED)
+  write(STORAGE_KEYS.studyHoursRequirements, DEFAULT_STUDY_HOURS_REQUIREMENTS)
   write(STORAGE_KEYS.duesCharges, initialDuesCharges)
   write(STORAGE_KEYS.duesPayments, initialDuesPayments)
   write(STORAGE_KEYS.billHighway, initialBillHighway)
+  write(STORAGE_KEYS.studyHoursReset, DEFAULT_STUDY_HOURS_RESET)
+  write(STORAGE_KEYS.committees, demoCommittees)
+  write(STORAGE_KEYS.committeeChat, demoCommitteeChat)
   write(STORAGE_KEYS.governance, {
     cases: demoCases,
     fines: demoFines,

@@ -1,4 +1,4 @@
-import type { BudgetLineItem } from '../../types/budget'
+import type { BudgetLineItemWithSpent } from '../../types/budget'
 
 const SEGMENT_COLORS = [
   'var(--primary)',
@@ -12,13 +12,13 @@ const SEGMENT_COLORS = [
 ]
 
 interface BudgetDonutChartProps {
-  lineItems: BudgetLineItem[]
+  lineItems: BudgetLineItemWithSpent[]
   size?: number
 }
 
 export function BudgetDonutChart({ lineItems, size = 220 }: BudgetDonutChartProps) {
-  const total = lineItems.reduce((s, i) => s + i.allocated, 0)
-  if (total <= 0) {
+  const totalAllocated = lineItems.reduce((s, i) => s + i.allocated, 0)
+  if (totalAllocated <= 0) {
     return (
       <div
         className="flex items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--surface-card)]"
@@ -34,12 +34,15 @@ export function BudgetDonutChart({ lineItems, size = 220 }: BudgetDonutChartProp
   let offset = 0
 
   const segments = lineItems.map((item, index) => {
-    const pct = item.allocated / total
+    const pct = item.allocated / totalAllocated
     const dash = pct * circumference
+    const spentRatio = item.allocated > 0 ? Math.min(1, item.spent / item.allocated) : 0
+    const spentDash = dash * spentRatio
     const segment = {
       item,
       color: SEGMENT_COLORS[index % SEGMENT_COLORS.length],
       dash,
+      spentDash,
       offset,
       pct,
     }
@@ -48,7 +51,6 @@ export function BudgetDonutChart({ lineItems, size = 220 }: BudgetDonutChartProp
   })
 
   const totalSpent = lineItems.reduce((s, i) => s + i.spent, 0)
-  const totalAllocated = lineItems.reduce((s, i) => s + i.allocated, 0)
   const spentPct = totalAllocated > 0 ? Math.round((totalSpent / totalAllocated) * 100) : 0
 
   return (
@@ -63,19 +65,33 @@ export function BudgetDonutChart({ lineItems, size = 220 }: BudgetDonutChartProp
             stroke="var(--rule)"
             strokeWidth="12"
           />
-          {segments.map(({ item, color, dash, offset: segOffset }) => (
-            <circle
-              key={item.id}
-              cx="50"
-              cy="50"
-              r={radius}
-              fill="none"
-              stroke={color}
-              strokeWidth="12"
-              strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={-segOffset}
-              className="transition-all duration-500"
-            />
+          {segments.map(({ item, color, dash, spentDash, offset: segOffset }) => (
+            <g key={item.id}>
+              <circle
+                cx="50"
+                cy="50"
+                r={radius}
+                fill="none"
+                stroke={color}
+                strokeOpacity={0.2}
+                strokeWidth="12"
+                strokeDasharray={`${dash} ${circumference - dash}`}
+                strokeDashoffset={-segOffset}
+              />
+              {spentDash > 0 && (
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="12"
+                  strokeDasharray={`${spentDash} ${circumference - spentDash}`}
+                  strokeDashoffset={-segOffset}
+                  className="transition-all duration-500"
+                />
+              )}
+            </g>
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -85,21 +101,25 @@ export function BudgetDonutChart({ lineItems, size = 220 }: BudgetDonutChartProp
       </div>
 
       <ul className="min-w-0 flex-1 space-y-2">
-        {segments.map(({ item, color, pct }) => (
-          <li key={item.id} className="flex items-center gap-3 text-sm">
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: color }}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-[var(--ink)]">{item.label}</p>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                ${item.spent.toLocaleString()} / ${item.allocated.toLocaleString()} ·{' '}
-                {Math.round(pct * 100)}%
-              </p>
-            </div>
-          </li>
-        ))}
+        {segments.map(({ item, color, pct }) => {
+          const categoryPct =
+            item.allocated > 0 ? Math.round((item.spent / item.allocated) * 100) : 0
+          return (
+            <li key={item.id} className="flex items-center gap-3 text-sm">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-[var(--ink)]">{item.label}</p>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                  ${item.spent.toLocaleString()} / ${item.allocated.toLocaleString()} ·{' '}
+                  {categoryPct}% used · {Math.round(pct * 100)}% of budget
+                </p>
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

@@ -8,14 +8,54 @@ import {
 } from 'react'
 import { DEMO_BUDGETS } from '../data/budgetData'
 import { allowDemoData } from '../lib/demoSeed'
-import type { BudgetLineItem, ChapterBudget } from '../types/budget'
+import type { BudgetExpense, BudgetLineItem, ChapterBudget } from '../types/budget'
 
 const STORAGE_KEY = 'chapter-os-budgets'
+
+function uid(prefix: string) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+/** Migrate older budgets that stored spent on line items instead of expense logs. */
+function normalizeBudget(raw: ChapterBudget & { lineItems?: Array<BudgetLineItem & { spent?: number }> }): ChapterBudget {
+  const expenses = raw.expenses ?? []
+  if (expenses.length > 0) {
+    return {
+      ...raw,
+      expenses,
+      lineItems: raw.lineItems.map(({ id, label, allocated }) => ({ id, label, allocated })),
+    }
+  }
+
+  const migrated: BudgetExpense[] = []
+  for (const item of raw.lineItems) {
+    const legacySpent = 'spent' in item ? Number(item.spent) || 0 : 0
+    if (legacySpent > 0) {
+      migrated.push({
+        id: uid('ex-mig'),
+        lineItemId: item.id,
+        amount: legacySpent,
+        description: 'Previously logged spending',
+        date: raw.createdAt.slice(0, 10),
+        loggedBy: raw.createdBy,
+      })
+    }
+  }
+
+  return {
+    ...raw,
+    expenses: migrated,
+    lineItems: raw.lineItems.map(({ id, label, allocated }) => ({ id, label, allocated })),
+  }
+}
 
 function readBudgets(): ChapterBudget[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as ChapterBudget[]
+    if (raw) {
+      const parsed = JSON.parse(raw) as ChapterBudget[]
+      return parsed.map(normalizeBudget)
+    }
   } catch {
     /* ignore */
   }
@@ -30,16 +70,20 @@ function writeBudgets(budgets: ChapterBudget[]) {
   }
 }
 
-function uid(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-}
-
 interface CreateBudgetInput {
   name: string
   description: string
   semester: string
   createdBy: string
-  lineItems: { label: string; allocated: number; spent?: number }[]
+  lineItems: { label: string; allocated: number }[]
+}
+
+interface LogExpenseInput {
+  lineItemId: string
+  amount: number
+  description: string
+  date: string
+  loggedBy: string
 }
 
 interface BudgetContextValue {
@@ -50,6 +94,8 @@ interface BudgetContextValue {
   addLineItem: (budgetId: string, item: Omit<BudgetLineItem, 'id'>) => void
   updateLineItem: (budgetId: string, itemId: string, patch: Partial<BudgetLineItem>) => void
   removeLineItem: (budgetId: string, itemId: string) => void
+  logExpense: (budgetId: string, input: LogExpenseInput) => void
+  removeExpense: (budgetId: string, expenseId: string) => void
   deleteBudget: (id: string) => void
 }
 
@@ -78,8 +124,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
           id: uid('li'),
           label: item.label.trim(),
           allocated: item.allocated,
-          spent: item.spent ?? 0,
         })),
+        expenses: [],
       }
       persist([budget, ...budgets])
       return budget
@@ -130,7 +176,43 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       persist(
         budgets.map((b) =>
           b.id === budgetId
-            ? { ...b, lineItems: b.lineItems.filter((li) => li.id !== itemId) }
+            ? {
+                ...b,
+                lineItems: b.lineItems.filter((li) => li.id !== itemId),
+                expenses: b.expenses.filter((e) => e.lineItemId !== itemId),
+              }
+            : b
+        )
+      )
+    },
+    [budgets, persist]
+  )
+
+  const logExpense = useCallback(
+    (budgetId: string, input: LogExpenseInput) => {
+      const expense: BudgetExpense = {
+        id: uid('ex'),
+        lineItemId: input.lineItemId,
+        amount: input.amount,
+        description: input.description.trim(),
+        date: input.date,
+        loggedBy: input.loggedBy.trim(),
+      }
+      persist(
+        budgets.map((b) =>
+          b.id === budgetId ? { ...b, expenses: [expense, ...b.expenses] } : b
+        )
+      )
+    },
+    [budgets, persist]
+  )
+
+  const removeExpense = useCallback(
+    (budgetId: string, expenseId: string) => {
+      persist(
+        budgets.map((b) =>
+          b.id === budgetId
+            ? { ...b, expenses: b.expenses.filter((e) => e.id !== expenseId) }
             : b
         )
       )
@@ -154,9 +236,22 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       addLineItem,
       updateLineItem,
       removeLineItem,
+      logExpense,
+      removeExpense,
       deleteBudget,
     }),
-    [budgets, getBudget, addBudget, updateBudget, addLineItem, updateLineItem, removeLineItem, deleteBudget]
+    [
+      budgets,
+      getBudget,
+      addBudget,
+      updateBudget,
+      addLineItem,
+      updateLineItem,
+      removeLineItem,
+      logExpense,
+      removeExpense,
+      deleteBudget,
+    ]
   )
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>

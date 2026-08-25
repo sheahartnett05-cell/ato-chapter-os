@@ -7,9 +7,10 @@ import {
   type ReactNode,
 } from 'react'
 import { DEMO_EVENTS as seedEvents } from '../data/mockData'
-import { allowDemoData, EMPTY_BILL_HIGHWAY } from '../lib/demoSeed'
 import {
   SEMESTER_STUDY_HOURS_REQUIRED,
+  DEFAULT_STUDY_HOURS_RESET,
+  DEFAULT_STUDY_HOURS_REQUIREMENTS,
   calendarExtraEvents,
   initialBillHighway,
   initialDuesCharges,
@@ -17,12 +18,16 @@ import {
   initialStudyLocations,
   initialStudyLogs,
 } from '../data/chapterOpsData'
+import { memberVerifiedHours, memberStudyHoursRequired } from '../lib/studyHours'
+import { allowDemoData, EMPTY_BILL_HIGHWAY, STORAGE_KEYS } from '../lib/demoSeed'
 import type { Event } from '../types'
 import type {
   BillHighwayConfig,
   DuesCharge,
   DuesPayment,
   StudyHoursLog,
+  StudyHoursResetConfig,
+  StudyHoursRequirementsConfig,
   StudyLocation,
 } from '../types/chapterOps'
 
@@ -36,8 +41,18 @@ export interface ChapterOpsContextValue {
   studyLocations: StudyLocation[]
   activeStudyLocations: StudyLocation[]
   studyLogs: StudyHoursLog[]
+  studyHoursRequirements: StudyHoursRequirementsConfig
+  /** Default hours when mode is `all` (convenience alias). */
   studyHoursRequired: number
   setStudyHoursRequired: (n: number) => void
+  setStudyHoursAssignmentMode: (mode: StudyHoursRequirementsConfig['mode']) => void
+  assignStudyHoursToAllMembers: (hours: number) => void
+  setMemberStudyHoursRequirement: (memberId: string, hours: number | null) => void
+  updateMemberStudyHoursRequirements: (memberHours: Record<string, number>) => void
+  getMemberStudyHoursRequired: (memberId: string) => number | null
+  studyHoursReset: StudyHoursResetConfig
+  updateStudyHoursReset: (patch: Partial<StudyHoursResetConfig>) => void
+  getMemberVerifiedHours: (memberId: string) => number
   addStudyLocation: (loc: Omit<StudyLocation, 'id'>) => void
   updateStudyLocation: (id: string, patch: Partial<StudyLocation>) => void
   toggleStudyLocation: (id: string) => void
@@ -93,13 +108,50 @@ function writeEvents(next: Event[]) {
   }
 }
 
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) return JSON.parse(raw) as T
+  } catch {
+    /* ignore */
+  }
+  return fallback
+}
+
+function writeJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function readStudyHoursRequirements(): StudyHoursRequirementsConfig {
+  const stored = readJson<StudyHoursRequirementsConfig | null>(
+    STORAGE_KEYS.studyHoursRequirements,
+    null
+  )
+  if (stored) return stored
+
+  const legacy = readJson<number>(STORAGE_KEYS.studyRequired, SEMESTER_STUDY_HOURS_REQUIRED)
+  return { ...DEFAULT_STUDY_HOURS_REQUIREMENTS, defaultHours: legacy }
+}
+
 export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(readEvents)
   const [studyLocations, setStudyLocations] = useState(() =>
-    allowDemoData() ? initialStudyLocations : []
+    readJson(STORAGE_KEYS.studyLocations, allowDemoData() ? initialStudyLocations : [])
   )
-  const [studyLogs, setStudyLogs] = useState(() => (allowDemoData() ? initialStudyLogs : []))
-  const [studyHoursRequired, setStudyHoursRequired] = useState(SEMESTER_STUDY_HOURS_REQUIRED)
+  const [studyLogs, setStudyLogs] = useState(() =>
+    readJson(STORAGE_KEYS.studyLogs, allowDemoData() ? initialStudyLogs : [])
+  )
+  const [studyHoursRequirements, setStudyHoursRequirementsState] = useState<StudyHoursRequirementsConfig>(
+    readStudyHoursRequirements
+  )
+  const studyHoursRequired = studyHoursRequirements.defaultHours
+  const [studyHoursReset, setStudyHoursResetState] = useState<StudyHoursResetConfig>(() =>
+    readJson(STORAGE_KEYS.studyHoursReset, DEFAULT_STUDY_HOURS_RESET)
+  )
   const [duesCharges, setDuesCharges] = useState(() => (allowDemoData() ? initialDuesCharges : []))
   const [duesPayments, setDuesPayments] = useState(() => (allowDemoData() ? initialDuesPayments : []))
   const [billHighway, setBillHighway] = useState(() =>
@@ -139,27 +191,125 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
     [persistEvents]
   )
 
+  const persistStudyHoursRequirements = useCallback((next: StudyHoursRequirementsConfig) => {
+    setStudyHoursRequirementsState(next)
+    writeJson(STORAGE_KEYS.studyHoursRequirements, next)
+    writeJson(STORAGE_KEYS.studyRequired, next.defaultHours)
+  }, [])
+
+  const setStudyHoursRequired = useCallback(
+    (n: number) => {
+      persistStudyHoursRequirements({
+        ...studyHoursRequirements,
+        defaultHours: n,
+      })
+    },
+    [studyHoursRequirements, persistStudyHoursRequirements]
+  )
+
+  const setStudyHoursAssignmentMode = useCallback(
+    (mode: StudyHoursRequirementsConfig['mode']) => {
+      persistStudyHoursRequirements({ ...studyHoursRequirements, mode })
+    },
+    [studyHoursRequirements, persistStudyHoursRequirements]
+  )
+
+  const assignStudyHoursToAllMembers = useCallback(
+    (hours: number) => {
+      persistStudyHoursRequirements({
+        mode: 'all',
+        defaultHours: hours,
+        memberHours: {},
+      })
+    },
+    [persistStudyHoursRequirements]
+  )
+
+  const setMemberStudyHoursRequirement = useCallback(
+    (memberId: string, hours: number | null) => {
+      const nextHours = { ...studyHoursRequirements.memberHours }
+      if (hours === null || hours <= 0) {
+        delete nextHours[memberId]
+      } else {
+        nextHours[memberId] = hours
+      }
+      persistStudyHoursRequirements({
+        ...studyHoursRequirements,
+        mode: 'custom',
+        memberHours: nextHours,
+      })
+    },
+    [studyHoursRequirements, persistStudyHoursRequirements]
+  )
+
+  const updateMemberStudyHoursRequirements = useCallback(
+    (memberHours: Record<string, number>) => {
+      persistStudyHoursRequirements({
+        ...studyHoursRequirements,
+        mode: 'custom',
+        memberHours,
+      })
+    },
+    [studyHoursRequirements, persistStudyHoursRequirements]
+  )
+
+  const getMemberStudyHoursRequired = useCallback(
+    (memberId: string) => memberStudyHoursRequired(studyHoursRequirements, memberId),
+    [studyHoursRequirements]
+  )
+
+  const updateStudyHoursReset = useCallback((patch: Partial<StudyHoursResetConfig>) => {
+    setStudyHoursResetState((prev) => {
+      const next = { ...prev, ...patch }
+      writeJson(STORAGE_KEYS.studyHoursReset, next)
+      return next
+    })
+  }, [])
+
   const addStudyLocation = useCallback((loc: Omit<StudyLocation, 'id'>) => {
-    setStudyLocations((prev) => [...prev, { ...loc, id: uid('loc') }])
+    setStudyLocations((prev) => {
+      const next = [...prev, { ...loc, id: uid('loc') }]
+      writeJson(STORAGE_KEYS.studyLocations, next)
+      return next
+    })
   }, [])
 
   const updateStudyLocation = useCallback((id: string, patch: Partial<StudyLocation>) => {
-    setStudyLocations((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+    setStudyLocations((prev) => {
+      const next = prev.map((l) => (l.id === id ? { ...l, ...patch } : l))
+      writeJson(STORAGE_KEYS.studyLocations, next)
+      return next
+    })
   }, [])
 
   const toggleStudyLocation = useCallback((id: string) => {
-    setStudyLocations((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, active: !l.active } : l))
-    )
+    setStudyLocations((prev) => {
+      const next = prev.map((l) => (l.id === id ? { ...l, active: !l.active } : l))
+      writeJson(STORAGE_KEYS.studyLocations, next)
+      return next
+    })
   }, [])
 
   const logStudyHours = useCallback((entry: Omit<StudyHoursLog, 'id' | 'verified'>) => {
-    setStudyLogs((prev) => [...prev, { ...entry, id: uid('sh'), verified: false }])
+    setStudyLogs((prev) => {
+      const next = [...prev, { ...entry, id: uid('sh'), verified: false }]
+      writeJson(STORAGE_KEYS.studyLogs, next)
+      return next
+    })
   }, [])
 
   const verifyStudyHours = useCallback((id: string) => {
-    setStudyLogs((prev) => prev.map((l) => (l.id === id ? { ...l, verified: true } : l)))
+    setStudyLogs((prev) => {
+      const next = prev.map((l) => (l.id === id ? { ...l, verified: true } : l))
+      writeJson(STORAGE_KEYS.studyLogs, next)
+      return next
+    })
   }, [])
+
+  const getMemberVerifiedHours = useCallback(
+    (memberId: string) => memberVerifiedHours(studyLogs, memberId, studyHoursReset),
+    [studyLogs, studyHoursReset]
+  )
 
   const updateBillHighway = useCallback((patch: Partial<BillHighwayConfig>) => {
     setBillHighway((prev) => ({ ...prev, ...patch, lastSyncedAt: new Date().toISOString() }))
@@ -252,8 +402,17 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       studyLocations,
       activeStudyLocations,
       studyLogs,
+      studyHoursRequirements,
       studyHoursRequired,
       setStudyHoursRequired,
+      setStudyHoursAssignmentMode,
+      assignStudyHoursToAllMembers,
+      setMemberStudyHoursRequirement,
+      updateMemberStudyHoursRequirements,
+      getMemberStudyHoursRequired,
+      studyHoursReset,
+      updateStudyHoursReset,
+      getMemberVerifiedHours,
       addStudyLocation,
       updateStudyLocation,
       toggleStudyLocation,
@@ -276,12 +435,22 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       studyLocations,
       activeStudyLocations,
       studyLogs,
+      studyHoursRequirements,
       studyHoursRequired,
+      setStudyHoursRequired,
+      setStudyHoursAssignmentMode,
+      assignStudyHoursToAllMembers,
+      setMemberStudyHoursRequirement,
+      updateMemberStudyHoursRequirements,
+      getMemberStudyHoursRequired,
+      studyHoursReset,
       addStudyLocation,
       updateStudyLocation,
       toggleStudyLocation,
       logStudyHours,
       verifyStudyHours,
+      getMemberVerifiedHours,
+      updateStudyHoursReset,
       duesCharges,
       duesPayments,
       billHighway,

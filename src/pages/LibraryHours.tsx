@@ -1,64 +1,120 @@
-import { useMemo, useState } from 'react'
-import { ExternalLink, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { ExternalLink, Users } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
-import { getMember, members } from '../data/mockData'
+import { useMembers } from '../context/MembersContext'
+import {
+  logInCurrentPeriod,
+  nextResetLabel,
+  resetDayLabel,
+  resetFrequencyLabel,
+} from '../lib/studyHours'
+import { getMember } from '../data/mockData'
+
+type AssignmentDraft = Record<string, { included: boolean; hours: number }>
+
+function buildAssignmentDraft(
+  memberIds: string[],
+  memberHours: Record<string, number>,
+  defaultHours: number
+): AssignmentDraft {
+  const draft: AssignmentDraft = {}
+  for (const id of memberIds) {
+    const assigned = id in memberHours
+    draft[id] = {
+      included: assigned,
+      hours: assigned ? memberHours[id] : defaultHours,
+    }
+  }
+  return draft
+}
 
 export default function LibraryHoursPage() {
   const {
     studyLocations,
     studyLogs,
+    studyHoursRequirements,
     studyHoursRequired,
-    setStudyHoursRequired,
+    assignStudyHoursToAllMembers,
+    setStudyHoursAssignmentMode,
+    updateMemberStudyHoursRequirements,
+    getMemberStudyHoursRequired,
+    studyHoursReset,
+    updateStudyHoursReset,
     activeStudyLocations,
     addStudyLocation,
     toggleStudyLocation,
     updateStudyLocation,
-    logStudyHours,
     verifyStudyHours,
+    getMemberVerifiedHours,
   } = useChapterOps()
   const permissions = usePermissions()
-  const canManageLocations = permissions.canManageStudyLocations
-  const canVerify = permissions.canVerifyStudyHours
+  const { members } = useMembers()
 
-  const [logOpen, setLogOpen] = useState(false)
+  const canManage = permissions.canManageStudyLocations || permissions.canVerifyStudyHours
+
   const [locOpen, setLocOpen] = useState(false)
-  const [form, setForm] = useState({
-    memberId: members[4]?.id ?? 'm5',
-    date: '2025-08-23',
-    hours: 2,
-    locationId: '',
-    notes: '',
-  })
+  const [assignOpen, setAssignOpen] = useState(false)
   const [newLoc, setNewLoc] = useState({ name: '', address: '' })
+  const [allMembersHours, setAllMembersHours] = useState(studyHoursRequired)
+  const [bulkHours, setBulkHours] = useState(studyHoursRequired)
+  const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>({})
+
+  useEffect(() => {
+    setAllMembersHours(studyHoursRequired)
+    setBulkHours(studyHoursRequired)
+  }, [studyHoursRequired])
+
+  const eligibleMembers = useMemo(
+    () => members.filter((m) => m.status === 'Active' || m.status === 'New Member'),
+    [members]
+  )
+
+  const roster = useMemo(() => {
+    return eligibleMembers
+      .map((member) => {
+        const verified = getMemberVerifiedHours(member.id)
+        const required = getMemberStudyHoursRequired(member.id)
+        const pct =
+          required === null
+            ? 0
+            : Math.min(100, Math.round((verified / Math.max(required, 1)) * 100))
+        const pending = studyLogs.filter(
+          (log) =>
+            log.memberId === member.id &&
+            !log.verified &&
+            logInCurrentPeriod(log, studyHoursReset)
+        ).length
+        return { member, verified, required, pct, pending }
+      })
+      .sort((a, b) => b.verified - a.verified)
+  }, [
+    eligibleMembers,
+    getMemberVerifiedHours,
+    getMemberStudyHoursRequired,
+    studyLogs,
+    studyHoursReset,
+  ])
+
+  const membersWithRequirement = roster.filter((r) => r.required !== null)
+  const membersComplete = membersWithRequirement.filter(
+    (r) => r.required !== null && r.verified >= r.required
+  ).length
+
+  const pendingLogs = useMemo(
+    () =>
+      studyLogs.filter(
+        (log) => !log.verified && logInCurrentPeriod(log, studyHoursReset)
+      ),
+    [studyLogs, studyHoursReset]
+  )
 
   const locationName = (id: string) =>
     studyLocations.find((l) => l.id === id)?.name ?? 'Unknown'
-
-  const totals = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const log of studyLogs) {
-      if (!log.verified) continue
-      map[log.memberId] = (map[log.memberId] ?? 0) + log.hours
-    }
-    return map
-  }, [studyLogs])
-
-  const submitLog = () => {
-    const locationId = form.locationId || activeStudyLocations[0]?.id
-    if (!locationId) return
-    logStudyHours({
-      memberId: form.memberId,
-      date: form.date,
-      hours: form.hours,
-      locationId,
-      notes: form.notes.trim() || undefined,
-    })
-    setLogOpen(false)
-  }
 
   const addLocation = () => {
     if (!newLoc.name.trim()) return
@@ -71,51 +127,83 @@ export default function LibraryHoursPage() {
     setLocOpen(false)
   }
 
+  const openAssignmentModal = () => {
+    setBulkHours(studyHoursRequired)
+    setAssignmentDraft(
+      buildAssignmentDraft(
+        eligibleMembers.map((m) => m.id),
+        studyHoursRequirements.memberHours,
+        studyHoursRequired
+      )
+    )
+    setAssignOpen(true)
+  }
+
+  const applyAllMembersHours = () => {
+    if (allMembersHours < 0) return
+    assignStudyHoursToAllMembers(allMembersHours)
+  }
+
+  const applyCustomAssignments = () => {
+    const memberHours: Record<string, number> = {}
+    for (const [memberId, entry] of Object.entries(assignmentDraft)) {
+      if (entry.included && entry.hours > 0) {
+        memberHours[memberId] = entry.hours
+      }
+    }
+    updateMemberStudyHoursRequirements(memberHours)
+    setAssignOpen(false)
+  }
+
+  const setBulkHoursForChecked = (hours: number) => {
+    setAssignmentDraft((prev) => {
+      const next = { ...prev }
+      for (const id of Object.keys(next)) {
+        if (next[id].included) next[id] = { ...next[id], hours }
+      }
+      return next
+    })
+  }
+
+  if (!canManage) {
+    return <Navigate to="/my-dashboard#study-hours" replace />
+  }
+
   return (
     <>
       <TopBar
-        title="Study Hours"
-        subtitle="Approved locations · verification · semester requirement"
+        title="Library Hours"
+        subtitle="Officer view · roster progress, verification, and reset schedule"
         actions={
-          <div className="flex gap-2">
-            {canManageLocations && (
-              <button type="button" onClick={() => setLocOpen(true)} className="btn-ghost text-xs">
-                Locations
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setForm((f) => ({
-                  ...f,
-                  locationId: activeStudyLocations[0]?.id ?? '',
-                }))
-                setLogOpen(true)
-              }}
-              className="btn-primary gap-1.5 text-xs"
-            >
-              <Plus size={14} /> Log hours
-            </button>
-          </div>
+          <button type="button" onClick={() => setLocOpen(true)} className="btn-ghost text-xs">
+            Add location
+          </button>
         }
       />
 
       <PageShell className="space-y-8">
         <div className="ledger-bar grid-cols-2 lg:grid-cols-4">
           <div className="ledger-cell">
-            <p className="font-serif text-3xl tracking-tight">{studyHoursRequired}</p>
-            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-              Hours required
+            <p className="font-serif text-3xl tracking-tight">
+              {studyHoursRequirements.mode === 'all'
+                ? studyHoursRequired
+                : membersWithRequirement.length}
             </p>
-            {canManageLocations && (
-              <input
-                type="number"
-                min={0}
-                value={studyHoursRequired}
-                onChange={(e) => setStudyHoursRequired(Number(e.target.value))}
-                className="mt-2 w-20 border border-[var(--rule)] bg-white px-2 py-1 font-mono text-sm"
-              />
-            )}
+            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              {studyHoursRequirements.mode === 'all' ? 'Hours per member' : 'Members assigned'}
+            </p>
+          </div>
+          <div className="ledger-cell">
+            <p className="font-serif text-3xl tracking-tight">{membersComplete}</p>
+            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              Members complete
+            </p>
+          </div>
+          <div className="ledger-cell">
+            <p className="font-serif text-3xl tracking-tight">{pendingLogs.length}</p>
+            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              Pending verify
+            </p>
           </div>
           <div className="ledger-cell">
             <p className="font-serif text-3xl tracking-tight">{activeStudyLocations.length}</p>
@@ -123,31 +211,215 @@ export default function LibraryHoursPage() {
               Active locations
             </p>
           </div>
-          <div className="ledger-cell">
-            <p className="font-serif text-3xl tracking-tight">
-              {studyLogs.filter((l) => !l.verified).length}
-            </p>
-            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-              Pending verify
-            </p>
-          </div>
-          <div className="ledger-cell">
-            <p className="font-serif text-3xl tracking-tight">
-              {studyLogs.filter((l) => l.verified).reduce((s, l) => s + l.hours, 0)}
-            </p>
-            <p className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-              Verified hours
-            </p>
-          </div>
         </div>
 
-        {canManageLocations && (
+        <section className="rounded-2xl border border-black/5 bg-neutral-50/60 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-serif text-xl tracking-tight">Hour requirements</h2>
+              <p className="mt-1 text-sm text-neutral-600">
+                Set the same requirement for everyone, or assign different amounts per member.
+              </p>
+            </div>
+            <div className="flex rounded-sm border border-[var(--rule)] bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setStudyHoursAssignmentMode('all')}
+                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                  studyHoursRequirements.mode === 'all'
+                    ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                    : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                }`}
+              >
+                All members
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStudyHoursAssignmentMode('custom')
+                  openAssignmentModal()
+                }}
+                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                  studyHoursRequirements.mode === 'custom'
+                    ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                    : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+          </div>
+
+          {studyHoursRequirements.mode === 'all' ? (
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase text-[var(--muted)]">
+                  Hours required (each member)
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={allMembersHours}
+                  onChange={(e) => setAllMembersHours(Number(e.target.value))}
+                  className="input-editorial mt-1 w-28 font-mono"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={applyAllMembersHours}
+                className="btn-primary text-xs"
+              >
+                Apply to all members
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <p className="text-sm text-neutral-700">
+                {membersWithRequirement.length} of {eligibleMembers.length} members have hour
+                requirements.
+              </p>
+              <button type="button" onClick={openAssignmentModal} className="btn-primary text-xs">
+                <Users size={14} />
+                Manage assignments
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-black/5 bg-neutral-50/60 p-5">
+          <h2 className="font-serif text-xl tracking-tight">Reset schedule</h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            Controls when member hour totals restart. Next reset:{' '}
+            <span className="font-semibold text-neutral-900">{nextResetLabel(studyHoursReset)}</span>
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Frequency</span>
+              <select
+                className="input-editorial mt-1"
+                value={studyHoursReset.frequency}
+                onChange={(e) =>
+                  updateStudyHoursReset({
+                    frequency: e.target.value as typeof studyHoursReset.frequency,
+                  })
+                }
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="semester">Semester (no auto-reset)</option>
+              </select>
+            </label>
+            {studyHoursReset.frequency === 'weekly' && (
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Reset day</span>
+                <select
+                  className="input-editorial mt-1"
+                  value={studyHoursReset.resetDay}
+                  onChange={(e) => updateStudyHoursReset({ resetDay: Number(e.target.value) })}
+                >
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(
+                    (day, index) => (
+                      <option key={day} value={index}>
+                        {day}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+            )}
+            {studyHoursReset.frequency === 'monthly' && (
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Day of month</span>
+                <select
+                  className="input-editorial mt-1"
+                  value={studyHoursReset.resetDay}
+                  onChange={(e) => updateStudyHoursReset({ resetDay: Number(e.target.value) })}
+                >
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {studyHoursReset.frequency !== 'semester' && (
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Reset time</span>
+                <input
+                  type="time"
+                  className="input-editorial mt-1 font-mono"
+                  value={studyHoursReset.resetTime}
+                  onChange={(e) => updateStudyHoursReset({ resetTime: e.target.value })}
+                />
+              </label>
+            )}
+          </div>
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            Current period: {resetFrequencyLabel(studyHoursReset.frequency)}
+            {studyHoursReset.frequency !== 'semester' &&
+              ` · ${resetDayLabel(studyHoursReset)} at ${studyHoursReset.resetTime}`}
+          </p>
+        </section>
+
+        <section>
+          <div className="mb-3 border-b border-[var(--rule)] pb-2">
+            <h2 className="font-serif text-xl tracking-tight">Member progress</h2>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              Verified hours in the current period
+            </p>
+          </div>
+          <ul className="list-editorial">
+            {roster.map(({ member, verified, required, pct, pending }) => (
+              <li key={member.id} className="py-3.5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--ink)]">
+                      {member.firstName} {member.lastName}
+                    </p>
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {required === null
+                        ? `${verified} verified · no requirement`
+                        : `${verified} / ${required} verified`}
+                      {pending > 0 ? ` · ${pending} pending` : ''}
+                    </p>
+                  </div>
+                  {required === null ? (
+                    <span className="tag border border-neutral-200 px-1.5 py-0.5 text-[9px] uppercase text-neutral-500">
+                      Exempt
+                    </span>
+                  ) : (
+                    <span
+                      className={`tag border px-1.5 py-0.5 text-[9px] uppercase ${
+                        verified >= required
+                          ? 'border-emerald-200 text-emerald-800'
+                          : verified >= required * 0.5
+                            ? 'border-amber-200 text-amber-900'
+                            : 'border-neutral-200 text-neutral-600'
+                      }`}
+                    >
+                      {verified >= required ? 'Complete' : `${pct}%`}
+                    </span>
+                  )}
+                </div>
+                {required !== null && (
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-sm bg-neutral-200">
+                    <div
+                      className="h-full rounded-sm bg-[var(--accent)]"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {permissions.canManageStudyLocations && (
           <section>
             <div className="mb-3 border-b border-[var(--rule)] pb-2">
               <h2 className="font-serif text-xl tracking-tight">Approved locations</h2>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                Scholarship Chair controls where hours count
-              </p>
             </div>
             <ul className="list-editorial">
               {studyLocations.map((loc) => (
@@ -193,115 +465,119 @@ export default function LibraryHoursPage() {
 
         <section>
           <div className="mb-3 border-b border-[var(--rule)] pb-2">
-            <h2 className="font-serif text-xl tracking-tight">Hour log</h2>
+            <h2 className="font-serif text-xl tracking-tight">Pending verification</h2>
           </div>
           <ul className="list-editorial">
-            {studyLogs.map((entry) => {
-              const member = getMember(entry.memberId)
-              const verifiedTotal = totals[entry.memberId] ?? 0
-              return (
-                <li key={entry.id} className="flex flex-wrap items-center gap-3 py-3.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">
-                      {member?.firstName} {member?.lastName}
-                    </p>
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      {entry.date} · {locationName(entry.locationId)} · {entry.hours}h
-                      {entry.verified ? ` · ${verifiedTotal}/${studyHoursRequired} verified` : ''}
-                    </p>
-                    {entry.notes && (
-                      <p className="mt-1 text-xs text-[var(--muted)]">{entry.notes}</p>
+            {pendingLogs.length === 0 ? (
+              <li className="py-4 text-sm text-neutral-500">No pending logs in this period.</li>
+            ) : (
+              pendingLogs.map((entry) => {
+                const member = getMember(entry.memberId)
+                return (
+                  <li key={entry.id} className="flex flex-wrap items-center gap-3 py-3.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">
+                        {member?.firstName} {member?.lastName}
+                      </p>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                        {entry.date} · {locationName(entry.locationId)} · {entry.hours}h
+                      </p>
+                      {entry.notes && (
+                        <p className="mt-1 text-xs text-[var(--muted)]">{entry.notes}</p>
+                      )}
+                    </div>
+                    {permissions.canVerifyStudyHours && (
+                      <button
+                        type="button"
+                        onClick={() => verifyStudyHours(entry.id)}
+                        className="btn-primary px-3 py-1.5 text-[10px]"
+                      >
+                        Verify
+                      </button>
                     )}
-                  </div>
-                  <span
-                    className={`tag border px-1.5 py-0.5 text-[9px] uppercase ${
-                      entry.verified
-                        ? 'border-emerald-200 text-emerald-800'
-                        : 'border-amber-200 text-amber-900'
-                    }`}
-                  >
-                    {entry.verified ? 'Verified' : 'Pending'}
-                  </span>
-                  {canVerify && !entry.verified && (
-                    <button
-                      type="button"
-                      onClick={() => verifyStudyHours(entry.id)}
-                      className="btn-primary px-3 py-1.5 text-[10px]"
-                    >
-                      Verify
-                    </button>
-                  )}
-                </li>
-              )
-            })}
+                  </li>
+                )
+              })
+            )}
           </ul>
         </section>
       </PageShell>
 
-      <Modal open={logOpen} onClose={() => setLogOpen(false)} title="Log study hours">
-        <div className="space-y-3">
-          <label className="block">
-            <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Member</span>
-            <select
-              className="input-editorial mt-1"
-              value={form.memberId}
-              onChange={(e) => setForm({ ...form, memberId: e.target.value })}
+      <Modal open={assignOpen} onClose={() => setAssignOpen(false)} title="Assign study hours">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--muted)]">
+            Check members who need hours this period and set how many each must complete.
+          </p>
+
+          <div className="flex flex-wrap items-end gap-2 rounded-sm border border-[var(--rule)] bg-[var(--surface-card)] p-3">
+            <label className="block flex-1 min-w-[120px]">
+              <span className="font-mono text-[10px] uppercase text-[var(--muted)]">
+                Set checked to
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.5"
+                value={bulkHours}
+                onChange={(e) => setBulkHours(Number(e.target.value))}
+                className="input-editorial mt-1 w-full font-mono"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setBulkHoursForChecked(bulkHours)}
+              className="btn-ghost text-xs"
             >
-              {members
-                .filter((m) => m.status === 'Active' || m.status === 'New Member')
-                .map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.firstName} {m.lastName}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Location</span>
-            <select
-              className="input-editorial mt-1"
-              value={form.locationId}
-              onChange={(e) => setForm({ ...form, locationId: e.target.value })}
-            >
-              {activeStudyLocations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-            {activeStudyLocations.length === 0 && (
-              <p className="mt-1 text-xs text-red-700">No active locations — Scholarship Chair must enable some.</p>
-            )}
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              className="input-editorial font-mono"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-            />
-            <input
-              type="number"
-              step="0.5"
-              min={0.5}
-              className="input-editorial font-mono"
-              value={form.hours}
-              onChange={(e) => setForm({ ...form, hours: Number(e.target.value) })}
-            />
+              Apply to checked
+            </button>
           </div>
-          <input
-            className="input-editorial"
-            placeholder="Notes (optional)"
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          />
-          <button
-            type="button"
-            disabled={activeStudyLocations.length === 0}
-            onClick={submitLog}
-            className="btn-primary w-full"
-          >
-            Submit log
+
+          <ul className="max-h-72 space-y-2 overflow-y-auto border border-[var(--rule)]">
+            {eligibleMembers.map((member) => {
+              const draft = assignmentDraft[member.id] ?? {
+                included: false,
+                hours: studyHoursRequired,
+              }
+              return (
+                <li
+                  key={member.id}
+                  className="flex items-center gap-3 border-b border-[var(--rule)] px-3 py-2.5 last:border-0"
+                >
+                  <input
+                    type="checkbox"
+                    checked={draft.included}
+                    onChange={(e) =>
+                      setAssignmentDraft((prev) => ({
+                        ...prev,
+                        [member.id]: { ...draft, included: e.target.checked },
+                      }))
+                    }
+                    className="shrink-0"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {member.firstName} {member.lastName}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.5"
+                    disabled={!draft.included}
+                    value={draft.hours}
+                    onChange={(e) =>
+                      setAssignmentDraft((prev) => ({
+                        ...prev,
+                        [member.id]: { ...draft, hours: Number(e.target.value) },
+                      }))
+                    }
+                    className="input-editorial w-20 font-mono text-xs disabled:opacity-40"
+                  />
+                </li>
+              )
+            })}
+          </ul>
+
+          <button type="button" onClick={applyCustomAssignments} className="btn-primary w-full">
+            Save assignments
           </button>
         </div>
       </Modal>

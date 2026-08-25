@@ -45,7 +45,7 @@ const mainNav = [
   },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
   { to: '/excuses', label: 'Excuses', icon: ClipboardCheck, perm: 'canAccessExecTools' as const, feature: 'calendar' as const },
-  { to: '/library-hours', label: 'Library Hours', icon: BookOpen, feature: 'studyHours' as const },
+  { to: '/library-hours', label: 'Library Hours', icon: BookOpen, perm: 'canVerifyStudyHours' as const, feature: 'studyHours' as const },
   {
     to: '/budgets',
     label: 'Budgets',
@@ -56,6 +56,12 @@ const mainNav = [
   { to: '/house', label: 'House', icon: Home, feature: 'house' as const },
   { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
   { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
+  {
+    to: '/committees',
+    label: 'Committees',
+    icon: UsersRound,
+    feature: 'committees' as const,
+  },
 ]
 
 const recruitmentNav = [
@@ -71,13 +77,6 @@ const adminNav = [
     perm: 'canViewJBoardCases' as const,
     feature: 'standards' as const,
     dynamicLabel: true as const,
-  },
-  {
-    to: '/committees',
-    label: 'Committees',
-    icon: UsersRound,
-    perm: 'canAccessExecTools' as const,
-    feature: 'committees' as const,
   },
   {
     to: '/chapter-setup',

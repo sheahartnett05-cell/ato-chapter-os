@@ -10,6 +10,13 @@ import { DEMO_CHAPTER_TABLES } from '../data/chapterTablesData'
 import { getTableTemplate, TABLE_FORM_TEMPLATES } from '../data/tableFormTemplates'
 import { getMember, rsvps as demoRsvps } from '../data/mockData'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import {
+  findMemberColumnId,
+  findRsvpColumnId,
+  resolveEventRsvps,
+  type EventFormRsvp,
+} from '../lib/formRsvps'
+import { rsvps as seedRsvps } from '../data/mockData'
 import type { ChapterTableForm, TableColumn, TableRow } from '../types'
 
 const STORAGE_KEY = STORAGE_KEYS.tableForms
@@ -63,9 +70,19 @@ interface ChapterTablesContextValue {
   updateTable: (id: string, patch: Partial<ChapterTableForm>) => void
   deleteTable: (id: string) => void
   updateRow: (tableId: string, rowId: string, cells: TableRow['cells']) => void
-  addRow: (tableId: string) => void
+  addRow: (
+    tableId: string,
+    addedBy?: { memberId?: string; memberName: string }
+  ) => void
   addColumn: (tableId: string, col: Omit<TableColumn, 'id'>) => void
   syncGuestListFromEvent: (tableId: string) => void
+  getEventRsvps: (eventId: string) => EventFormRsvp[]
+  updateMemberFormRsvp: (
+    eventId: string,
+    memberId: string,
+    memberName: string,
+    rsvpValue: string
+  ) => void
 }
 
 const ChapterTablesContext = createContext<ChapterTablesContextValue | null>(null)
@@ -146,18 +163,28 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
   )
 
   const addRow = useCallback(
-    (tableId: string) => {
+    (tableId: string, addedBy?: { memberId?: string; memberName: string }) => {
       persist(
         tables.map((t) => {
           if (t.id !== tableId) return t
+          const hasMemberColumn = t.columns.some((c) => c.type === 'member')
           const cells: Record<string, string | boolean | number> = {}
           t.columns.forEach((c) => {
-            cells[c.id] = defaultCellValue(c)
+            if (c.type === 'member' && addedBy?.memberName) {
+              cells[c.id] = addedBy.memberName
+            } else {
+              cells[c.id] = defaultCellValue(c)
+            }
           })
+          const row: TableRow = {
+            id: uid('row'),
+            cells,
+            ...(hasMemberColumn && addedBy?.memberId ? { memberId: addedBy.memberId } : {}),
+          }
           return {
             ...t,
             updatedAt: new Date().toISOString(),
-            rows: [...t.rows, { id: uid('row'), cells }],
+            rows: [...t.rows, row],
           }
         })
       )
@@ -240,6 +267,54 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
     [tables, persist]
   )
 
+  const getEventRsvps = useCallback(
+    (eventId: string) => resolveEventRsvps(eventId, tables, seedRsvps),
+    [tables]
+  )
+
+  const updateMemberFormRsvp = useCallback(
+    (eventId: string, memberId: string, memberName: string, rsvpValue: string) => {
+      persist(
+        tables.map((table) => {
+          if (table.eventId !== eventId) return table
+
+          const template = getTableTemplate(table.templateId)
+          const rsvpColId = findRsvpColumnId(table, template)
+          if (!rsvpColId) return table
+
+          const memberColId = findMemberColumnId(table, template)
+          const existing = table.rows.find((row) => row.memberId === memberId)
+
+          if (existing) {
+            return {
+              ...table,
+              updatedAt: new Date().toISOString(),
+              rows: table.rows.map((row) =>
+                row.id === existing.id
+                  ? { ...row, cells: { ...row.cells, [rsvpColId]: rsvpValue } }
+                  : row
+              ),
+            }
+          }
+
+          const cells: Record<string, string | boolean | number> = {}
+          table.columns.forEach((col) => {
+            if (col.id === rsvpColId) cells[col.id] = rsvpValue
+            else if (memberColId && col.id === memberColId) cells[col.id] = memberName
+            else cells[col.id] = defaultCellValue(col)
+          })
+
+          return {
+            ...table,
+            updatedAt: new Date().toISOString(),
+            rows: [...table.rows, { id: uid('row'), memberId, cells }],
+          }
+        })
+      )
+    },
+    [tables, persist]
+  )
+
   const value = useMemo<ChapterTablesContextValue>(
     () => ({
       tables,
@@ -253,6 +328,8 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
       addRow,
       addColumn,
       syncGuestListFromEvent,
+      getEventRsvps,
+      updateMemberFormRsvp,
     }),
     [
       tables,
@@ -265,6 +342,8 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
       addRow,
       addColumn,
       syncGuestListFromEvent,
+      getEventRsvps,
+      updateMemberFormRsvp,
     ]
   )
 

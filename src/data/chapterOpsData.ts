@@ -201,3 +201,15 @@ export const initialBillHighway: BillHighwayConfig = {
 }
 
 export const SEMESTER_STUDY_HOURS_REQUIRED = 12
+
+export const DEFAULT_STUDY_HOURS_REQUIREMENTS = {
+  mode: 'all' as const,
+  defaultHours: SEMESTER_STUDY_HOURS_REQUIRED,
+  memberHours: {},
+}
+
+export const DEFAULT_STUDY_HOURS_RESET = {
+  frequency: 'weekly' as const,
+  resetDay: 1,
+  resetTime: '00:00',
+}

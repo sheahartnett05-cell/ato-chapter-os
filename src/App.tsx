@@ -121,9 +121,9 @@ export default function App() {
                 <Route
                   path="/library-hours"
                   element={
-                    <AdaptiveShell>
+                    <ExecShell>
                       <LibraryHours />
-                    </AdaptiveShell>
+                    </ExecShell>
                   }
                 />
                 <Route
@@ -210,17 +210,17 @@ export default function App() {
                 <Route
                   path="/committees"
                   element={
-                    <ExecShell>
+                    <AdaptiveShell>
                       <Committees />
-                    </ExecShell>
+                    </AdaptiveShell>
                   }
                 />
                 <Route
                   path="/committees/:id"
                   element={
-                    <ExecShell>
+                    <AdaptiveShell>
                       <CommitteeDetail />
-                    </ExecShell>
+                    </AdaptiveShell>
                   }
                 />
                 <Route

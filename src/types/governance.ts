@@ -51,6 +51,16 @@ export interface Committee {
   memberIds: string[]
   isPrivate: boolean
   color: string
+  /** Subgroup under a parent committee */
+  parentId?: string
+}
+
+export interface CommitteeChatMessage {
+  id: string
+  committeeId: string
+  authorId: string
+  body: string
+  timestamp: string
 }
 
 export interface GroupAnnouncement {

@@ -24,18 +24,27 @@ import {
 
   Pin,
 
+  UsersRound,
 } from 'lucide-react'
 
 import { Logo } from '../components/layout/Logo'
 
 import { Modal } from '../components/ui/Modal'
 
-import { CURRENT_MEMBER_ID, getMember, events, rsvps } from '../data/mockData'
+import { CURRENT_MEMBER_ID, getMember } from '../data/mockData'
 
 import { useCommunications } from '../context/CommunicationsContext'
 import { PollCard } from '../components/communications/PollCard'
 import { SignupCard } from '../components/communications/SignupCard'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { useChapterTables } from '../context/ChapterTablesContext'
+import {
+  FORM_RSVP_OPTIONS,
+  formRsvpBadgeClass,
+  formRsvpButtonClass,
+  normalizeFormRsvp,
+  type FormRsvpOption,
+} from '../lib/formRsvps'
 
 import { useAuth } from '../context/AuthContext'
 
@@ -44,29 +53,18 @@ import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 
 import { useMemberGovernance } from '../context/GovernanceContext'
+import { MemberStudyHoursPanel } from '../components/study/MemberStudyHoursPanel'
 
 import { roleLabel } from '../types/permissions'
 
 import type { Event } from '../types'
 
-type RsvpChoice = 'Going' | 'Not Going'
+type RsvpChoice = FormRsvpOption
 
 const TODAY = '2025-08-23'
 
-function loadMemberRsvps(memberId: string): Record<string, RsvpChoice | null> {
-
-  const initial: Record<string, RsvpChoice | null> = {}
-
-  for (const event of events) {
-
-    const entry = rsvps[event.id]?.find((r) => r.memberId === memberId)
-
-    if (entry) initial[event.id] = entry.status as RsvpChoice
-
-  }
-
-  return initial
-
+function memberNameFrom(member: { firstName: string; lastName: string }) {
+  return `${member.firstName} ${member.lastName}`.trim()
 }
 
 function formatBuzzTime(iso: string) {
@@ -111,11 +109,11 @@ export default function MemberDashboard() {
 
     memberDuesBalance,
 
-    studyLogs,
-
-    studyHoursRequired,
+    getMemberVerifiedHours,
+    getMemberStudyHoursRequired,
 
   } = useChapterOps()
+  const { getEventRsvps, updateMemberFormRsvp } = useChapterTables()
 
   const member =
 
@@ -123,11 +121,29 @@ export default function MemberDashboard() {
 
   const resolvedMemberId = member.id
 
-  const { myCases, myFines, submitAppeal, submitFineAppeal } =
+  const { myCases, myFines, myCommittees, submitAppeal, submitFineAppeal } =
 
     useMemberGovernance(resolvedMemberId)
 
-  const [memberRsvps, setMemberRsvps] = useState(() => loadMemberRsvps(resolvedMemberId))
+  const memberRsvps = useMemo(() => {
+    const initial: Record<string, RsvpChoice | null> = {}
+    for (const eventItem of chapterEvents) {
+      const entry = getEventRsvps(eventItem.id).find((r) => r.memberId === resolvedMemberId)
+      if (entry) {
+        const status = normalizeFormRsvp(entry.rsvp)
+        if (status) initial[eventItem.id] = status
+      }
+    }
+    return initial
+  }, [chapterEvents, getEventRsvps, resolvedMemberId])
+
+  const setRsvp = (event: Event, value: FormRsvpOption) => {
+    if (value === 'No' && event.required) {
+      setDeclineTarget(event)
+      return
+    }
+    updateMemberFormRsvp(event.id, resolvedMemberId, memberNameFrom(member), value)
+  }
 
   const [declineTarget, setDeclineTarget] = useState<Event | null>(null)
 
@@ -135,21 +151,12 @@ export default function MemberDashboard() {
 
   const duesBalance = memberDuesBalance(resolvedMemberId) || member.duesExpected - member.duesPaid
 
-  const studyHoursLogged = useMemo(
-
-    () =>
-
-      studyLogs
-
-        .filter((l) => l.memberId === resolvedMemberId && l.verified)
-
-        .reduce((s, l) => s + l.hours, 0),
-
-    [studyLogs, resolvedMemberId]
-
-  )
-
-  const studyPct = Math.min(100, Math.round((studyHoursLogged / studyHoursRequired) * 100))
+  const studyHoursLogged = getMemberVerifiedHours(resolvedMemberId)
+  const studyHoursTarget = getMemberStudyHoursRequired(resolvedMemberId)
+  const studyPct =
+    studyHoursTarget === null
+      ? 0
+      : Math.min(100, Math.round((studyHoursLogged / Math.max(studyHoursTarget, 1)) * 100))
 
   const { posts } = useCommunications()
 
@@ -203,31 +210,14 @@ export default function MemberDashboard() {
 
   const needsAction = unpaidFines.length + pendingCases.length + (duesBalance > 0 ? 1 : 0)
 
-  const accept = (eventId: string) => {
-
-    setMemberRsvps((prev) => ({ ...prev, [eventId]: 'Going' }))
-
-  }
-
-  const startDecline = (event: Event) => {
-
-    if (event.required) {
-
-      setDeclineTarget(event)
-
-      return
-
-    }
-
-    setMemberRsvps((prev) => ({ ...prev, [event.id]: 'Not Going' }))
-
-  }
-
   const submitDecline = () => {
-
     if (!declineTarget || !excuseReason.trim()) return
-
-    setMemberRsvps((prev) => ({ ...prev, [declineTarget.id]: 'Not Going' }))
+    updateMemberFormRsvp(
+      declineTarget.id,
+      resolvedMemberId,
+      memberNameFrom(member),
+      'No'
+    )
 
     setDeclineTarget(null)
 
@@ -337,7 +327,13 @@ export default function MemberDashboard() {
 
             { label: 'Points', value: String(member.points) },
 
-            { label: 'Study hrs', value: `${studyHoursLogged}/${studyHoursRequired}` },
+            {
+              label: 'Study hrs',
+              value:
+                studyHoursTarget === null
+                  ? `${studyHoursLogged} logged`
+                  : `${studyHoursLogged}/${studyHoursTarget}`,
+            },
 
             { label: 'Dues', value: duesBalance > 0 ? `$${duesBalance}` : 'Paid' },
 
@@ -547,7 +543,14 @@ export default function MemberDashboard() {
 
               { to: '/calendar', label: 'Calendar', icon: CalendarDays },
 
-              { to: '/library-hours', label: 'Study hrs', icon: BookOpen, sub: `${studyPct}%` },
+              { to: '/committees', label: 'Committees', icon: UsersRound, sub: `${myCommittees.length}` },
+
+              {
+                to: '#study-hours',
+                label: 'Study hrs',
+                icon: BookOpen,
+                sub: studyHoursTarget === null ? 'Exempt' : `${studyPct}%`,
+              },
 
               {
 
@@ -586,6 +589,30 @@ export default function MemberDashboard() {
                   <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
 
                   <ExternalLink size={10} className="text-[var(--muted)]" />
+
+                </a>
+
+              ) : to.startsWith('#') ? (
+
+                <a
+
+                  key={label}
+
+                  href={to}
+
+                  className="flex flex-col gap-2 border border-[var(--rule)] bg-[var(--surface-card)] p-3 transition hover:border-[var(--ink)]"
+
+                >
+
+                  <Icon size={16} className="text-[var(--primary)]" strokeWidth={1.5} />
+
+                  <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
+
+                  {sub && (
+
+                    <span className="font-mono text-[10px] text-[var(--muted)]">{sub}</span>
+
+                  )}
 
                 </a>
 
@@ -863,64 +890,27 @@ export default function MemberDashboard() {
                     </div>
 
                     {choice && (
-
                       <span
-
-                        className={`shrink-0 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 ${
-
-                          choice === 'Going'
-
-                            ? 'bg-emerald-100 text-emerald-800'
-
-                            : 'bg-neutral-200 text-neutral-600'
-
-                        }`}
-
+                        className={`shrink-0 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 ${formRsvpBadgeClass(choice)}`}
                       >
-
-                        {choice === 'Going' ? 'In' : 'Out'}
-
+                        {choice}
                       </span>
-
                     )}
 
                   </div>
 
-                  {!choice && (
-
-                    <div className="mt-3 flex gap-2">
-
+                  <div className="mt-3 flex gap-2">
+                    {FORM_RSVP_OPTIONS.map((option) => (
                       <button
-
+                        key={option}
                         type="button"
-
-                        onClick={() => accept(event.id)}
-
-                        className="btn-primary flex-1 py-2 text-xs"
-
+                        onClick={() => setRsvp(event, option)}
+                        className={formRsvpButtonClass(choice === option, option)}
                       >
-
-                        Accept
-
+                        {option}
                       </button>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => startDecline(event)}
-
-                        className="btn-ghost flex-1 py-2 text-xs"
-
-                      >
-
-                        Decline
-
-                      </button>
-
-                    </div>
-
-                  )}
+                    ))}
+                  </div>
 
                 </li>
 
@@ -934,67 +924,7 @@ export default function MemberDashboard() {
 
         {/* Study hours progress */}
 
-        <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
-
-          <div className="mb-3 flex items-baseline justify-between">
-
-            <h2 className="font-serif text-lg tracking-tight">Study hours</h2>
-
-            <Link
-
-              to="/library-hours"
-
-              className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
-
-            >
-
-              Log hours
-
-            </Link>
-
-          </div>
-
-          <div className="flex items-end justify-between gap-4">
-
-            <div>
-
-              <p className="font-serif text-3xl tracking-tight text-[var(--ink)]">
-
-                {studyHoursLogged}
-
-                <span className="text-lg text-[var(--muted)]"> / {studyHoursRequired}</span>
-
-              </p>
-
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-
-                Verified hours this semester
-
-              </p>
-
-            </div>
-
-            <div className="h-16 w-16 border border-[var(--rule)] p-1">
-
-              <div
-
-                className="h-full w-full transition-all"
-
-                style={{
-
-                  background: `linear-gradient(to top, var(--primary) ${studyPct}%, transparent ${studyPct}%)`,
-
-                }}
-
-                aria-hidden
-
-              />
-
-            </div>
-
-          </div>
-
-        </section>
+        <MemberStudyHoursPanel memberId={resolvedMemberId} />
 
       </main>
 
@@ -1021,6 +951,8 @@ export default function MemberDashboard() {
             { to: '/my-dashboard', label: 'Room', icon: Megaphone, active: true },
 
             { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+
+            { to: '/committees', label: 'Groups', icon: UsersRound },
 
             { to: '/profile', label: 'Profile', icon: User },
 

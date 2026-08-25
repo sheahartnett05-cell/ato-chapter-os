@@ -16,6 +16,27 @@ export interface StudyHoursLog {
   verified: boolean
 }
 
+export type StudyHoursResetFrequency = 'weekly' | 'monthly' | 'semester'
+
+export interface StudyHoursResetConfig {
+  frequency: StudyHoursResetFrequency
+  /** 0=Sun … 6=Sat when weekly; 1–28 when monthly */
+  resetDay: number
+  /** 24h HH:mm */
+  resetTime: string
+}
+
+export type StudyHoursAssignmentMode = 'all' | 'custom'
+
+/** Chapter-wide study hour requirements — same for everyone or per member. */
+export interface StudyHoursRequirementsConfig {
+  mode: StudyHoursAssignmentMode
+  /** Hours each member must complete when mode is `all`. */
+  defaultHours: number
+  /** Per-member hours when mode is `custom`; members not listed are exempt. */
+  memberHours: Record<string, number>
+}
+
 export type DuesPaymentStatus = 'Open' | 'Partial' | 'Paid' | 'Waived'
 
 export interface DuesCharge {

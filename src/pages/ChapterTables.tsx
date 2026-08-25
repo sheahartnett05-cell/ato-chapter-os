@@ -13,10 +13,22 @@ import {
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { useAuth } from '../context/AuthContext'
+import { useMembers } from '../context/MembersContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { SignatureCell } from '../components/forms/SignatureCell'
 import type { TableColumn } from '../types'
+
+const cellFieldClass =
+  'w-full min-w-[120px] rounded-sm border border-black/10 bg-white px-2.5 py-1.5 text-sm text-neutral-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none transition placeholder:text-neutral-400 focus:border-accent/50 focus:ring-2 focus:ring-accent/15'
+
+function cellPlaceholder(col: TableColumn) {
+  if (col.type === 'member') return ''
+  if (col.type === 'number') return '0'
+  if (col.type === 'date') return 'mm/dd/yyyy'
+  return `Enter ${col.name.toLowerCase()}…`
+}
 
 function CellEditor({
   col,
@@ -29,12 +41,14 @@ function CellEditor({
 }) {
   if (col.type === 'checkbox') {
     return (
-      <input
-        type="checkbox"
-        checked={Boolean(value)}
-        onChange={(e) => onChange(e.target.checked)}
-        className="rounded border-black/10 text-accent focus:ring-accent"
-      />
+      <div className="flex h-9 items-center justify-center rounded-sm border border-black/10 bg-white px-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(e) => onChange(e.target.checked)}
+          className="rounded border-black/10 text-accent focus:ring-accent"
+        />
+      </div>
     )
   }
   if (col.type === 'dropdown' && col.options?.length) {
@@ -42,7 +56,7 @@ function CellEditor({
       <select
         value={String(value ?? '')}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-sm border border-black/5 bg-white px-2 py-1 text-sm outline-none focus:border-accent/40"
+        className={cellFieldClass}
       >
         {col.options.map((opt) => (
           <option key={opt} value={opt}>
@@ -56,9 +70,10 @@ function CellEditor({
     return (
       <input
         type="number"
-        value={Number(value) || 0}
+        value={Number(value) || ''}
+        placeholder={cellPlaceholder(col)}
         onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-        className="w-20 rounded-sm border border-black/5 px-2 py-1 text-sm outline-none focus:border-accent/40"
+        className={cellFieldClass}
       />
     )
   }
@@ -68,24 +83,36 @@ function CellEditor({
         type="date"
         value={String(value ?? '')}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-sm border border-black/5 px-2 py-1 text-sm outline-none focus:border-accent/40"
+        className={cellFieldClass}
       />
     )
   }
   if (col.type === 'signature') {
-    return <SignatureCell value={value} onChange={(v) => onChange(v)} />
+    return (
+      <div className="min-h-9 rounded-sm border border-black/10 bg-white px-2 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+        <SignatureCell value={value} onChange={(v) => onChange(v)} />
+      </div>
+    )
+  }
+  if (col.type === 'member') {
+    return (
+      <input
+        type="text"
+        value={String(value ?? '')}
+        readOnly
+        tabIndex={-1}
+        placeholder="Added by you"
+        className={`${cellFieldClass} cursor-default bg-neutral-50 text-neutral-800 focus:border-black/10 focus:ring-0`}
+      />
+    )
   }
   return (
     <input
       type="text"
       value={String(value ?? '')}
       onChange={(e) => onChange(e.target.value)}
-      readOnly={col.type === 'member'}
-      className={`w-full min-w-[100px] rounded-sm border px-2 py-1 text-sm outline-none ${
-        col.type === 'member'
-          ? 'border-transparent bg-transparent text-neutral-700'
-          : 'border-transparent hover:border-black/5 focus:border-accent/40'
-      }`}
+      placeholder={cellPlaceholder(col)}
+      className={cellFieldClass}
     />
   )
 }
@@ -93,6 +120,8 @@ function CellEditor({
 export default function ChapterTables() {
   const { id } = useParams<{ id: string }>()
   const { events } = useChapterOps()
+  const { memberId, profile } = useAuth()
+  const { getMemberById } = useMembers()
   const {
     getTable,
     updateRow,
@@ -158,6 +187,20 @@ export default function ChapterTables() {
     window.setTimeout(() => setSynced(false), 2000)
   }
 
+  const addedByMember = useMemo(() => {
+    const member = memberId ? getMemberById(memberId) : undefined
+    const memberName =
+      member != null
+        ? `${member.firstName} ${member.lastName}`.trim()
+        : [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || 'You'
+    return { memberId: memberId ?? undefined, memberName }
+  }, [memberId, getMemberById, profile.firstName, profile.lastName])
+
+  const handleAddRow = () => {
+    if (!table) return
+    addRow(table.id, addedByMember)
+  }
+
   if (!table) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
@@ -219,7 +262,7 @@ export default function ChapterTables() {
             </button>
             <button
               type="button"
-              onClick={() => addRow(table.id)}
+              onClick={handleAddRow}
               disabled={table.columns.length === 0}
               className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -267,11 +310,14 @@ export default function ChapterTables() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-black/5 bg-neutral-50/80">
+                <tr className="bg-neutral-50/80">
                   {table.columns.map((col) => (
-                    <th key={col.id} className="px-4 py-3 text-left">
+                    <th
+                      key={col.id}
+                      className="border border-black/10 px-2 py-2.5 text-left"
+                    >
                       <button
                         type="button"
                         onClick={() => handleSort(col.id)}
@@ -284,12 +330,12 @@ export default function ChapterTables() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black/5">
+              <tbody>
                 {filteredRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan={Math.max(table.columns.length, 1)}
-                      className="px-4 py-12 text-center text-neutral-500"
+                      className="border border-black/10 px-4 py-12 text-center text-neutral-500"
                     >
                       {table.columns.length === 0
                         ? 'No columns yet — use "Add column" to define your grid, then add rows.'
@@ -300,9 +346,9 @@ export default function ChapterTables() {
                   </tr>
                 ) : (
                   filteredRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-neutral-50/50">
+                    <tr key={row.id}>
                       {table.columns.map((col) => (
-                        <td key={col.id} className="px-4 py-2">
+                        <td key={col.id} className="border border-black/10 bg-neutral-50/20 p-1.5 align-top">
                           <CellEditor
                             col={col}
                             value={row.cells[col.id] ?? ''}

@@ -14,12 +14,21 @@ import { PageShell, Section, ListRow } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import {
   StatusPill,
-  rsvpVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { getMember, rsvps, attendance, CURRENT_MEMBER_ID } from '../data/mockData'
+import { getMember, attendance, CURRENT_MEMBER_ID } from '../data/mockData'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
+import { useAuth } from '../context/AuthContext'
+import { useMembers } from '../context/MembersContext'
+import {
+  FORM_RSVP_OPTIONS,
+  formRsvpButtonClass,
+  formRsvpVariant,
+  isAffirmativeFormRsvp,
+  normalizeFormRsvp,
+  type FormRsvpOption,
+} from '../lib/formRsvps'
 import { rsvpExcuses } from '../data/featureData'
 import { eventTypeColor } from '../lib/eventColors'
 import type { RsvpExcuse } from '../types/features'
@@ -27,14 +36,23 @@ import type { RsvpExcuse } from '../types/features'
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
   const { events: chapterEvents } = useChapterOps()
-  const { getTableForEvent } = useChapterTables()
+  const { getTableForEvent, getEventRsvps, updateMemberFormRsvp } = useChapterTables()
+  const { memberId, profile } = useAuth()
+  const { getMemberById } = useMembers()
   const event = chapterEvents.find((e) => e.id === id)
   const eventTable = id ? getTableForEvent(id) : undefined
+  const resolvedMemberId = memberId ?? CURRENT_MEMBER_ID
+  const resolvedMember =
+    getMemberById(resolvedMemberId) ?? getMember(resolvedMemberId)
+  const resolvedMemberName = resolvedMember
+    ? `${resolvedMember.firstName} ${resolvedMember.lastName}`.trim()
+    : [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || 'You'
+
+  const eventFormRsvps = id ? getEventRsvps(id) : []
+  const myFormRsvp = eventFormRsvps.find((r) => r.memberId === resolvedMemberId)
+  const myRsvp = myFormRsvp ? normalizeFormRsvp(myFormRsvp.rsvp) : null
+
   const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
-  const [myRsvp, setMyRsvp] = useState<'Going' | 'Not Going' | null>(() => {
-    const existing = rsvps[event?.id ?? '']?.find((r) => r.memberId === CURRENT_MEMBER_ID)
-    return existing?.status ?? null
-  })
   const [showExcuseModal, setShowExcuseModal] = useState(false)
   const [excuseReason, setExcuseReason] = useState('')
   const [localExcuses, setLocalExcuses] = useState<RsvpExcuse[]>(rsvpExcuses)
@@ -50,19 +68,24 @@ export default function EventPage() {
     )
   }
 
-  const eventRsvps = rsvps[event.id] ?? []
   const eventAttendance = attendance[event.id] ?? []
   const eventExcuses = localExcuses.filter((e) => e.eventId === event.id)
 
-  const goingCount = eventRsvps.filter((r) => r.status === 'Going').length
-  const notGoingCount = eventRsvps.filter((r) => r.status === 'Not Going').length
+  const yesCount = eventFormRsvps.filter((r) => normalizeFormRsvp(r.rsvp) === 'Yes').length
+  const maybeCount = eventFormRsvps.filter((r) => normalizeFormRsvp(r.rsvp) === 'Maybe').length
+  const noCount = eventFormRsvps.filter((r) => normalizeFormRsvp(r.rsvp) === 'No').length
 
-  const handleRsvp = (status: 'Going' | 'Not Going') => {
-    if (status === 'Not Going' && event.required) {
+  const persistRsvp = (value: FormRsvpOption) => {
+    if (!event.id) return
+    updateMemberFormRsvp(event.id, resolvedMemberId, resolvedMemberName, value)
+  }
+
+  const handleRsvp = (value: FormRsvpOption) => {
+    if (value === 'No' && event.required) {
       setShowExcuseModal(true)
       return
     }
-    setMyRsvp(status)
+    persistRsvp(value)
   }
 
   const submitExcuse = () => {
@@ -70,13 +93,13 @@ export default function EventPage() {
     const newExcuse: RsvpExcuse = {
       id: `ex-${Date.now()}`,
       eventId: event.id,
-      memberId: CURRENT_MEMBER_ID,
+      memberId: resolvedMemberId,
       reason: excuseReason.trim(),
       status: 'pending',
       submittedAt: new Date().toISOString(),
     }
     setLocalExcuses((prev) => [...prev, newExcuse])
-    setMyRsvp('Not Going')
+    persistRsvp('No')
     setShowExcuseModal(false)
     setExcuseReason('')
   }
@@ -168,25 +191,21 @@ export default function EventPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {(['Going', 'Not Going'] as const).map((status) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {FORM_RSVP_OPTIONS.map((option) => (
             <button
-              key={status}
+              key={option}
               type="button"
-              onClick={() => handleRsvp(status)}
-              className={`rounded-sm px-4 py-2 text-sm font-semibold transition ${
-                myRsvp === status
-                  ? 'bg-accent text-white'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-              }`}
+              onClick={() => handleRsvp(option)}
+              className={formRsvpButtonClass(myRsvp === option, option, true)}
             >
-              {status === 'Going' ? 'Accept' : 'Decline'}
+              {option}
             </button>
           ))}
-          {myRsvp === 'Not Going' && eventExcuses.some((e) => e.memberId === CURRENT_MEMBER_ID) && (
+          {myRsvp === 'No' && eventExcuses.some((e) => e.memberId === resolvedMemberId) && (
             <StatusPill
               label={
-                eventExcuses.find((e) => e.memberId === CURRENT_MEMBER_ID)?.status === 'pending'
+                eventExcuses.find((e) => e.memberId === resolvedMemberId)?.status === 'pending'
                   ? 'Excuse pending'
                   : 'Excuse approved'
               }
@@ -225,12 +244,16 @@ export default function EventPage() {
             <p className="text-xs font-medium text-neutral-500">RSVP summary</p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-neutral-500">Going</span>
-                <span className="font-semibold text-emerald-600">{goingCount}</span>
+                <span className="text-neutral-500">Yes</span>
+                <span className="font-semibold text-emerald-600">{yesCount}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-500">Declined</span>
-                <span className="font-semibold text-neutral-600">{notGoingCount}</span>
+                <span className="text-neutral-500">Maybe</span>
+                <span className="font-semibold text-amber-700">{maybeCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">No</span>
+                <span className="font-semibold text-neutral-600">{noCount}</span>
               </div>
             </div>
             {eventTable && (
@@ -265,39 +288,57 @@ export default function EventPage() {
         <Section title={activeSection === 'rsvp' ? 'RSVPs' : activeSection}>
           <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
             {activeSection === 'rsvp' &&
-              (eventRsvps.length === 0 ? (
+              (eventFormRsvps.length === 0 ? (
                 <p className="p-8 text-center text-sm text-neutral-500">No RSVPs yet</p>
               ) : (
-                eventRsvps.map((rsvp) => {
-                  const member = getMember(rsvp.memberId)
-                  if (!member) return null
-                  const excuse = eventExcuses.find((e) => e.memberId === rsvp.memberId)
+                eventFormRsvps.map((rsvp) => {
+                  const member = rsvp.memberId ? getMember(rsvp.memberId) : undefined
+                  const displayName =
+                    member != null
+                      ? `${member.firstName} ${member.lastName}`
+                      : rsvp.memberName || 'Unknown member'
+                  const excuse = rsvp.memberId
+                    ? eventExcuses.find((e) => e.memberId === rsvp.memberId)
+                    : undefined
                   return (
-                    <ListRow key={rsvp.memberId}>
-                      <Link
-                        to={`/members/${member.id}`}
-                        className="flex flex-1 items-center justify-between gap-4 px-2"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="flex h-9 w-9 items-center justify-center rounded-sm text-xs font-bold text-white ring-2 ring-accent/30"
-                            style={{ backgroundColor: 'var(--brand-primary)' }}
-                          >
-                            {member.avatar}
+                    <ListRow key={`${rsvp.tableId}-${rsvp.rowId}`}>
+                      {member ? (
+                        <Link
+                          to={`/members/${member.id}`}
+                          className="flex flex-1 items-center justify-between gap-4 px-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex h-9 w-9 items-center justify-center rounded-sm text-xs font-bold text-white ring-2 ring-accent/30"
+                              style={{ backgroundColor: 'var(--brand-primary)' }}
+                            >
+                              {member.avatar}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-neutral-900">{displayName}</p>
+                              {rsvp.guest && (
+                                <p className="text-xs text-neutral-500">Guest: {rsvp.guest}</p>
+                              )}
+                              {excuse && (
+                                <p className="text-xs text-neutral-500 line-clamp-1">
+                                  Excuse: {excuse.reason}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                          <StatusPill label={rsvp.rsvp} variant={formRsvpVariant(rsvp.rsvp)} />
+                        </Link>
+                      ) : (
+                        <div className="flex flex-1 items-center justify-between gap-4 px-2">
                           <div>
-                            <p className="font-semibold text-neutral-900">
-                              {member.firstName} {member.lastName}
-                            </p>
-                            {excuse && (
-                              <p className="text-xs text-neutral-500 line-clamp-1">
-                                Excuse: {excuse.reason}
-                              </p>
+                            <p className="font-semibold text-neutral-900">{displayName}</p>
+                            {rsvp.guest && (
+                              <p className="text-xs text-neutral-500">Guest: {rsvp.guest}</p>
                             )}
                           </div>
+                          <StatusPill label={rsvp.rsvp} variant={formRsvpVariant(rsvp.rsvp)} />
                         </div>
-                        <StatusPill label={rsvp.status} variant={rsvpVariant(rsvp.status)} />
-                      </Link>
+                      )}
                     </ListRow>
                   )
                 })
@@ -349,16 +390,17 @@ export default function EventPage() {
                       </ListRow>
                     )
                   })
-                : eventRsvps.map((entry) => {
-                    const member = getMember(entry.memberId)
-                    if (!member) return null
-                    const pts = entry.status === 'Going' ? event.points : 0
+                : eventFormRsvps.map((entry) => {
+                    const member = entry.memberId ? getMember(entry.memberId) : undefined
+                    const displayName =
+                      member != null
+                        ? `${member.firstName} ${member.lastName}`
+                        : entry.memberName || 'Unknown member'
+                    const pts = isAffirmativeFormRsvp(entry.rsvp) ? event.points : 0
                     return (
-                      <ListRow key={entry.memberId}>
+                      <ListRow key={`${entry.tableId}-${entry.rowId}`}>
                         <div className="flex flex-1 justify-between px-2">
-                          <span className="font-semibold text-neutral-900">
-                            {member.firstName} {member.lastName}
-                          </span>
+                          <span className="font-semibold text-neutral-900">{displayName}</span>
                           <span className="font-semibold text-accent">+{pts}</span>
                         </div>
                       </ListRow>

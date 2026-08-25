@@ -15,6 +15,7 @@ export type {
   Fine,
   FineStatus,
   Committee,
+  CommitteeChatMessage,
   GroupAnnouncement,
   CommitteeTask,
   FineScheduleRule,
