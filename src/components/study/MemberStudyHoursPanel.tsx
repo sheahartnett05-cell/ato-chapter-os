@@ -49,6 +49,7 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
   const submitLog = () => {
     const locationId = form.locationId || activeStudyLocations[0]?.id
     if (!locationId) return
+    if (!(form.hours > 0)) return
     logStudyHours({
       memberId,
       date: form.date,
@@ -185,7 +186,7 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
           />
           <button
             type="button"
-            disabled={activeStudyLocations.length === 0}
+            disabled={activeStudyLocations.length === 0 || !(form.hours > 0)}
             onClick={submitLog}
             className="btn-primary w-full"
           >

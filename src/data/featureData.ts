@@ -253,6 +253,7 @@ const DEMO_CHAPTER_POSITIONS: ChapterPosition[] = [
   { id: 'p5', title: 'Secretary', isCustom: false },
   { id: 'p6', title: 'Scholarship Chair', isCustom: false },
   { id: 'p6b', title: 'Standards Chair', isCustom: false },
+  { id: 'p6c', title: 'Chaplain', isCustom: false },
   { id: 'p7', title: 'Social Chair', assignedMemberId: 'm2', isCustom: false },
   { id: 'p8', title: 'Philanthropy Chair', isCustom: false },
 ]

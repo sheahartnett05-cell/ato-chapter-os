@@ -5,7 +5,8 @@ import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
-import { getMember, members } from '../data/mockData'
+import { useMembers } from '../context/MembersContext'
+import { parsePositiveAmount } from '../lib/formUtils'
 
 export default function DuesPage() {
   const {
@@ -18,11 +19,14 @@ export default function DuesPage() {
     memberDuesBalance,
   } = useChapterOps()
   const permissions = usePermissions()
+  const { members, getMemberById } = useMembers()
   const isTreasurer = permissions.canAccessTreasurerSettings
 
   const [chargeOpen, setChargeOpen] = useState(false)
   const [payOpen, setPayOpen] = useState<{ chargeId: string; memberId: string } | null>(null)
   const [payAmount, setPayAmount] = useState(0)
+  const [payError, setPayError] = useState('')
+  const [chargeError, setChargeError] = useState('')
   const [draft, setDraft] = useState({
     label: '',
     amount: 100,
@@ -39,7 +43,7 @@ export default function DuesPage() {
           balance: memberDuesBalance(m.id),
         }))
         .sort((a, b) => b.balance - a.balance),
-    [memberDuesBalance]
+    [memberDuesBalance, members]
   )
 
   const totals = useMemo(() => {
@@ -50,12 +54,22 @@ export default function DuesPage() {
   }, [duesCharges, duesPayments, roster])
 
   const createCharge = () => {
-    if (!draft.label.trim()) return
+    setChargeError('')
+    const label = draft.label.trim()
+    const amount = parsePositiveAmount(draft.amount)
+    if (!label) {
+      setChargeError('Enter a label for this charge.')
+      return
+    }
+    if (amount == null) {
+      setChargeError('Enter an amount greater than zero.')
+      return
+    }
     addDuesCharge({
-      label: draft.label.trim(),
-      amount: draft.amount,
+      label,
+      amount,
       dueDate: draft.dueDate,
-      semester: draft.semester,
+      semester: draft.semester.trim() || 'Current',
       assignedMemberIds: [],
     })
     setChargeOpen(false)
@@ -63,8 +77,19 @@ export default function DuesPage() {
   }
 
   const applyPayment = () => {
-    if (!payOpen || payAmount <= 0) return
-    recordDuesPayment(payOpen.chargeId, payOpen.memberId, payAmount, 'BillHighway')
+    setPayError('')
+    if (!payOpen) return
+    const amount = parsePositiveAmount(payAmount)
+    if (amount == null) {
+      setPayError('Enter an amount greater than zero.')
+      return
+    }
+    const balance = memberDuesBalance(payOpen.memberId)
+    if (amount > balance) {
+      setPayError(`Payment exceeds outstanding balance ($${balance.toLocaleString()}).`)
+      return
+    }
+    recordDuesPayment(payOpen.chargeId, payOpen.memberId, amount, 'BillHighway')
     setPayOpen(null)
     setPayAmount(0)
   }
@@ -249,17 +274,22 @@ export default function DuesPage() {
 
       <Modal open={chargeOpen} onClose={() => setChargeOpen(false)} title="Add dues charge">
         <div className="space-y-3">
-          <input
-            className="input-editorial"
-            placeholder="Label (e.g. Spring 2026 Dues)"
-            value={draft.label}
-            onChange={(e) => setDraft({ ...draft, label: e.target.value })}
-          />
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Label *</span>
+            <input
+              className="input-editorial mt-1"
+              placeholder="e.g. Spring 2026 Dues"
+              value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+            />
+          </label>
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Amount</span>
+              <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Amount *</span>
               <input
                 type="number"
+                min={0.01}
+                step={0.01}
                 className="input-editorial mt-1 font-mono"
                 value={draft.amount}
                 onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) })}
@@ -275,12 +305,16 @@ export default function DuesPage() {
               />
             </label>
           </div>
-          <input
-            className="input-editorial"
-            placeholder="Semester"
-            value={draft.semester}
-            onChange={(e) => setDraft({ ...draft, semester: e.target.value })}
-          />
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Semester</span>
+            <input
+              className="input-editorial mt-1"
+              placeholder="Fall 2025"
+              value={draft.semester}
+              onChange={(e) => setDraft({ ...draft, semester: e.target.value })}
+            />
+          </label>
+          {chargeError && <p className="text-xs text-red-600">{chargeError}</p>}
           <button type="button" onClick={createCharge} className="btn-primary w-full">
             Create charge
           </button>
@@ -289,18 +323,35 @@ export default function DuesPage() {
 
       <Modal
         open={payOpen != null}
-        onClose={() => setPayOpen(null)}
+        onClose={() => {
+          setPayOpen(null)
+          setPayError('')
+        }}
         title="Record payment"
       >
         <p className="mb-3 text-sm text-[var(--muted)]">
-          {payOpen ? `${getMember(payOpen.memberId)?.firstName} ${getMember(payOpen.memberId)?.lastName}` : ''}
+          {payOpen
+            ? (() => {
+                const m = getMemberById(payOpen.memberId)
+                const bal = memberDuesBalance(payOpen.memberId)
+                return m
+                  ? `${m.firstName} ${m.lastName} · $${bal.toLocaleString()} outstanding`
+                  : ''
+              })()
+            : ''}
         </p>
-        <input
-          type="number"
-          className="input-editorial font-mono"
-          value={payAmount}
-          onChange={(e) => setPayAmount(Number(e.target.value))}
-        />
+        <label className="block">
+          <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Amount *</span>
+          <input
+            type="number"
+            min={0.01}
+            step={0.01}
+            className="input-editorial mt-1 font-mono"
+            value={payAmount}
+            onChange={(e) => setPayAmount(Number(e.target.value))}
+          />
+        </label>
+        {payError && <p className="mt-2 text-xs text-red-600">{payError}</p>}
         <button type="button" onClick={applyPayment} className="btn-primary mt-4 w-full">
           Apply payment
         </button>

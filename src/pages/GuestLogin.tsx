@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { ArrowRight, Eye, Shield, Smartphone } from 'lucide-react'
 import { AgoraMark } from '../components/layout/Logo'
@@ -8,31 +8,29 @@ import { getOrCreateUserId } from '../context/MembersContext'
 import {
   GUEST_CHAPTER,
   GUEST_PRESETS,
+  isGuestPreviewActive,
   markGuestPreview,
   type GuestPreviewMode,
 } from '../lib/guestPreview'
-import { clearDemoData, seedGuestDemo } from '../lib/demoSeed'
+import { clearDemoData, seedGuestDemo, backupRealSession } from '../lib/demoSeed'
 import { contrastText } from '../lib/themeUtils'
+import { defaultHomePath } from '../lib/onboardingStorage'
 
 /**
  * Guest / collaborator preview — no invite code required.
  * Seeds a demo chapter so reviewers can browse the product.
  */
 export default function GuestLogin() {
-    const { completeOnboarding, isOnboarded } = useAuth()
+  const { completeOnboarding, isOnboarded, onboarding } = useAuth()
   const { setSelectedOrg, setChapterMeta } = useChapter()
 
   useEffect(() => {
-    if (!isOnboarded) {
-      setSelectedOrg('agora')
-      setChapterMeta({ chapterDesignation: '', university: '' })
-    }
-  }, [isOnboarded, setSelectedOrg, setChapterMeta])
-  
+    setSelectedOrg('agora')
+    setChapterMeta({ chapterDesignation: '', university: '' })
+  }, [setSelectedOrg, setChapterMeta])
 
-  if (isOnboarded) {
-    return <Navigate to="/" replace />
-  }
+  const inGuestSession = isOnboarded && (onboarding?.isGuest === true || isGuestPreviewActive())
+  const inRealSession = isOnboarded && !inGuestSession
 
   const enter = (mode: GuestPreviewMode) => {
     const preset = GUEST_PRESETS[mode]
@@ -41,9 +39,17 @@ export default function GuestLogin() {
     // Demo roster identities (not a fresh empty register)
     const memberId = mode === 'exec' ? 'm1' : 'm5'
 
+    // Preserve real chapter data before seeding demo
+    backupRealSession()
     clearDemoData()
     markGuestPreview(true)
     seedGuestDemo()
+
+    try {
+      localStorage.removeItem('chapter-os-selected-org')
+    } catch {
+      /* storage unavailable */
+    }
 
     // Link this browser user to a seeded demo member without wiping the roster
     try {
@@ -154,6 +160,23 @@ export default function GuestLogin() {
         <p className="mt-2 max-w-md text-sm text-[var(--muted)]">
           Instant access for demos. Pick your national org and chapter during full onboarding.
         </p>
+
+        {inRealSession && (
+          <p className="mt-4 max-w-md rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            You have a saved chapter session in this browser. Choose a preview below to switch to
+            the Agora demo — your real session data here will be replaced.
+          </p>
+        )}
+
+        {inGuestSession && (
+          <p className="mt-4 max-w-md text-sm text-[var(--muted)]">
+            Already in guest preview.{' '}
+            <Link to={defaultHomePath()} className="text-[var(--accent)] underline-offset-2 hover:underline">
+              Return to demo
+            </Link>{' '}
+            or pick another mode below.
+          </p>
+        )}
 
         <div className="mt-8 space-y-3">
           <button

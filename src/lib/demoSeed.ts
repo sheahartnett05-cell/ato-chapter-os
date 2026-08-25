@@ -1,4 +1,4 @@
-import { isGuestPreviewActive } from './guestPreview'
+import { isGuestPreviewActive, markGuestPreview } from './guestPreview'
 import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/mockData'
 import {
   calendarExtraEvents,
@@ -44,6 +44,9 @@ export const STORAGE_KEYS = {
   studyRequired: 'chapter-os-study-required',
   studyHoursRequirements: 'chapter-os-study-hours-requirements',
   studyHoursReset: 'chapter-os-study-hours-reset',
+  rsvps: 'chapter-os-rsvps',
+  attendance: 'chapter-os-attendance',
+  rsvpExcuses: 'chapter-os-rsvp-excuses',
   duesCharges: 'chapter-os-dues-charges',
   duesPayments: 'chapter-os-dues-payments',
   billHighway: 'chapter-os-bill-highway',
@@ -120,9 +123,63 @@ export function seedGuestDemo() {
   write(STORAGE_KEYS.demoSeeded, true)
 }
 
+export const SESSION_BACKUP_KEY = 'chapter-os-session-backup'
+
+const EXTRA_SESSION_KEYS = [
+  'chapter-os-onboarding',
+  'chapter-os-selected-org',
+  'chapter-os-budgets',
+  'chapter-os-user-id',
+] as const
+
+/** Snapshot real chapter data before guest preview wipes storage. */
+export function backupRealSession() {
+  try {
+    if (isGuestPreviewActive()) return
+    const bag: Record<string, string> = {}
+    for (const key of Object.values(STORAGE_KEYS)) {
+      const v = localStorage.getItem(key)
+      if (v != null) bag[key] = v
+    }
+    for (const key of EXTRA_SESSION_KEYS) {
+      const v = localStorage.getItem(key)
+      if (v != null) bag[key] = v
+    }
+    if (Object.keys(bag).length === 0) return
+    localStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify(bag))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Restore chapter data after leaving guest preview. */
+export function restoreRealSession(): boolean {
+  try {
+    const raw = localStorage.getItem(SESSION_BACKUP_KEY)
+    if (!raw) return false
+    const bag = JSON.parse(raw) as Record<string, string>
+    clearDemoData()
+    for (const [k, v] of Object.entries(bag)) {
+      localStorage.setItem(k, v)
+    }
+    localStorage.removeItem(SESSION_BACKUP_KEY)
+    markGuestPreview(false)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Clear demo / chapter operational storage — call when exiting guest. */
 export function clearDemoData() {
   Object.values(STORAGE_KEYS).forEach(remove)
+  for (const key of EXTRA_SESSION_KEYS) {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export function allowDemoData() {

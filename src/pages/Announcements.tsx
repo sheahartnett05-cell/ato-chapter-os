@@ -8,12 +8,10 @@ import { SignupCard } from '../components/communications/SignupCard'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useCommunications } from '../context/CommunicationsContext'
 import { useChapter } from '../context/ChapterContext'
-import { useMembers } from '../context/MembersContext'
 import {
   applyTemplateTokens,
   DEFAULT_TEMPLATE_TOKENS,
 } from '../data/templateData'
-import { CURRENT_MEMBER_ID } from '../data/mockData'
 import { roleLabel } from '../types/permissions'
 import type { AnnouncementTemplate, PostKind } from '../types/features'
 
@@ -37,9 +35,8 @@ export default function Announcements() {
   const { profile, role, memberId } = useAuth()
   const permissions = usePermissions()
   const { posts, templates, addPost, togglePin } = useCommunications()
-  const { getMemberById } = useMembers()
 
-  const voterId = memberId ?? getMemberById(memberId ?? '')?.id ?? CURRENT_MEMBER_ID
+  const voterId = memberId ?? ''
   const canCreate = permissions.canPostAnnouncements
 
   const [tab, setTab] = useState<Tab>('feed')
@@ -53,6 +50,20 @@ export default function Announcements() {
   const [pollCloses, setPollCloses] = useState('2025-08-30')
   const [signupSlots, setSignupSlots] = useState(['', ''])
   const [pinNew, setPinNew] = useState(false)
+  const [composerError, setComposerError] = useState('')
+  const [publishing, setPublishing] = useState(false)
+
+  const canPublish = useMemo(() => {
+    if (!title.trim()) return false
+    if (composerKind === 'poll') {
+      const opts = pollOptions.map((o) => o.trim()).filter(Boolean)
+      return Boolean(pollQuestion.trim()) && opts.length >= 2
+    }
+    if (composerKind === 'signup') {
+      return signupSlots.map((s) => s.trim()).filter(Boolean).length >= 1
+    }
+    return true
+  }, [title, composerKind, pollQuestion, pollOptions, signupSlots])
 
   const sorted = useMemo(
     () =>
@@ -101,13 +112,22 @@ export default function Announcements() {
   }
 
   const publish = () => {
-    if (!title.trim()) return
+    if (publishing) return
+    setComposerError('')
+    if (!title.trim()) {
+      setComposerError('Title is required.')
+      return
+    }
     const author = `${profile.firstName} ${profile.lastName}`.trim() || 'Exec'
     const authorRole = role ? roleLabel(role) : 'Officer'
 
     if (composerKind === 'poll') {
       const opts = pollOptions.map((o) => o.trim()).filter(Boolean)
-      if (!pollQuestion.trim() || opts.length < 2) return
+      if (!pollQuestion.trim() || opts.length < 2) {
+        setComposerError('Polls need a question and at least two options.')
+        return
+      }
+      setPublishing(true)
       addPost({
         kind: 'poll',
         title: title.trim(),
@@ -124,7 +144,11 @@ export default function Announcements() {
       })
     } else if (composerKind === 'signup') {
       const slots = signupSlots.map((s) => s.trim()).filter(Boolean)
-      if (slots.length < 1) return
+      if (slots.length < 1) {
+        setComposerError('Add at least one signup slot.')
+        return
+      }
+      setPublishing(true)
       addPost({
         kind: 'signup',
         title: title.trim(),
@@ -135,6 +159,7 @@ export default function Announcements() {
         signup: { slotLabels: slots },
       })
     } else {
+      setPublishing(true)
       addPost({
         kind: 'announcement',
         title: title.trim(),
@@ -144,6 +169,7 @@ export default function Announcements() {
         pinned: pinNew,
       })
     }
+    setPublishing(false)
     setComposerOpen(false)
   }
 
@@ -402,8 +428,15 @@ export default function Announcements() {
             Pin to top of feed
           </label>
 
-          <button type="button" onClick={publish} className="btn-primary w-full">
-            Publish {kindLabel(composerKind).toLowerCase()}
+          {composerError && <p className="text-xs text-red-600">{composerError}</p>}
+
+          <button
+            type="button"
+            onClick={publish}
+            disabled={!canPublish || publishing}
+            className="btn-primary w-full disabled:opacity-40"
+          >
+            Publish
           </button>
         </div>
       </Modal>

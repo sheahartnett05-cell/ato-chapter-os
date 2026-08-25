@@ -8,6 +8,11 @@ import {
 } from 'react'
 import { DEMO_EVENTS as seedEvents } from '../data/mockData'
 import {
+  SEED_ATTENDANCE,
+  SEED_RSVP_EXCUSES,
+  SEED_RSVPS,
+} from '../data/eventParticipationData'
+import {
   SEMESTER_STUDY_HOURS_REQUIRED,
   DEFAULT_STUDY_HOURS_RESET,
   DEFAULT_STUDY_HOURS_REQUIREMENTS,
@@ -20,7 +25,8 @@ import {
 } from '../data/chapterOpsData'
 import { memberVerifiedHours, memberStudyHoursRequired } from '../lib/studyHours'
 import { allowDemoData, EMPTY_BILL_HIGHWAY, STORAGE_KEYS } from '../lib/demoSeed'
-import type { Event } from '../types'
+import type { AttendanceEntry, Event, RsvpEntry } from '../types'
+import type { RsvpExcuse } from '../types/features'
 import type {
   BillHighwayConfig,
   DuesCharge,
@@ -37,6 +43,38 @@ export interface ChapterOpsContextValue {
   updateEventPoints: (eventId: string, points: number) => void
   updateEvent: (eventId: string, patch: Partial<Event>) => void
   addEvent: (event: Omit<Event, 'id'>) => string
+
+  rsvps: Record<string, RsvpEntry[]>
+  attendance: Record<string, AttendanceEntry[]>
+  excuses: RsvpExcuse[]
+  getEventRsvps: (eventId: string) => RsvpEntry[]
+  getMemberRsvp: (eventId: string, memberId: string) => RsvpEntry | undefined
+  setRsvp: (
+    eventId: string,
+    memberId: string,
+    status: RsvpEntry['status'],
+    guest?: string
+  ) => void
+  getEventAttendance: (eventId: string) => AttendanceEntry[]
+  setAttendanceEntry: (
+    eventId: string,
+    memberId: string,
+    status: AttendanceEntry['status'],
+    pointsEarned?: number
+  ) => void
+  submitExcuse: (input: {
+    eventId: string
+    memberId: string
+    reason: string
+    attachmentNote?: string
+  }) => RsvpExcuse
+  updateExcuseStatus: (
+    excuseId: string,
+    status: RsvpExcuse['status'],
+    reviewedBy?: string
+  ) => void
+  getEventExcuses: (eventId: string) => RsvpExcuse[]
+  getMemberExcuses: (memberId: string) => RsvpExcuse[]
 
   studyLocations: StudyLocation[]
   activeStudyLocations: StudyLocation[]
@@ -100,6 +138,24 @@ function readEvents(): Event[] {
   return allowDemoData() ? seedEventList() : []
 }
 
+function readRsvps(): Record<string, RsvpEntry[]> {
+  const stored = readJson<Record<string, RsvpEntry[]> | null>(STORAGE_KEYS.rsvps, null)
+  if (stored && typeof stored === 'object') return stored
+  return allowDemoData() ? { ...SEED_RSVPS } : {}
+}
+
+function readAttendance(): Record<string, AttendanceEntry[]> {
+  const stored = readJson<Record<string, AttendanceEntry[]> | null>(STORAGE_KEYS.attendance, null)
+  if (stored && typeof stored === 'object') return stored
+  return allowDemoData() ? { ...SEED_ATTENDANCE } : {}
+}
+
+function readExcuses(): RsvpExcuse[] {
+  const stored = readJson<RsvpExcuse[] | null>(STORAGE_KEYS.rsvpExcuses, null)
+  if (stored && Array.isArray(stored)) return stored
+  return allowDemoData() ? [...SEED_RSVP_EXCUSES] : []
+}
+
 function writeEvents(next: Event[]) {
   try {
     localStorage.setItem(EVENTS_KEY, JSON.stringify(next))
@@ -139,6 +195,9 @@ function readStudyHoursRequirements(): StudyHoursRequirementsConfig {
 
 export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(readEvents)
+  const [rsvps, setRsvps] = useState<Record<string, RsvpEntry[]>>(readRsvps)
+  const [attendance, setAttendance] = useState<Record<string, AttendanceEntry[]>>(readAttendance)
+  const [excuses, setExcuses] = useState<RsvpExcuse[]>(readExcuses)
   const [studyLocations, setStudyLocations] = useState(() =>
     readJson(STORAGE_KEYS.studyLocations, allowDemoData() ? initialStudyLocations : [])
   )
@@ -152,16 +211,50 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   const [studyHoursReset, setStudyHoursResetState] = useState<StudyHoursResetConfig>(() =>
     readJson(STORAGE_KEYS.studyHoursReset, DEFAULT_STUDY_HOURS_RESET)
   )
-  const [duesCharges, setDuesCharges] = useState(() => (allowDemoData() ? initialDuesCharges : []))
-  const [duesPayments, setDuesPayments] = useState(() => (allowDemoData() ? initialDuesPayments : []))
-  const [billHighway, setBillHighway] = useState(() =>
-    allowDemoData() ? initialBillHighway : EMPTY_BILL_HIGHWAY
+  const [duesCharges, setDuesCharges] = useState<DuesCharge[]>(() =>
+    readJson(STORAGE_KEYS.duesCharges, allowDemoData() ? initialDuesCharges : [])
+  )
+  const [duesPayments, setDuesPayments] = useState<DuesPayment[]>(() =>
+    readJson(STORAGE_KEYS.duesPayments, allowDemoData() ? initialDuesPayments : [])
+  )
+  const [billHighway, setBillHighway] = useState<BillHighwayConfig>(() =>
+    readJson(STORAGE_KEYS.billHighway, allowDemoData() ? initialBillHighway : EMPTY_BILL_HIGHWAY)
   )
 
   const persistEvents = useCallback((updater: (prev: Event[]) => Event[]) => {
     setEvents((prev) => {
       const next = updater(prev)
       writeEvents(next)
+      return next
+    })
+  }, [])
+
+  const persistRsvps = useCallback(
+    (updater: (prev: Record<string, RsvpEntry[]>) => Record<string, RsvpEntry[]>) => {
+      setRsvps((prev) => {
+        const next = updater(prev)
+        writeJson(STORAGE_KEYS.rsvps, next)
+        return next
+      })
+    },
+    []
+  )
+
+  const persistAttendance = useCallback(
+    (updater: (prev: Record<string, AttendanceEntry[]>) => Record<string, AttendanceEntry[]>) => {
+      setAttendance((prev) => {
+        const next = updater(prev)
+        writeJson(STORAGE_KEYS.attendance, next)
+        return next
+      })
+    },
+    []
+  )
+
+  const persistExcuses = useCallback((updater: (prev: RsvpExcuse[]) => RsvpExcuse[]) => {
+    setExcuses((prev) => {
+      const next = updater(prev)
+      writeJson(STORAGE_KEYS.rsvpExcuses, next)
       return next
     })
   }, [])
@@ -189,6 +282,101 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       return id
     },
     [persistEvents]
+  )
+
+  const getEventRsvps = useCallback((eventId: string) => rsvps[eventId] ?? [], [rsvps])
+
+  const getMemberRsvp = useCallback(
+    (eventId: string, memberId: string) =>
+      (rsvps[eventId] ?? []).find((r) => r.memberId === memberId),
+    [rsvps]
+  )
+
+  const setRsvp = useCallback(
+    (eventId: string, memberId: string, status: RsvpEntry['status'], guest?: string) => {
+      persistRsvps((prev) => {
+        const list = prev[eventId] ?? []
+        const existing = list.find((r) => r.memberId === memberId)
+        const nextEntry: RsvpEntry = { memberId, status, ...(guest ? { guest } : {}) }
+        const nextList = existing
+          ? list.map((r) => (r.memberId === memberId ? { ...r, ...nextEntry } : r))
+          : [...list, nextEntry]
+        return { ...prev, [eventId]: nextList }
+      })
+    },
+    [persistRsvps]
+  )
+
+  const getEventAttendance = useCallback(
+    (eventId: string) => attendance[eventId] ?? [],
+    [attendance]
+  )
+
+  const setAttendanceEntry = useCallback(
+    (
+      eventId: string,
+      memberId: string,
+      status: AttendanceEntry['status'],
+      pointsEarned = 0
+    ) => {
+      persistAttendance((prev) => {
+        const list = prev[eventId] ?? []
+        const existing = list.find((a) => a.memberId === memberId)
+        const entry: AttendanceEntry = { memberId, status, pointsEarned }
+        const nextList = existing
+          ? list.map((a) => (a.memberId === memberId ? entry : a))
+          : [...list, entry]
+        return { ...prev, [eventId]: nextList }
+      })
+    },
+    [persistAttendance]
+  )
+
+  const submitExcuse = useCallback(
+    (input: {
+      eventId: string
+      memberId: string
+      reason: string
+      attachmentNote?: string
+    }) => {
+      const excuse: RsvpExcuse = {
+        id: uid('ex'),
+        eventId: input.eventId,
+        memberId: input.memberId,
+        reason: input.attachmentNote
+          ? `${input.reason} [${input.attachmentNote}]`
+          : input.reason,
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+      }
+      persistExcuses((prev) => [...prev, excuse])
+      setRsvp(input.eventId, input.memberId, 'Not Going')
+      return excuse
+    },
+    [persistExcuses, setRsvp]
+  )
+
+  const updateExcuseStatus = useCallback(
+    (excuseId: string, status: RsvpExcuse['status'], reviewedBy?: string) => {
+      persistExcuses((prev) =>
+        prev.map((e) =>
+          e.id === excuseId
+            ? { ...e, status, reviewedBy, reviewedAt: new Date().toISOString() }
+            : e
+        )
+      )
+    },
+    [persistExcuses]
+  )
+
+  const getEventExcuses = useCallback(
+    (eventId: string) => excuses.filter((e) => e.eventId === eventId),
+    [excuses]
+  )
+
+  const getMemberExcuses = useCallback(
+    (memberId: string) => excuses.filter((e) => e.memberId === memberId),
+    [excuses]
   )
 
   const persistStudyHoursRequirements = useCallback((next: StudyHoursRequirementsConfig) => {
@@ -291,6 +479,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logStudyHours = useCallback((entry: Omit<StudyHoursLog, 'id' | 'verified'>) => {
+    if (!(entry.hours > 0)) return
     setStudyLogs((prev) => {
       const next = [...prev, { ...entry, id: uid('sh'), verified: false }]
       writeJson(STORAGE_KEYS.studyLogs, next)
@@ -312,14 +501,22 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   )
 
   const updateBillHighway = useCallback((patch: Partial<BillHighwayConfig>) => {
-    setBillHighway((prev) => ({ ...prev, ...patch, lastSyncedAt: new Date().toISOString() }))
+    setBillHighway((prev) => {
+      const next = { ...prev, ...patch, lastSyncedAt: new Date().toISOString() }
+      writeJson(STORAGE_KEYS.billHighway, next)
+      return next
+    })
   }, [])
 
   const addDuesCharge = useCallback((charge: Omit<DuesCharge, 'id' | 'createdAt'>) => {
-    setDuesCharges((prev) => [
-      ...prev,
-      { ...charge, id: uid('dc'), createdAt: new Date().toISOString() },
-    ])
+    setDuesCharges((prev) => {
+      const next = [
+        ...prev,
+        { ...charge, id: uid('dc'), createdAt: new Date().toISOString() },
+      ]
+      writeJson(STORAGE_KEYS.duesCharges, next)
+      return next
+    })
   }, [])
 
   const recordDuesPayment = useCallback(
@@ -337,8 +534,9 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
         const status: DuesPayment['status'] =
           nextPaid <= 0 ? 'Open' : nextPaid >= total ? 'Paid' : 'Partial'
 
+        let next: DuesPayment[]
         if (existing) {
-          return prev.map((p) =>
+          next = prev.map((p) =>
             p.id === existing.id
               ? {
                   ...p,
@@ -349,20 +547,22 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
                 }
               : p
           )
+        } else {
+          next = [
+            ...prev,
+            {
+              id: uid('dp'),
+              chargeId,
+              memberId,
+              amountPaid: nextPaid,
+              status,
+              method,
+              paidAt: status === 'Paid' ? new Date().toISOString().slice(0, 10) : undefined,
+            },
+          ]
         }
-
-        return [
-          ...prev,
-          {
-            id: uid('dp'),
-            chargeId,
-            memberId,
-            amountPaid: nextPaid,
-            status,
-            method,
-            paidAt: status === 'Paid' ? new Date().toISOString().slice(0, 10) : undefined,
-          },
-        ]
+        writeJson(STORAGE_KEYS.duesPayments, next)
+        return next
       })
     },
     [duesCharges]
@@ -399,6 +599,18 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       updateEventPoints,
       updateEvent,
       addEvent,
+      rsvps,
+      attendance,
+      excuses,
+      getEventRsvps,
+      getMemberRsvp,
+      setRsvp,
+      getEventAttendance,
+      setAttendanceEntry,
+      submitExcuse,
+      updateExcuseStatus,
+      getEventExcuses,
+      getMemberExcuses,
       studyLocations,
       activeStudyLocations,
       studyLogs,
@@ -432,6 +644,18 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       updateEventPoints,
       updateEvent,
       addEvent,
+      rsvps,
+      attendance,
+      excuses,
+      getEventRsvps,
+      getMemberRsvp,
+      setRsvp,
+      getEventAttendance,
+      setAttendanceEntry,
+      submitExcuse,
+      updateExcuseStatus,
+      getEventExcuses,
+      getMemberExcuses,
       studyLocations,
       activeStudyLocations,
       studyLogs,

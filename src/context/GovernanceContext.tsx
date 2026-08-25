@@ -32,6 +32,33 @@ import type {
 
 const COMMITTEE_COLORS = ['#64748b', 'var(--accent)', '#a855f7', '#22c55e', '#f59e0b', '#0ea5e9']
 
+type GovernanceBlob = {
+  cases: JBoardCase[]
+  fines: Fine[]
+  groupAnnouncements: GroupAnnouncement[]
+  committeeTasks: CommitteeTask[]
+  fineSchedule: FineScheduleRule[]
+  config: GovernanceConfig
+}
+
+function readGovernanceBlob(): GovernanceBlob | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.governance)
+    if (!raw) return null
+    return JSON.parse(raw) as GovernanceBlob
+  } catch {
+    return null
+  }
+}
+
+function writeGovernanceBlob(blob: GovernanceBlob) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.governance, JSON.stringify(blob))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
@@ -115,18 +142,27 @@ interface GovernanceContextValue {
 const GovernanceContext = createContext<GovernanceContextValue | null>(null)
 
 export function GovernanceProvider({ children }: { children: ReactNode }) {
-  const [cases, setCases] = useState(() => (allowDemoData() ? initialCases : []))
-  const [finesList, setFinesList] = useState(() => (allowDemoData() ? initialFines : []))
+  const storedGov = readGovernanceBlob()
+  const [cases, setCases] = useState<JBoardCase[]>(() =>
+    storedGov?.cases ?? (allowDemoData() ? initialCases : [])
+  )
+  const [finesList, setFinesList] = useState<Fine[]>(() =>
+    storedGov?.fines ?? (allowDemoData() ? initialFines : [])
+  )
   const [committees, setCommittees] = useState<Committee[]>(readCommittees)
   const [committeeChat, setCommitteeChat] = useState<CommitteeChatMessage[]>(readChatMessages)
-  const [announcements, setAnnouncements] = useState(() =>
-    allowDemoData() ? initialAnnouncements : []
+  const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>(() =>
+    storedGov?.groupAnnouncements ?? (allowDemoData() ? initialAnnouncements : [])
   )
-  const [tasks] = useState(() => (allowDemoData() ? initialTasks : []))
-  const [fineSchedule, setFineSchedule] = useState(() =>
-    allowDemoData() ? initialFineSchedule : []
+  const [tasks] = useState<CommitteeTask[]>(() =>
+    storedGov?.committeeTasks ?? (allowDemoData() ? initialTasks : [])
   )
-  const [config, setConfig] = useState(initialConfig)
+  const [fineSchedule, setFineSchedule] = useState<FineScheduleRule[]>(() =>
+    storedGov?.fineSchedule ?? (allowDemoData() ? initialFineSchedule : [])
+  )
+  const [config, setConfig] = useState<GovernanceConfig>(
+    () => storedGov?.config ?? initialConfig
+  )
 
   const viewerId = CURRENT_EXEC_ID
   const canAdmin = canViewAllCases(viewerId)
@@ -231,66 +267,169 @@ export function GovernanceProvider({ children }: { children: ReactNode }) {
 
   const fileCase = useCallback((caseData: Omit<JBoardCase, 'id'>) => {
     const id = `jc-${Date.now()}`
-    setCases((prev) => [...prev, { ...caseData, id }])
-    if (caseData.sanctionType === 'Fine' && caseData.fineAmount > 0) {
-      setFinesList((prev) => [
-        ...prev,
-        {
-          id: `f-${Date.now()}`,
-          memberId: caseData.memberId,
-          caseId: id,
-          amount: caseData.fineAmount,
-          reason: `${caseData.category} — ${caseData.description.slice(0, 40)}`,
-          dateIssued: new Date().toISOString().slice(0, 10),
-          dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-          status: 'Unpaid',
-        },
-      ])
-    }
-  }, [])
+    setCases((prev) => {
+      const nextCases = [...prev, { ...caseData, id }]
+      setFinesList((prevFines) => {
+        let nextFines = prevFines
+        if (caseData.sanctionType === 'Fine' && caseData.fineAmount > 0) {
+          nextFines = [
+            ...prevFines,
+            {
+              id: `f-${Date.now()}`,
+              memberId: caseData.memberId,
+              caseId: id,
+              amount: caseData.fineAmount,
+              reason: `${caseData.category} — ${caseData.description.slice(0, 40)}`,
+              dateIssued: new Date().toISOString().slice(0, 10),
+              dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+              status: 'Unpaid' as const,
+            },
+          ]
+        }
+        writeGovernanceBlob({
+          cases: nextCases,
+          fines: nextFines,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return nextFines
+      })
+      return nextCases
+    })
+  }, [announcements, tasks, fineSchedule, config])
 
-  const issueFine = useCallback((fine: Omit<Fine, 'id'>) => {
-    setFinesList((prev) => [...prev, { ...fine, id: `f-${Date.now()}` }])
-  }, [])
+  const issueFine = useCallback(
+    (fine: Omit<Fine, 'id'>) => {
+      setFinesList((prev) => {
+        const next = [...prev, { ...fine, id: `f-${Date.now()}` }]
+        writeGovernanceBlob({
+          cases,
+          fines: next,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return next
+      })
+    },
+    [cases, announcements, tasks, fineSchedule, config]
+  )
 
-  const updateFineStatus = useCallback((id: string, status: Fine['status']) => {
-    setFinesList((prev) => prev.map((f) => (f.id === id ? { ...f, status } : f)))
-  }, [])
+  const updateFineStatus = useCallback(
+    (id: string, status: Fine['status']) => {
+      setFinesList((prev) => {
+        const next = prev.map((f) => (f.id === id ? { ...f, status } : f))
+        writeGovernanceBlob({
+          cases,
+          fines: next,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return next
+      })
+    },
+    [cases, announcements, tasks, fineSchedule, config]
+  )
 
-  const submitAppeal = useCallback((caseId: string, memberId: string) => {
-    setCases((prev) =>
-      prev.map((c) =>
-        c.id === caseId && c.memberId === memberId ? { ...c, appealSubmitted: true } : c
-      )
-    )
-  }, [])
+  const submitAppeal = useCallback(
+    (caseId: string, memberId: string) => {
+      setCases((prev) => {
+        const next = prev.map((c) =>
+          c.id === caseId && c.memberId === memberId ? { ...c, appealSubmitted: true } : c
+        )
+        writeGovernanceBlob({
+          cases: next,
+          fines: finesList,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return next
+      })
+    },
+    [finesList, announcements, tasks, fineSchedule, config]
+  )
 
-  const submitFineAppeal = useCallback((fineId: string) => {
-    setFinesList((prev) =>
-      prev.map((f) => (f.id === fineId ? { ...f, status: 'Appealed' } : f))
-    )
-  }, [])
+  const submitFineAppeal = useCallback(
+    (fineId: string) => {
+      setFinesList((prev) => {
+        const next = prev.map((f) => (f.id === fineId ? { ...f, status: 'Appealed' as const } : f))
+        writeGovernanceBlob({
+          cases,
+          fines: next,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return next
+      })
+    },
+    [cases, announcements, tasks, fineSchedule, config]
+  )
 
-  const updateConfig = useCallback((patch: Partial<GovernanceConfig>) => {
-    setConfig((prev) => ({ ...prev, ...patch }))
-  }, [])
+  const updateConfig = useCallback(
+    (patch: Partial<GovernanceConfig>) => {
+      setConfig((prev) => {
+        const next = { ...prev, ...patch }
+        writeGovernanceBlob({
+          cases,
+          fines: finesList,
+          groupAnnouncements: announcements,
+          committeeTasks: tasks,
+          fineSchedule,
+          config: next,
+        })
+        return next
+      })
+    },
+    [cases, finesList, announcements, tasks, fineSchedule]
+  )
 
-  const updateFineSchedule = useCallback((rules: FineScheduleRule[]) => {
-    setFineSchedule(rules)
-  }, [])
+  const updateFineSchedule = useCallback(
+    (rules: FineScheduleRule[]) => {
+      setFineSchedule(rules)
+      writeGovernanceBlob({
+        cases,
+        fines: finesList,
+        groupAnnouncements: announcements,
+        committeeTasks: tasks,
+        fineSchedule: rules,
+        config,
+      })
+    },
+    [cases, finesList, announcements, tasks, config]
+  )
 
   const addGroupAnnouncement = useCallback(
     (a: Omit<GroupAnnouncement, 'id' | 'timestamp'>) => {
-      setAnnouncements((prev) => [
-        {
-          ...a,
-          id: `ga-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-        },
-        ...prev,
-      ])
+      setAnnouncements((prev) => {
+        const next = [
+          {
+            ...a,
+            id: `ga-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+          },
+          ...prev,
+        ]
+        writeGovernanceBlob({
+          cases,
+          fines: finesList,
+          groupAnnouncements: next,
+          committeeTasks: tasks,
+          fineSchedule,
+          config,
+        })
+        return next
+      })
     },
-    []
+    [cases, finesList, tasks, fineSchedule, config]
   )
 
   const value = useMemo<GovernanceContextValue>(

@@ -3,28 +3,11 @@ import { createContext, useContext } from 'react'
 import { DEMO_PNM_ACTIVITIES, DEMO_PROSPECTS } from '../data/mockData'
 import { getRushTemplate, RUSH_FORM_TEMPLATES } from '../data/rushFormTemplates'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type { ActivityItem, PipelineStage, Prospect } from '../types'
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
-}
-
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage unavailable */
-  }
 }
 
 function initialsFor(first: string, last: string) {

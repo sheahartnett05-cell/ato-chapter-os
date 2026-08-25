@@ -7,12 +7,17 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "crests:generate": "node scripts/generate-org-crests.mjs",
+    "crests:wikimedia": "node scripts/enrich-org-crests-wikimedia.mjs --manual",
+    "crests:fetch": "node scripts/fetch-org-crests-wikipedia.mjs",
+    "crests:fetch:resume": "node scripts/fetch-org-crests-wikipedia.mjs --resume"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.112.3",
     "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

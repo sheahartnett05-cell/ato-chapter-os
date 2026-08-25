@@ -17,6 +17,7 @@ import {
   readOnboardingChapterMeta,
   readOnboardingOrgId,
 } from '../lib/onboardingStorage'
+import { writeJson } from '../lib/persist'
 import {
   contrastText,
   darkenHex,
@@ -65,7 +66,21 @@ function readOnboardingMeta(): ChapterMeta {
 }
 
 function readStoredOrgId(): string {
-  return readOnboardingOrgId() ?? DEFAULT_ORG_ID
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as unknown
+      const id = typeof parsed === 'string' ? parsed : raw
+      if (typeof id === 'string' && getNationalOrgById(id)) return getNationalOrgById(id)!.id
+    }
+  } catch {
+    /* ignore */
+  }
+  const fromOnboarding = readOnboardingOrgId()
+  if (fromOnboarding && getNationalOrgById(fromOnboarding)) {
+    return getNationalOrgById(fromOnboarding)!.id
+  }
+  return DEFAULT_ORG_ID
 }
 
 function readInitialChapterMeta(): ChapterMeta {
@@ -139,10 +154,18 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
   )
 
   const setSelectedOrg = useCallback((id: string) => {
-    if (!getNationalOrgById(id)) return
-    setSelectedOrgIdState(id)
+    const org = getNationalOrgById(id)
+    if (!org) return
+    setSelectedOrgIdState(org.id)
+    writeJson(STORAGE_KEY, org.id)
     try {
-      localStorage.setItem(STORAGE_KEY, id)
+      const raw = localStorage.getItem(ONBOARDING_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>
+        if (parsed.completed === true) {
+          writeJson(ONBOARDING_KEY, { ...parsed, orgId: org.id })
+        }
+      }
     } catch {
       /* storage unavailable */
     }
@@ -154,22 +177,16 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
 
   const saveChapterMeta = useCallback((meta: ChapterMeta) => {
     setChapterMetaState(meta)
+    writeJson('chapter-os-chapter-meta', meta)
     try {
-      localStorage.setItem(
-        'chapter-os-chapter-meta',
-        JSON.stringify(meta)
-      )
       const raw = localStorage.getItem(ONBOARDING_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>
-        localStorage.setItem(
-          ONBOARDING_KEY,
-          JSON.stringify({
-            ...parsed,
-            chapterDesignation: meta.chapterDesignation,
-            university: meta.university,
-          })
-        )
+        writeJson(ONBOARDING_KEY, {
+          ...parsed,
+          chapterDesignation: meta.chapterDesignation,
+          university: meta.university,
+        })
       }
     } catch {
       /* storage unavailable */

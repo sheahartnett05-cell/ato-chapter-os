@@ -12,6 +12,7 @@ import {
   DEMO_HOUSE_TASKS,
 } from '../data/chapterResourcesData'
 import { allowDemoData } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type { BylawsDocument, ExecSlide, HouseTask, HouseTaskKind, HouseTaskStatus } from '../types/chapterResources'
 
 const SLIDES_KEY = 'chapter-os-exec-slides'
@@ -20,24 +21,6 @@ const HOUSE_KEY = 'chapter-os-house-tasks'
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T
-  } catch {
-    /* ignore */
-  }
-  return fallback
-}
-
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage unavailable */
-  }
 }
 
 function readSlides(): ExecSlide[] {

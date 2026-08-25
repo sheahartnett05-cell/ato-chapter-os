@@ -7,7 +7,6 @@ import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
-import { getMember } from '../data/mockData'
 
 type DetailTab = 'chat' | 'members' | 'feed'
 
@@ -27,10 +26,10 @@ export default function CommitteeDetail() {
   } = useGovernance()
   const { memberId } = useAuth()
   const permissions = usePermissions()
-  const { members } = useMembers()
+  const { members, getMemberById } = useMembers()
 
   const committee = id ? getCommittee(id) : undefined
-  const resolvedMemberId = memberId ?? 'm1'
+  const resolvedMemberId = memberId ?? members[0]?.id ?? ''
   const isMember = committee?.memberIds.includes(resolvedMemberId) ?? false
   const isChair = committee?.chairId === resolvedMemberId
   const canManageMembers = permissions.canAccessExecTools || isChair
@@ -91,7 +90,7 @@ export default function CommitteeDetail() {
     )
   }
 
-  const chair = getMember(committee.chairId)
+  const chair = getMemberById(committee.chairId)
 
   const handleSend = () => {
     if (!messageDraft.trim()) return
@@ -161,7 +160,7 @@ export default function CommitteeDetail() {
                 </p>
               ) : (
                 messages.map((msg) => {
-                  const author = getMember(msg.authorId)
+                  const author = getMemberById(msg.authorId)
                   const mine = msg.authorId === resolvedMemberId
                   return (
                     <div
@@ -241,7 +240,7 @@ export default function CommitteeDetail() {
             )}
             <ul className="divide-y divide-black/5 overflow-hidden rounded-2xl border border-black/5 bg-white">
               {committee.memberIds.map((mid) => {
-                const m = getMember(mid)
+                const m = getMemberById(mid)
                 const isCommitteeChair = mid === committee.chairId
                 if (!m) return null
                 return (
@@ -318,7 +317,7 @@ export default function CommitteeDetail() {
               <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Tasks</p>
               <ul className="space-y-2">
                 {tasks.map((t) => {
-                  const assignee = t.assigneeId ? getMember(t.assigneeId) : null
+                  const assignee = t.assigneeId ? getMemberById(t.assigneeId) : null
                   return (
                     <li key={t.id} className="rounded-xl bg-neutral-50 px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2">

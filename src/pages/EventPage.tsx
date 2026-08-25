@@ -16,11 +16,11 @@ import {
   StatusPill,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { getMember, attendance, CURRENT_MEMBER_ID } from '../data/mockData'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
+import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 import {
   FORM_RSVP_OPTIONS,
   formRsvpButtonClass,
@@ -29,21 +29,32 @@ import {
   normalizeFormRsvp,
   type FormRsvpOption,
 } from '../lib/formRsvps'
-import { rsvpExcuses } from '../data/featureData'
 import { eventTypeColor } from '../lib/eventColors'
-import type { RsvpExcuse } from '../types/features'
+import {
+  excuseLeadTimeOk,
+  formatExcuseReason,
+} from '../lib/excusePolicy'
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
-  const { events: chapterEvents } = useChapterOps()
+  const {
+    events: chapterEvents,
+    getEventAttendance,
+    getEventExcuses,
+    submitExcuse: persistExcuse,
+    setAttendanceEntry,
+  } = useChapterOps()
   const { getTableForEvent, getEventRsvps, updateMemberFormRsvp } = useChapterTables()
   const { memberId, profile } = useAuth()
-  const { getMemberById } = useMembers()
+  const permissions = usePermissions()
+  const canTakeRoll = permissions.canAccessExecTools || permissions.canEditEventPoints
+  const { getMemberById, members } = useMembers()
+  const { config } = useStandardsModuleConfig()
+  const excusePolicy = config.excuse_policy
   const event = chapterEvents.find((e) => e.id === id)
   const eventTable = id ? getTableForEvent(id) : undefined
-  const resolvedMemberId = memberId ?? CURRENT_MEMBER_ID
-  const resolvedMember =
-    getMemberById(resolvedMemberId) ?? getMember(resolvedMemberId)
+  const resolvedMemberId = memberId ?? ''
+  const resolvedMember = resolvedMemberId ? getMemberById(resolvedMemberId) : undefined
   const resolvedMemberName = resolvedMember
     ? `${resolvedMember.firstName} ${resolvedMember.lastName}`.trim()
     : [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || 'You'
@@ -54,8 +65,9 @@ export default function EventPage() {
 
   const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
   const [showExcuseModal, setShowExcuseModal] = useState(false)
+  const [excuseCategory, setExcuseCategory] = useState(excusePolicy.categories[0] ?? '')
   const [excuseReason, setExcuseReason] = useState('')
-  const [localExcuses, setLocalExcuses] = useState<RsvpExcuse[]>(rsvpExcuses)
+  const [attachmentNote, setAttachmentNote] = useState('')
 
   if (!event) {
     return (
@@ -68,8 +80,9 @@ export default function EventPage() {
     )
   }
 
-  const eventAttendance = attendance[event.id] ?? []
-  const eventExcuses = localExcuses.filter((e) => e.eventId === event.id)
+  const eventAttendance = getEventAttendance(event.id)
+  const eventExcuses = getEventExcuses(event.id)
+  const leadTimeOk = excuseLeadTimeOk(event, excusePolicy)
 
   const yesCount = eventFormRsvps.filter((r) => normalizeFormRsvp(r.rsvp) === 'Yes').length
   const maybeCount = eventFormRsvps.filter((r) => normalizeFormRsvp(r.rsvp) === 'Maybe').length
@@ -89,20 +102,24 @@ export default function EventPage() {
   }
 
   const submitExcuse = () => {
-    if (!excuseReason.trim()) return
-    const newExcuse: RsvpExcuse = {
-      id: `ex-${Date.now()}`,
+    if (!resolvedMemberId || !excuseReason.trim() || !excuseCategory || !leadTimeOk) return
+    persistExcuse({
       eventId: event.id,
       memberId: resolvedMemberId,
-      reason: excuseReason.trim(),
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-    }
-    setLocalExcuses((prev) => [...prev, newExcuse])
+      reason: formatExcuseReason(excuseCategory, excuseReason, attachmentNote),
+      attachmentNote: excusePolicy.require_attachment ? attachmentNote : undefined,
+    })
     persistRsvp('No')
     setShowExcuseModal(false)
     setExcuseReason('')
+    setAttachmentNote('')
   }
+
+  const canSubmitExcuse =
+    excuseReason.trim().length > 0 &&
+    excuseCategory.length > 0 &&
+    leadTimeOk &&
+    (!excusePolicy.require_attachment || attachmentNote.trim().length > 0)
 
   return (
     <>
@@ -292,7 +309,7 @@ export default function EventPage() {
                 <p className="p-8 text-center text-sm text-neutral-500">No RSVPs yet</p>
               ) : (
                 eventFormRsvps.map((rsvp) => {
-                  const member = rsvp.memberId ? getMember(rsvp.memberId) : undefined
+                  const member = rsvp.memberId ? getMemberById(rsvp.memberId) : undefined
                   const displayName =
                     member != null
                       ? `${member.firstName} ${member.lastName}`
@@ -345,39 +362,74 @@ export default function EventPage() {
               ))}
 
             {activeSection === 'attendance' &&
-              (eventAttendance.length === 0 ? (
-                <p className="p-8 text-center text-sm text-neutral-500">
-                  Attendance not recorded yet
-                </p>
-              ) : (
-                eventAttendance.map((entry) => {
-                  const member = getMember(entry.memberId)
-                  if (!member) return null
+              (() => {
+                const rollMembers = members.filter(
+                  (m) => m.status === 'Active' || m.status === 'New Member'
+                )
+                if (rollMembers.length === 0) {
                   return (
-                    <ListRow key={entry.memberId}>
-                      <div className="flex flex-1 items-center justify-between px-2">
+                    <p className="p-8 text-center text-sm text-neutral-500">
+                      No active members on roster
+                    </p>
+                  )
+                }
+                return rollMembers.map((member) => {
+                  const entry = eventAttendance.find((a) => a.memberId === member.id)
+                  const status = entry?.status
+                  return (
+                    <ListRow key={member.id}>
+                      <div className="flex flex-1 items-center justify-between gap-4 px-2">
                         <p className="font-semibold text-neutral-900">
                           {member.firstName} {member.lastName}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <StatusPill
-                            label={entry.status}
-                            variant={attendanceVariant(entry.status)}
-                          />
-                          {entry.status === 'Present' && (
-                            <CheckCircle2 size={14} className="text-emerald-600" />
-                          )}
-                        </div>
+                        {canTakeRoll ? (
+                          <div className="flex flex-wrap gap-1">
+                            {(['Present', 'Excused', 'Absent'] as const).map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() =>
+                                  setAttendanceEntry(
+                                    event.id,
+                                    member.id,
+                                    s,
+                                    s === 'Present' ? event.points : 0
+                                  )
+                                }
+                                className={`rounded-sm px-2 py-1 text-xs font-semibold ${
+                                  status === s
+                                    ? s === 'Present'
+                                      ? 'bg-emerald-600 text-white'
+                                      : s === 'Excused'
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-neutral-700 text-white'
+                                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                }`}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        ) : status ? (
+                          <div className="flex items-center gap-2">
+                            <StatusPill label={status} variant={attendanceVariant(status)} />
+                            {status === 'Present' && (
+                              <CheckCircle2 size={14} className="text-emerald-600" />
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-neutral-400">Not recorded</span>
+                        )}
                       </div>
                     </ListRow>
                   )
                 })
-              ))}
+              })()}
 
             {activeSection === 'points' &&
               (eventAttendance.length > 0
                 ? eventAttendance.map((entry) => {
-                    const member = getMember(entry.memberId)
+                    const member = getMemberById(entry.memberId)
                     if (!member) return null
                     return (
                       <ListRow key={entry.memberId}>
@@ -391,7 +443,7 @@ export default function EventPage() {
                     )
                   })
                 : eventFormRsvps.map((entry) => {
-                    const member = entry.memberId ? getMember(entry.memberId) : undefined
+                    const member = entry.memberId ? getMemberById(entry.memberId) : undefined
                     const displayName =
                       member != null
                         ? `${member.firstName} ${member.lastName}`
@@ -420,18 +472,50 @@ export default function EventPage() {
           This event is required. Please explain why you cannot attend — your excuse will be sent
           for approval.
         </p>
+        {!leadTimeOk && (
+          <p className="mb-3 text-xs text-red-600">
+            Excuses must be submitted at least {excusePolicy.lead_time_hours} hours before the event.
+          </p>
+        )}
+        <label className="mb-1 block text-xs font-medium text-neutral-600">Category</label>
+        <select
+          value={excuseCategory}
+          onChange={(e) => setExcuseCategory(e.target.value)}
+          className="input-editorial mb-3 w-full"
+        >
+          {excusePolicy.categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <label className="mb-1 block text-xs font-medium text-neutral-600">Reason</label>
         <textarea
           value={excuseReason}
           onChange={(e) => setExcuseReason(e.target.value)}
           placeholder="Reason for absence…"
           rows={4}
-          className="w-full rounded-xl border border-black/5 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-accent/40"
+          className="input-editorial w-full"
         />
+        {excusePolicy.require_attachment && (
+          <>
+            <label className="mb-1 mt-3 block text-xs font-medium text-neutral-600">
+              Attachment note (required)
+            </label>
+            <input
+              type="text"
+              value={attachmentNote}
+              onChange={(e) => setAttachmentNote(e.target.value)}
+              placeholder="Describe what you will attach or where docs were sent"
+              className="input-editorial w-full"
+            />
+          </>
+        )}
         <button
           type="button"
           onClick={submitExcuse}
-          disabled={!excuseReason.trim()}
-          className="mt-4 w-full rounded-sm bg-accent py-3 text-sm font-semibold text-white disabled:opacity-40"
+          disabled={!canSubmitExcuse}
+          className="btn-primary mt-4 w-full disabled:opacity-40"
         >
           Submit for approval
         </button>

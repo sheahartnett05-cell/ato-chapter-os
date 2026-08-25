@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { DEMO_CHAPTER_POSITIONS } from '../data/featureData'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import { writeJson } from '../lib/persist'
 import type { ChapterPosition } from '../types/features'
 import type { UserRole } from '../types/permissions'
 
@@ -22,6 +23,15 @@ export function roleFromPositionTitle(title: string): UserRole | null {
   if (t.includes('scholarship') || t.includes('academic')) return 'ScholarshipChair'
   if (t.includes('j-board') || t.includes('jboard') || t.includes('judicial') || t.includes('standards'))
     return 'JBoardChair'
+  // Chaplain + common equivalents across orgs
+  if (
+    t.includes('chaplain') ||
+    t.includes('spiritual') ||
+    t.includes('religious') ||
+    t.includes('faith advisor') ||
+    t.includes('faith chair')
+  )
+    return 'Chaplain'
   return null
 }
 
@@ -33,6 +43,7 @@ export const DEFAULT_POSITIONS: ChapterPosition[] = [
   { id: 'pos-rush', title: 'Recruitment Chair', isCustom: false },
   { id: 'pos-scholar', title: 'Scholarship Chair', isCustom: false },
   { id: 'pos-standards', title: 'Standards Chair', isCustom: false },
+  { id: 'pos-chaplain', title: 'Chaplain', isCustom: false },
   { id: 'pos-social', title: 'Social Chair', isCustom: false },
   { id: 'pos-philanthropy', title: 'Philanthropy Chair', isCustom: false },
 ]
@@ -54,11 +65,7 @@ function readPositions(): ChapterPosition[] {
 }
 
 function writePositions(positions: ChapterPosition[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions))
-  } catch {
-    /* ignore */
-  }
+  writeJson(STORAGE_KEY, positions)
 }
 
 function uid() {

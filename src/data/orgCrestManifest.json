@@ -1,0 +1,350 @@
+{
+  "agora": {
+    "orgName": "Agora",
+    "svg": "/crests/agora.svg"
+  },
+  "alpha-delta-phi": {
+    "orgName": "Alpha Delta Phi",
+    "svg": "/crests/alpha-delta-phi.svg"
+  },
+  "alpha-epsilon-pi": {
+    "orgName": "Alpha Epsilon Pi",
+    "svg": "/crests/alpha-epsilon-pi.svg"
+  },
+  "alpha-gamma-rho": {
+    "orgName": "Alpha Gamma Rho",
+    "svg": "/crests/alpha-gamma-rho.svg"
+  },
+  "alpha-kappa-lambda": {
+    "orgName": "Alpha Kappa Lambda",
+    "svg": "/crests/alpha-kappa-lambda.svg"
+  },
+  "alpha-sigma-phi": {
+    "orgName": "Alpha Sigma Phi",
+    "svg": "/crests/alpha-sigma-phi.svg"
+  },
+  "ato": {
+    "orgName": "Alpha Tau Omega",
+    "svg": "/crests/ato.svg"
+  },
+  "beta-chi-theta": {
+    "orgName": "Beta Chi Theta",
+    "svg": "/crests/beta-chi-theta.svg"
+  },
+  "beta-theta-pi": {
+    "orgName": "Beta Theta Pi",
+    "svg": "/crests/beta-theta-pi.svg"
+  },
+  "chi-phi": {
+    "orgName": "Chi Phi",
+    "svg": "/crests/chi-phi.svg"
+  },
+  "delta-chi": {
+    "orgName": "Delta Chi",
+    "svg": "/crests/delta-chi.svg"
+  },
+  "delta-kappa-epsilon": {
+    "orgName": "Delta Kappa Epsilon",
+    "svg": "/crests/delta-kappa-epsilon.svg"
+  },
+  "delta-sigma-phi": {
+    "orgName": "Delta Sigma Phi",
+    "svg": "/crests/delta-sigma-phi.svg"
+  },
+  "delta-tau-delta": {
+    "orgName": "Delta Tau Delta",
+    "svg": "/crests/delta-tau-delta.svg"
+  },
+  "delta-upsilon": {
+    "orgName": "Delta Upsilon",
+    "svg": "/crests/delta-upsilon.svg"
+  },
+  "farmhouse": {
+    "orgName": "FarmHouse",
+    "svg": "/crests/farmhouse.svg"
+  },
+  "kappa-alpha-order": {
+    "orgName": "Kappa Alpha Order",
+    "svg": "/crests/kappa-alpha-order.svg"
+  },
+  "kappa-delta-rho": {
+    "orgName": "Kappa Delta Rho",
+    "svg": "/crests/kappa-delta-rho.svg"
+  },
+  "kappa-sigma": {
+    "orgName": "Kappa Sigma",
+    "svg": "/crests/kappa-sigma.svg"
+  },
+  "lambda-chi-alpha": {
+    "orgName": "Lambda Chi Alpha",
+    "svg": "/crests/lambda-chi-alpha.svg"
+  },
+  "phi-delta-theta": {
+    "orgName": "Phi Delta Theta",
+    "svg": "/crests/phi-delta-theta.svg"
+  },
+  "phi-gamma-delta": {
+    "orgName": "Phi Gamma Delta",
+    "svg": "/crests/phi-gamma-delta.svg"
+  },
+  "phi-kappa-psi": {
+    "orgName": "Phi Kappa Psi",
+    "svg": "/crests/phi-kappa-psi.svg"
+  },
+  "phi-kappa-sigma": {
+    "orgName": "Phi Kappa Sigma",
+    "svg": "/crests/phi-kappa-sigma.svg"
+  },
+  "phi-kappa-tau": {
+    "orgName": "Phi Kappa Tau",
+    "svg": "/crests/phi-kappa-tau.svg"
+  },
+  "phi-kappa-theta": {
+    "orgName": "Phi Kappa Theta",
+    "svg": "/crests/phi-kappa-theta.svg"
+  },
+  "phi-sigma-kappa": {
+    "orgName": "Phi Sigma Kappa",
+    "svg": "/crests/phi-sigma-kappa.svg"
+  },
+  "pi-kappa-alpha": {
+    "orgName": "Pi Kappa Alpha",
+    "svg": "/crests/pi-kappa-alpha.svg"
+  },
+  "pi-kappa-phi": {
+    "orgName": "Pi Kappa Phi",
+    "svg": "/crests/pi-kappa-phi.svg"
+  },
+  "pi-lambda-phi": {
+    "orgName": "Pi Lambda Phi",
+    "svg": "/crests/pi-lambda-phi.svg"
+  },
+  "psi-upsilon": {
+    "orgName": "Psi Upsilon",
+    "svg": "/crests/psi-upsilon.svg"
+  },
+  "sigma-alpha-epsilon": {
+    "orgName": "Sigma Alpha Epsilon",
+    "svg": "/crests/sigma-alpha-epsilon.svg"
+  },
+  "sigma-alpha-mu": {
+    "orgName": "Sigma Alpha Mu",
+    "svg": "/crests/sigma-alpha-mu.svg"
+  },
+  "sigma-chi": {
+    "orgName": "Sigma Chi",
+    "svg": "/crests/sigma-chi.svg"
+  },
+  "sigma-nu": {
+    "orgName": "Sigma Nu",
+    "svg": "/crests/sigma-nu.svg"
+  },
+  "sigma-phi-epsilon": {
+    "orgName": "Sigma Phi Epsilon",
+    "svg": "/crests/sigma-phi-epsilon.svg"
+  },
+  "sigma-pi": {
+    "orgName": "Sigma Pi",
+    "svg": "/crests/sigma-pi.svg"
+  },
+  "sigma-tau-gamma": {
+    "orgName": "Sigma Tau Gamma",
+    "svg": "/crests/sigma-tau-gamma.svg"
+  },
+  "tau-epsilon-phi": {
+    "orgName": "Tau Epsilon Phi",
+    "svg": "/crests/tau-epsilon-phi.svg"
+  },
+  "tau-kappa-epsilon": {
+    "orgName": "Tau Kappa Epsilon",
+    "svg": "/crests/tau-kappa-epsilon.svg"
+  },
+  "theta-chi": {
+    "orgName": "Theta Chi",
+    "svg": "/crests/theta-chi.svg"
+  },
+  "theta-delta-chi": {
+    "orgName": "Theta Delta Chi",
+    "svg": "/crests/theta-delta-chi.svg"
+  },
+  "theta-xi": {
+    "orgName": "Theta Xi",
+    "svg": "/crests/theta-xi.svg"
+  },
+  "triangle": {
+    "orgName": "Triangle",
+    "svg": "/crests/triangle.svg"
+  },
+  "zeta-beta-tau": {
+    "orgName": "Zeta Beta Tau",
+    "svg": "/crests/zeta-beta-tau.svg"
+  },
+  "alpha-chi-omega": {
+    "orgName": "Alpha Chi Omega",
+    "svg": "/crests/alpha-chi-omega.svg"
+  },
+  "alpha-delta-pi": {
+    "orgName": "Alpha Delta Pi",
+    "svg": "/crests/alpha-delta-pi.svg"
+  },
+  "alpha-epsilon-phi": {
+    "orgName": "Alpha Epsilon Phi",
+    "svg": "/crests/alpha-epsilon-phi.svg"
+  },
+  "alpha-gamma-delta": {
+    "orgName": "Alpha Gamma Delta",
+    "svg": "/crests/alpha-gamma-delta.svg"
+  },
+  "alpha-omicron-pi": {
+    "orgName": "Alpha Omicron Pi",
+    "svg": "/crests/alpha-omicron-pi.svg"
+  },
+  "alpha-phi": {
+    "orgName": "Alpha Phi",
+    "svg": "/crests/alpha-phi.svg"
+  },
+  "alpha-sigma-alpha": {
+    "orgName": "Alpha Sigma Alpha",
+    "svg": "/crests/alpha-sigma-alpha.svg"
+  },
+  "alpha-sigma-tau": {
+    "orgName": "Alpha Sigma Tau",
+    "svg": "/crests/alpha-sigma-tau.svg"
+  },
+  "alpha-xi-delta": {
+    "orgName": "Alpha Xi Delta",
+    "svg": "/crests/alpha-xi-delta.svg"
+  },
+  "chi-omega": {
+    "orgName": "Chi Omega",
+    "svg": "/crests/chi-omega.svg"
+  },
+  "delta-delta-delta": {
+    "orgName": "Delta Delta Delta",
+    "svg": "/crests/delta-delta-delta.svg"
+  },
+  "delta-gamma": {
+    "orgName": "Delta Gamma",
+    "svg": "/crests/delta-gamma.svg"
+  },
+  "delta-phi-epsilon": {
+    "orgName": "Delta Phi Epsilon",
+    "svg": "/crests/delta-phi-epsilon.svg"
+  },
+  "delta-zeta": {
+    "orgName": "Delta Zeta",
+    "svg": "/crests/delta-zeta.svg"
+  },
+  "gamma-phi-beta": {
+    "orgName": "Gamma Phi Beta",
+    "svg": "/crests/gamma-phi-beta.svg"
+  },
+  "gamma-sigma-sigma": {
+    "orgName": "Gamma Sigma Sigma",
+    "svg": "/crests/gamma-sigma-sigma.svg"
+  },
+  "kappa-alpha-theta": {
+    "orgName": "Kappa Alpha Theta",
+    "svg": "/crests/kappa-alpha-theta.svg"
+  },
+  "kappa-delta": {
+    "orgName": "Kappa Delta",
+    "svg": "/crests/kappa-delta.svg"
+  },
+  "kappa-kappa-gamma": {
+    "orgName": "Kappa Kappa Gamma",
+    "svg": "/crests/kappa-kappa-gamma.svg"
+  },
+  "phi-mu": {
+    "orgName": "Phi Mu",
+    "svg": "/crests/phi-mu.svg"
+  },
+  "phi-sigma-sigma": {
+    "orgName": "Phi Sigma Sigma",
+    "svg": "/crests/phi-sigma-sigma.svg"
+  },
+  "pi-beta-phi": {
+    "orgName": "Pi Beta Phi",
+    "svg": "/crests/pi-beta-phi.svg"
+  },
+  "sigma-delta-tau": {
+    "orgName": "Sigma Delta Tau",
+    "svg": "/crests/sigma-delta-tau.svg"
+  },
+  "sigma-kappa": {
+    "orgName": "Sigma Kappa",
+    "svg": "/crests/sigma-kappa.svg"
+  },
+  "sigma-sigma-sigma": {
+    "orgName": "Sigma Sigma Sigma",
+    "svg": "/crests/sigma-sigma-sigma.svg"
+  },
+  "theta-phi-alpha": {
+    "orgName": "Theta Phi Alpha",
+    "svg": "/crests/theta-phi-alpha.svg"
+  },
+  "zeta-tau-alpha": {
+    "orgName": "Zeta Tau Alpha",
+    "svg": "/crests/zeta-tau-alpha.svg"
+  },
+  "aka": {
+    "orgName": "Alpha Kappa Alpha",
+    "svg": "/crests/aka.svg"
+  },
+  "alpha-phi-alpha": {
+    "orgName": "Alpha Phi Alpha",
+    "svg": "/crests/alpha-phi-alpha.svg"
+  },
+  "delta-sigma-theta": {
+    "orgName": "Delta Sigma Theta",
+    "svg": "/crests/delta-sigma-theta.svg"
+  },
+  "iota-phi-theta": {
+    "orgName": "Iota Phi Theta",
+    "svg": "/crests/iota-phi-theta.svg"
+  },
+  "kappa-alpha-psi": {
+    "orgName": "Kappa Alpha Psi",
+    "svg": "/crests/kappa-alpha-psi.svg"
+  },
+  "omega-psi-phi": {
+    "orgName": "Omega Psi Phi",
+    "svg": "/crests/omega-psi-phi.svg"
+  },
+  "phi-beta-sigma": {
+    "orgName": "Phi Beta Sigma",
+    "svg": "/crests/phi-beta-sigma.svg"
+  },
+  "sigma-gamma-rho": {
+    "orgName": "Sigma Gamma Rho",
+    "svg": "/crests/sigma-gamma-rho.svg"
+  },
+  "zeta-phi-beta": {
+    "orgName": "Zeta Phi Beta",
+    "svg": "/crests/zeta-phi-beta.svg"
+  },
+  "lambda-theta-alpha": {
+    "orgName": "Lambda Theta Alpha",
+    "svg": "/crests/lambda-theta-alpha.svg"
+  },
+  "lambda-upsilon-lambda": {
+    "orgName": "Lambda Upsilon Lambda",
+    "svg": "/crests/lambda-upsilon-lambda.svg"
+  },
+  "sigma-lambda-beta": {
+    "orgName": "Sigma Lambda Beta",
+    "svg": "/crests/sigma-lambda-beta.svg"
+  },
+  "sigma-lambda-gamma": {
+    "orgName": "Sigma Lambda Gamma",
+    "svg": "/crests/sigma-lambda-gamma.svg"
+  },
+  "delta-phi-omega": {
+    "orgName": "Delta Phi Omega",
+    "svg": "/crests/delta-phi-omega.svg"
+  },
+  "kappa-delta-chi": {
+    "orgName": "Kappa Delta Chi",
+    "svg": "/crests/kappa-delta-chi.svg"
+  }
+}

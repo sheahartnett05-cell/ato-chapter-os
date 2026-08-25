@@ -10,11 +10,8 @@ export function OnboardingPage() {
   return <Onboarding />
 }
 
-/** Collaborator / demo entry — no invite required */
+/** Collaborator / demo entry — no invite required; always reachable even if a real chapter session exists */
 export function PreviewPage() {
-  if (isOnboardingCompleteInStorage()) {
-    return <Navigate to={defaultHomePath()} replace />
-  }
   return <GuestLogin />
 }
 

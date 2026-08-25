@@ -62,63 +62,110 @@ function TabPills({
 function AccountSettings({
   profile,
   onSave,
+  cloudEmail,
+  onSignOut,
+  showCloud,
 }: {
   profile: UserProfile
   onSave: (p: Partial<UserProfile>) => void
+  cloudEmail?: string | null
+  onSignOut?: () => void
+  showCloud?: boolean
 }) {
   const [local, setLocal] = useState(profile)
   const [notifyEmail, setNotifyEmail] = useState(true)
   const [notifyPush, setNotifyPush] = useState(true)
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-xl space-y-10">
       <div>
-        <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Profile</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              value={local.firstName}
-              onChange={(e) => setLocal({ ...local, firstName: e.target.value })}
-              placeholder="First"
-              className="rounded-xl border border-black/5 bg-white px-3 py-2 text-sm outline-none"
-            />
-            <input
-              value={local.lastName}
-              onChange={(e) => setLocal({ ...local, lastName: e.target.value })}
-              placeholder="Last"
-              className="rounded-xl border border-black/5 bg-white px-3 py-2 text-sm outline-none"
-            />
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Profile
+        </p>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                First name
+              </span>
+              <input
+                value={local.firstName}
+                onChange={(e) => setLocal({ ...local, firstName: e.target.value })}
+                placeholder="First"
+                className="input-editorial w-full"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                Last name
+              </span>
+              <input
+                value={local.lastName}
+                onChange={(e) => setLocal({ ...local, lastName: e.target.value })}
+                placeholder="Last"
+                className="input-editorial w-full"
+              />
+            </label>
           </div>
-          <input
-            value={local.phone}
-            onChange={(e) => setLocal({ ...local, phone: e.target.value })}
-            placeholder="Phone"
-            className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 text-sm outline-none"
-          />
+          <label className="block space-y-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              Phone
+            </span>
+            <input
+              value={local.phone}
+              onChange={(e) => setLocal({ ...local, phone: e.target.value })}
+              placeholder="Phone"
+              className="input-editorial w-full"
+            />
+          </label>
           <button
             type="button"
             onClick={() => onSave(local)}
-            className="theme-pill-active rounded-sm px-4 py-2 text-xs font-semibold"
+            className="btn-primary"
           >
             Save profile
           </button>
         </div>
       </div>
 
+      {showCloud && (
+        <div>
+          <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+            Cloud account
+          </p>
+          <div className="space-y-3 rounded-md border border-[var(--rule)] px-4 py-4">
+            <p className="text-sm text-[var(--ink)]">
+              Signed in as{' '}
+              <span className="font-medium">{cloudEmail ?? '—'}</span>
+            </p>
+            <p className="text-xs text-[var(--muted)]">
+              Chapter data syncs to Supabase when you&apos;re signed in.
+            </p>
+            {onSignOut && (
+              <button type="button" onClick={onSignOut} className="btn-secondary">
+                Sign out
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div>
-        <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Notifications</p>
-        <ul className="space-y-1">
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Notifications
+        </p>
+        <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
           {[
             { label: 'Email', checked: notifyEmail, set: setNotifyEmail },
             { label: 'Push', checked: notifyPush, set: setNotifyPush },
           ].map(({ label, checked, set }) => (
-            <li key={label} className="flex items-center justify-between rounded-xl px-3 py-2.5 theme-pill-muted">
-              <span className="text-sm font-medium">{label}</span>
+            <li key={label} className="flex items-center justify-between gap-4 px-4 py-3.5">
+              <span className="text-sm font-medium text-[var(--ink)]">{label}</span>
               <button
                 type="button"
                 onClick={() => set(!checked)}
-                className={`rounded-sm px-2.5 py-0.5 text-[10px] font-bold ${
-                  checked ? 'theme-pill-active' : 'bg-neutral-200 text-neutral-600'
+                className={`min-w-[3.25rem] rounded-sm px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${
+                  checked ? 'theme-pill-active' : 'theme-pill-muted'
                 }`}
               >
                 {checked ? 'On' : 'Off'}
@@ -129,18 +176,20 @@ function AccountSettings({
       </div>
 
       <div>
-        <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Dues receipts</p>
-        <ul className="space-y-1">
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Dues receipts
+        </p>
+        <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
           {[
             { date: 'Aug 1, 2025', amount: 425 },
             { date: 'Jan 15, 2025', amount: 425 },
           ].map((r) => (
             <li
               key={r.date}
-              className="flex items-center justify-between rounded-xl px-3 py-2 text-sm theme-pill-muted"
+              className="flex items-center justify-between px-4 py-3.5 text-sm"
             >
-              <span>{r.date}</span>
-              <span className="font-semibold tabular-nums">${r.amount}</span>
+              <span className="text-[var(--muted)]">{r.date}</span>
+              <span className="font-semibold tabular-nums text-[var(--ink)]">${r.amount}</span>
             </li>
           ))}
         </ul>
@@ -259,7 +308,8 @@ function AdminPanel() {
 
   const rerunOnboarding = () => {
     resetOnboarding()
-    navigate('/onboarding')
+    // Full reload so MembersContext chapterLock / invites reset with storage
+    window.location.assign('/onboarding')
   }
 
   return (
@@ -396,7 +446,16 @@ function PositionDashboard() {
 }
 
 export default function Settings() {
-  const { profile, updateProfile, role, permissions, onboarding } = useAuth()
+  const {
+    profile,
+    updateProfile,
+    role,
+    permissions,
+    onboarding,
+    requiresSupabaseAuth: showCloud,
+    authEmail,
+    signOut,
+  } = useAuth()
   const { updateMemberProfile } = useMembers()
   const location = useLocation()
   const initialTab =
@@ -418,18 +477,29 @@ export default function Settings() {
       <TopBar
         title="Settings"
         subtitle={role ? roleLabel(role) : undefined}
-        actions={
-          <TabPills
-            active={tab}
-            onChange={setTab}
-            showPosition={hasPositionTab}
-            showInvites={hasInvitesTab}
-          />
-        }
+        showBrand={false}
       />
       <PageShell>
+        {(hasPositionTab || hasInvitesTab) && (
+          <div className="mb-8">
+            <TabPills
+              active={tab}
+              onChange={setTab}
+              showPosition={hasPositionTab}
+              showInvites={hasInvitesTab}
+            />
+          </div>
+        )}
         {tab === 'account' && (
-          <AccountSettings profile={profile} onSave={saveProfile} />
+          <AccountSettings
+            profile={profile}
+            onSave={saveProfile}
+            showCloud={showCloud}
+            cloudEmail={authEmail}
+            onSignOut={() => {
+              void signOut().then(() => window.location.assign('/onboarding'))
+            }}
+          />
         )}
         {tab === 'position' && hasPositionTab && <PositionDashboard />}
         {tab === 'invites' && hasInvitesTab && <InviteCodesPanel />}

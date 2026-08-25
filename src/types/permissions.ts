@@ -5,6 +5,7 @@ export type UserRole =
   | 'JBoardChair'
   | 'RecruitmentChair'
   | 'ScholarshipChair'
+  | 'Chaplain'
   | 'ActiveMember'
   | 'NewMember'
 
@@ -76,6 +77,7 @@ export const ONBOARDING_ROLES: { id: UserRole; label: string }[] = [
   { id: 'JBoardChair', label: 'Standards Chair' },
   { id: 'RecruitmentChair', label: 'Recruitment Chair' },
   { id: 'ScholarshipChair', label: 'Scholarship Chair' },
+  { id: 'Chaplain', label: 'Chaplain' },
   { id: 'ActiveMember', label: 'Active Member' },
   { id: 'NewMember', label: 'New Member' },
 ]

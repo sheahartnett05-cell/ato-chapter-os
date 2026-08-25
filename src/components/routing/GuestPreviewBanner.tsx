@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { isGuestPreviewActive, markGuestPreview } from '../../lib/guestPreview'
-import { clearDemoData } from '../../lib/demoSeed'
+import { clearDemoData, restoreRealSession } from '../../lib/demoSeed'
 
 /** Compact top banner for collaborator / demo sessions */
 export function GuestPreviewBanner() {
@@ -12,10 +12,16 @@ export function GuestPreviewBanner() {
   if (!show) return null
 
   const exit = () => {
-    clearDemoData()
+    const restored = restoreRealSession()
+    if (!restored) {
+      clearDemoData()
+      markGuestPreview(false)
+      resetOnboarding()
+      window.location.assign('/preview')
+      return
+    }
     markGuestPreview(false)
-    resetOnboarding()
-    window.location.assign('/preview')
+    window.location.assign('/home')
   }
 
   return (

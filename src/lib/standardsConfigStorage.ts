@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from './demoSeed'
+import { writeJson } from './persist'
 import {
   defaultStandardsConfig,
   type StandardsConfig,
@@ -26,11 +27,7 @@ export function readStandardsConfig(): StandardsConfig | null {
 
 export function writeStandardsConfig(config: StandardsConfig): StandardsConfigEnvelope {
   const envelope: StandardsConfigEnvelope = { standards_config: config }
-  try {
-    localStorage.setItem(KEY, JSON.stringify(envelope))
-  } catch {
-    /* ignore */
-  }
+  writeJson(KEY, envelope)
   return envelope
 }
 

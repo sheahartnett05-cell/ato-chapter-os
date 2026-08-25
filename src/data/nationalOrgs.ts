@@ -288,6 +288,7 @@ const LEGACY_ORG_IDS: Record<string, string> = {
   'dg-alabama': 'delta-gamma',
   'sigchi-ua': 'sigma-chi',
   'aka-howard': 'aka',
+  'alpha-kappa-alpha': 'aka',
 }
 
 export function buildOrganizationChapter(

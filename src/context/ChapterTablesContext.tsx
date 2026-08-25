@@ -8,16 +8,16 @@ import {
 } from 'react'
 import { DEMO_CHAPTER_TABLES } from '../data/chapterTablesData'
 import { getTableTemplate, TABLE_FORM_TEMPLATES } from '../data/tableFormTemplates'
-import { getMember, rsvps as demoRsvps } from '../data/mockData'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import {
   findMemberColumnId,
   findRsvpColumnId,
+  getFormRsvpsForEvent,
+  eventHasRsvpForm,
   resolveEventRsvps,
   type EventFormRsvp,
 } from '../lib/formRsvps'
-import { rsvps as seedRsvps } from '../data/mockData'
-import type { ChapterTableForm, TableColumn, TableRow } from '../types'
+import type { ChapterTableForm, RsvpEntry, TableColumn, TableRow } from '../types'
 
 const STORAGE_KEY = STORAGE_KEYS.tableForms
 
@@ -53,8 +53,35 @@ function defaultCellValue(col: TableColumn): string | boolean | number {
   return ''
 }
 
-function rsvpToDropdown(status: 'Going' | 'Not Going'): string {
-  return status === 'Going' ? 'Yes' : 'No'
+function rsvpToDropdown(status: 'Going' | 'Not Going' | string): string {
+  if (status === 'Going' || status === 'Yes' || status === 'Maybe') return status === 'Maybe' ? 'Maybe' : 'Yes'
+  if (status === 'Yes' || status === 'Maybe' || status === 'No') return status
+  return status === 'Not Going' || status === 'No' ? 'No' : 'Yes'
+}
+
+function readLiveOpsRsvps(): Record<string, RsvpEntry[]> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.rsvps)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, RsvpEntry[]>
+      if (parsed && typeof parsed === 'object') return parsed
+    }
+  } catch {
+    /* ignore */
+  }
+  return {}
+}
+
+function readRosterName(memberId: string): string {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.roster)
+    if (!raw) return memberId
+    const roster = JSON.parse(raw) as { id: string; firstName: string; lastName: string }[]
+    const m = roster.find((x) => x.id === memberId)
+    return m ? `${m.firstName} ${m.lastName}`.trim() : memberId
+  } catch {
+    return memberId
+  }
 }
 
 interface ChapterTablesContextValue {
@@ -222,29 +249,49 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
       const mapping = template?.guestListMapping
       if (!mapping) return
 
-      const eventRsvps = demoRsvps[table.eventId] ?? []
+      // Prefer live form RSVPs for this event; else ChapterOps RSVPs from localStorage
+      const formRsvps = getFormRsvpsForEvent(tables, table.eventId).filter((r) => r.memberId)
+      const opsRsvps = readLiveOpsRsvps()[table.eventId] ?? []
+
+      type SyncRow = { memberId: string; name: string; rsvp: string; guest?: string }
+      const byMember = new Map<string, SyncRow>()
+
+      for (const r of formRsvps) {
+        if (!r.memberId) continue
+        byMember.set(r.memberId, {
+          memberId: r.memberId,
+          name: r.memberName || readRosterName(r.memberId),
+          rsvp: rsvpToDropdown(r.rsvp),
+          guest: r.guest,
+        })
+      }
+      for (const r of opsRsvps) {
+        if (byMember.has(r.memberId)) continue
+        byMember.set(r.memberId, {
+          memberId: r.memberId,
+          name: readRosterName(r.memberId),
+          rsvp: rsvpToDropdown(r.status),
+          guest: r.guest,
+        })
+      }
+
       const existingByMember = new Map(
         table.rows.filter((r) => r.memberId).map((r) => [r.memberId!, r])
       )
 
-      const syncedRows: TableRow[] = eventRsvps.map((rsvp) => {
-        const member = getMember(rsvp.memberId)
-        const name = member ? `${member.firstName} ${member.lastName}` : rsvp.memberId
+      const syncedRows: TableRow[] = [...byMember.values()].map((rsvp) => {
         const prev = existingByMember.get(rsvp.memberId)
-
         const cells = { ...(prev?.cells ?? {}) }
-        cells[mapping.memberColumn] = name
-        cells[mapping.rsvpColumn] = rsvpToDropdown(rsvp.status)
+        cells[mapping.memberColumn] = rsvp.name
+        cells[mapping.rsvpColumn] = rsvp.rsvp
         if (mapping.guestColumn) {
           cells[mapping.guestColumn] = rsvp.guest ?? ''
         }
-
         table.columns.forEach((col) => {
           if (cells[col.id] === undefined) {
             cells[col.id] = defaultCellValue(col)
           }
         })
-
         return {
           id: prev?.id ?? uid('row'),
           memberId: rsvp.memberId,
@@ -268,12 +315,34 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
   )
 
   const getEventRsvps = useCallback(
-    (eventId: string) => resolveEventRsvps(eventId, tables, seedRsvps),
+    (eventId: string) => {
+      const liveOps = readLiveOpsRsvps()
+      if (eventHasRsvpForm(tables, eventId)) {
+        return getFormRsvpsForEvent(tables, eventId)
+      }
+      return resolveEventRsvps(eventId, tables, liveOps)
+    },
     [tables]
   )
 
   const updateMemberFormRsvp = useCallback(
     (eventId: string, memberId: string, memberName: string, rsvpValue: string) => {
+      try {
+        const legacy =
+          rsvpValue === 'No' || rsvpValue.toLowerCase() === 'not going' ? 'Not Going' : 'Going'
+        const raw = localStorage.getItem(STORAGE_KEYS.rsvps)
+        const map = raw ? (JSON.parse(raw) as Record<string, RsvpEntry[]>) : {}
+        const list = map[eventId] ?? []
+        const existingOps = list.find((r) => r.memberId === memberId)
+        const nextEntry: RsvpEntry = { memberId, status: legacy }
+        map[eventId] = existingOps
+          ? list.map((r) => (r.memberId === memberId ? { ...r, ...nextEntry } : r))
+          : [...list, nextEntry]
+        localStorage.setItem(STORAGE_KEYS.rsvps, JSON.stringify(map))
+      } catch {
+        /* ignore */
+      }
+
       persist(
         tables.map((table) => {
           if (table.eventId !== eventId) return table

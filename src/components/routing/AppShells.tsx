@@ -52,13 +52,14 @@ function MemberChrome({ children }: { children: ReactNode }) {
   )
 }
 
-/** Exec app shell */
+/** Exec app shell — officers and seat-boosted members (not pure member view) */
 export function ExecShell({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
-  const { isMemberView } = usePermissions()
+  const { isMemberView, canAccessExecTools } = usePermissions()
 
   if (!onboarded) return <Navigate to="/preview" replace />
-  if (isMemberView) return <Navigate to="/my-dashboard" replace />
+  // Position boosts clear isMemberView; also allow anyone with exec tools
+  if (isMemberView && !canAccessExecTools) return <Navigate to="/my-dashboard" replace />
 
   return <ExecChrome>{children}</ExecChrome>
 }
@@ -73,19 +74,19 @@ export function MemberShell({ children }: { children: ReactNode }) {
 /** Exec sidebar for officers; standalone for members */
 export function AdaptiveShell({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
-  const { isMemberView } = usePermissions()
+  const { isMemberView, canAccessExecTools } = usePermissions()
 
   if (!onboarded) return <Navigate to="/preview" replace />
-  if (isMemberView) return <MemberChrome>{children}</MemberChrome>
+  if (isMemberView && !canAccessExecTools) return <MemberChrome>{children}</MemberChrome>
   return <ExecChrome>{children}</ExecChrome>
 }
 
 /** Settings — exec gets sidebar, members get standalone */
 export function SettingsShellPage({ children }: { children: ReactNode }) {
   const onboarded = useOnboarded()
-  const { isMemberView } = usePermissions()
+  const { isMemberView, canAccessExecTools } = usePermissions()
 
   if (!onboarded) return <Navigate to="/preview" replace />
-  if (isMemberView) return <MemberChrome>{children}</MemberChrome>
+  if (isMemberView && !canAccessExecTools) return <MemberChrome>{children}</MemberChrome>
   return <ExecChrome>{children}</ExecChrome>
 }

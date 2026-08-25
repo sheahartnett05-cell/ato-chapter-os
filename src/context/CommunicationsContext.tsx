@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { DEMO_ANNOUNCEMENTS as seedPosts } from '../data/featureData'
 import { allowDemoData } from '../lib/demoSeed'
+import { writeJson } from '../lib/persist'
 import { ANNOUNCEMENT_TEMPLATES } from '../data/templateData'
 import type {
   Announcement,
@@ -18,14 +19,34 @@ import type {
 const STORAGE_KEY = 'chapter-os-posts'
 
 function normalizePost(p: Announcement): Announcement {
-  return { ...p, kind: p.kind ?? 'announcement' }
+  const post = { ...p, kind: p.kind ?? 'announcement' }
+  if (post.signup?.slots?.length) {
+    post.signup = {
+      ...post.signup,
+      slots: post.signup.slots.map((slot) => ({
+        ...slot,
+        memberIds: slot.memberIds.slice(0, Math.max(0, slot.capacity)),
+      })),
+    }
+  }
+  return post
 }
 
 function readPosts(): Announcement[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      return (JSON.parse(raw) as Announcement[]).map(normalizePost)
+      const parsed = (JSON.parse(raw) as Announcement[]).map(normalizePost)
+      // Persist capacity repairs so over-subscribed slots don't linger in storage
+      try {
+        const needsRepair = (JSON.parse(raw) as Announcement[]).some((p) =>
+          p.signup?.slots?.some((s) => s.memberIds.length > s.capacity)
+        )
+        if (needsRepair) writePosts(parsed)
+      } catch {
+        /* ignore */
+      }
+      return parsed
     }
   } catch {
     /* ignore */
@@ -34,11 +55,7 @@ function readPosts(): Announcement[] {
 }
 
 function writePosts(posts: Announcement[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEY, posts)
 }
 
 function uid(prefix: string) {

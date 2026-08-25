@@ -1,6 +1,6 @@
 import { ClipboardList } from 'lucide-react'
 import { useCommunications } from '../../context/CommunicationsContext'
-import { getMember } from '../../data/mockData'
+import { useMembers } from '../../context/MembersContext'
 import type { Announcement } from '../../types/features'
 
 export function SignupCard({
@@ -13,6 +13,7 @@ export function SignupCard({
   compact?: boolean
 }) {
   const { joinSignup, leaveSignup } = useCommunications()
+  const { getMemberById } = useMembers()
   const signup = post.signup!
 
   return (
@@ -66,7 +67,7 @@ export function SignupCard({
           <ul className="flex flex-wrap gap-1.5">
             {signup.slots.flatMap((s) =>
               s.memberIds.map((mid) => {
-                const m = getMember(mid)
+                const m = getMemberById(mid)
                 return (
                   <li
                     key={`${s.id}-${mid}`}

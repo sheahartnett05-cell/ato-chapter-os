@@ -48,11 +48,13 @@ export default function ExecSlides() {
   const [draft, setDraft] = useState<Omit<ExecSlide, 'id'>>(emptyDraft())
   const [respText, setRespText] = useState('')
   const [talkText, setTalkText] = useState('')
+  const [editError, setEditError] = useState('')
 
   const openSlide = (slide: ExecSlide, editing: boolean) => {
     setActive(slide)
     setPresentMode(false)
     setEditMode(editing)
+    setEditError('')
     setDraft({
       position: slide.position,
       title: slide.title,
@@ -67,14 +69,23 @@ export default function ExecSlides() {
   const openNew = () => {
     setActive(null)
     setEditMode(true)
+    setEditError('')
     setDraft(emptyDraft())
     setRespText('')
     setTalkText('')
   }
 
   const saveEdit = () => {
+    const position = draft.position.trim()
+    const title = draft.title.trim()
+    if (!position || !title) {
+      setEditError('Position and title are required.')
+      return
+    }
     const payload = {
       ...draft,
+      position,
+      title,
       responsibilities: linesToList(respText),
       talkingPoints: linesToList(talkText),
     }
@@ -85,6 +96,7 @@ export default function ExecSlides() {
       const created = addSlide(payload)
       setActive(created)
     }
+    setEditError('')
     setEditMode(false)
   }
 
@@ -164,6 +176,7 @@ export default function ExecSlides() {
         size="lg"
       >
         <div className="space-y-3">
+          {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
           <input
             className="input-editorial"
             placeholder="Position (e.g. President)"

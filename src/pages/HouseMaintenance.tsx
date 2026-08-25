@@ -52,12 +52,24 @@ export default function HouseMaintenancePage() {
     return m ? `${m.firstName} ${m.lastName}` : id
   }
 
+  const [formError, setFormError] = useState('')
+
   const submit = () => {
-    if (!form.title.trim() || !form.area.trim()) return
+    setFormError('')
+    const title = form.title.trim()
+    const area = form.area.trim()
+    if (!title) {
+      setFormError('Task title is required.')
+      return
+    }
+    if (!area) {
+      setFormError('Area is required (e.g. Kitchen).')
+      return
+    }
     addHouseTask({
       kind: form.kind,
-      title: form.title.trim(),
-      area: form.area.trim(),
+      title,
+      area,
       priority: form.priority,
       assignedMemberId: form.assignedMemberId || undefined,
       dueDate: form.dueDate || undefined,
@@ -246,6 +258,7 @@ export default function HouseMaintenancePage() {
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
+          {formError && <p className="text-xs text-red-600">{formError}</p>}
           <button type="button" onClick={submit} className="btn-primary w-full">
             Create task
           </button>

@@ -8,9 +8,15 @@ import {
 } from 'react'
 import { DEMO_MEMBERS as seedMembers } from '../data/mockData'
 import { allowDemoData } from '../lib/demoSeed'
+import { syncAllMemberDues } from '../lib/duesSync'
+import { syncMemberAttendancePct } from '../lib/attendanceSync'
 import { generateInviteCode, SEED_INVITE_CODES } from '../data/inviteData'
+import { pushLocalChapterToCloud, bootstrapChapterCloud } from '../lib/chapterCloud'
+import { requiresSupabaseAuth } from '../lib/supabaseAuth'
+import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
 import type { ChapterLock, InviteCode, MemberAccount } from '../types/memberAccount'
 import type { Member } from '../types'
+import type { DuesCharge, DuesPayment } from '../types/chapterOps'
 import type { UserProfile, UserRole } from '../types/permissions'
 
 const INVITES_KEY = 'chapter-os-invite-codes'
@@ -18,24 +24,6 @@ const ACCOUNTS_KEY = 'chapter-os-member-accounts'
 const MEMBERS_KEY = 'chapter-os-roster-members'
 const CHAPTER_LOCK_KEY = 'chapter-os-chapter-lock'
 const USER_ID_KEY = 'chapter-os-user-id'
-
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
-}
-
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage unavailable */
-  }
-}
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -45,7 +33,7 @@ export function getOrCreateUserId(): string {
   let id = readJson<string | null>(USER_ID_KEY, null)
   if (!id) {
     id = uid('user')
-    writeJson(USER_ID_KEY, id)
+    writeLocalOnly(USER_ID_KEY, id)
   }
   return id
 }
@@ -72,19 +60,62 @@ interface MembersContextValue {
     university: string
     email?: string
   }) => { memberId: string; account: MemberAccount }
+  /** Add a roster member (exec add form). Rejects duplicate emails. */
+  addMemberToRoster: (input: {
+    firstName: string
+    lastName: string
+    email: string
+    phone?: string
+    major?: string
+    graduationYear?: number
+    status?: Member['status']
+  }) => { ok: true; memberId: string } | { ok: false; error: string }
+  /** Convert an accepted PNM into a New Member roster record. */
+  promoteProspectToMember: (prospect: {
+    firstName: string
+    lastName: string
+    email: string
+    phone?: string
+    major?: string
+    graduationYear?: number
+    photoUrl?: string
+    avatar?: string
+  }) => { ok: true; memberId: string } | { ok: false; error: string }
   updateMemberProfile: (memberId: string, patch: Partial<UserProfile>) => void
   updateMemberDetails: (memberId: string, patch: Partial<Member>) => void
   /** President: change a member's app role / permission set */
   assignMemberRole: (memberId: string, role: UserRole) => void
+  /** Sync roster dues fields from ops ledger */
+  syncRosterDues: (
+    charges: import('../types/chapterOps').DuesCharge[],
+    payments: import('../types/chapterOps').DuesPayment[]
+  ) => void
+  /** Sync roster attendancePct from recorded event attendance */
+  syncRosterAttendance: (
+    attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>
+  ) => void
   lockChapter: (lock: Omit<ChapterLock, 'lockedAt' | 'lockedByUserId'>, userId: string) => void
 }
 
 const MembersContext = createContext<MembersContextValue | null>(null)
 
+function readInviteCodes(): InviteCode[] {
+  const stored = readJson<InviteCode[] | null>(INVITES_KEY, null)
+  const base = stored && Array.isArray(stored) ? stored : []
+  // Always ensure system codes (esp. CHAPTER-FOUNDER) exist — even outside guest demo
+  const byCode = new Map(base.map((i) => [i.code.toUpperCase(), i]))
+  for (const seed of SEED_INVITE_CODES) {
+    if (!byCode.has(seed.code.toUpperCase())) byCode.set(seed.code.toUpperCase(), seed)
+  }
+  return [...byCode.values()]
+}
+
 export function MembersProvider({ children }: { children: ReactNode }) {
-  const [inviteCodes, setInviteCodes] = useState<InviteCode[]>(() =>
-    readJson(INVITES_KEY, allowDemoData() ? SEED_INVITE_CODES : [])
-  )
+  const [inviteCodes, setInviteCodes] = useState<InviteCode[]>(() => {
+    const codes = readInviteCodes()
+    writeJson(INVITES_KEY, codes)
+    return codes
+  })
   const [accounts, setAccounts] = useState<MemberAccount[]>(() =>
     readJson(ACCOUNTS_KEY, [])
   )
@@ -196,6 +227,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       }
       setChapterLock(next)
       writeJson(CHAPTER_LOCK_KEY, next)
+      void pushLocalChapterToCloud()
     },
     []
   )
@@ -211,6 +243,20 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       university: string
       email?: string
     }) => {
+      const email = (
+        input.email ??
+        input.profile.email ??
+        `${input.profile.firstName.toLowerCase()}@chapter.local`
+      )
+        .trim()
+        .toLowerCase()
+      const existing = email
+        ? roster.find((m) => m.email.trim().toLowerCase() === email)
+        : undefined
+      if (existing) {
+        const existingAcct = accounts.find((a) => a.memberId === existing.id)
+        if (existingAcct) return { memberId: existing.id, account: existingAcct }
+      }
       const memberId = uid('m')
       const isExec = !['ActiveMember', 'NewMember'].includes(input.role)
       const status = input.role === 'NewMember' ? 'New Member' : 'Active'
@@ -234,7 +280,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         duesStatus: 'Outstanding',
         duesPaid: 0,
         duesExpected: 850,
-        attendancePct: 100,
+        attendancePct: 0,
         points: 0,
         avatar: input.profile.avatar,
         photoUrl: input.profile.photoUrl,
@@ -265,9 +311,116 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         )
       }
 
+      if (requiresSupabaseAuth()) {
+        void bootstrapChapterCloud({
+          appMemberId: memberId,
+          role: input.role,
+          isFounder: input.role === 'President' && !chapterLock,
+        })
+      }
+
       return { memberId, account }
     },
     [roster, accounts, chapterLock, lockChapter, persistRoster, persistAccounts]
+  )
+
+  const addMemberToRoster = useCallback(
+    (input: {
+      firstName: string
+      lastName: string
+      email: string
+      phone?: string
+      major?: string
+      graduationYear?: number
+      status?: Member['status']
+    }) => {
+      const email = input.email.trim().toLowerCase()
+      if (!input.firstName.trim() || !input.lastName.trim()) {
+        return { ok: false as const, error: 'First and last name are required.' }
+      }
+      if (!email) return { ok: false as const, error: 'Email is required.' }
+      if (roster.some((m) => m.email.trim().toLowerCase() === email)) {
+        return { ok: false as const, error: 'A member with this email already exists.' }
+      }
+      const memberId = uid('m')
+      const newMember: Member = {
+        id: memberId,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        email: input.email.trim(),
+        phone: input.phone?.trim() || '',
+        major: input.major?.trim() || 'Undeclared',
+        graduationYear: input.graduationYear ?? new Date().getFullYear() + 1,
+        pledgeClass: 'Fall 2025',
+        status: input.status ?? 'Active',
+        isExec: false,
+        birthday: '2000-01-01',
+        shirtSize: 'M',
+        emergencyContact: '',
+        emergencyPhone: '',
+        duesStatus: 'Outstanding',
+        duesPaid: 0,
+        duesExpected: 850,
+        attendancePct: 0,
+        points: 0,
+        avatar: `${input.firstName[0] ?? ''}${input.lastName[0] ?? ''}`.toUpperCase() || '?',
+      }
+      persistRoster([...roster, newMember])
+      return { ok: true as const, memberId }
+    },
+    [roster, persistRoster]
+  )
+
+  const promoteProspectToMember = useCallback(
+    (prospect: {
+      firstName: string
+      lastName: string
+      email: string
+      phone?: string
+      major?: string
+      graduationYear?: number
+      photoUrl?: string
+      avatar?: string
+    }) => {
+      const email = (prospect.email || '').trim().toLowerCase()
+      if (!prospect.firstName.trim() || !prospect.lastName.trim()) {
+        return { ok: false as const, error: 'Prospect needs a name.' }
+      }
+      if (email && roster.some((m) => m.email.trim().toLowerCase() === email)) {
+        return { ok: false as const, error: 'Already on roster.' }
+      }
+      const memberId = uid('m')
+      const newMember: Member = {
+        id: memberId,
+        firstName: prospect.firstName.trim(),
+        lastName: prospect.lastName.trim(),
+        email: prospect.email?.trim() || `${prospect.firstName.toLowerCase()}@chapter.local`,
+        phone: prospect.phone?.trim() || '',
+        major: prospect.major?.trim() || 'Undeclared',
+        graduationYear: prospect.graduationYear ?? new Date().getFullYear() + 1,
+        pledgeClass: 'Spring 2026',
+        status: 'New Member',
+        isExec: false,
+        role: 'NewMember',
+        birthday: '2000-01-01',
+        shirtSize: 'M',
+        emergencyContact: '',
+        emergencyPhone: '',
+        duesStatus: 'Outstanding',
+        duesPaid: 0,
+        duesExpected: 850,
+        attendancePct: 0,
+        points: 0,
+        avatar:
+          prospect.avatar ||
+          `${prospect.firstName[0] ?? ''}${prospect.lastName[0] ?? ''}`.toUpperCase() ||
+          '?',
+        photoUrl: prospect.photoUrl,
+      }
+      persistRoster([...roster, newMember])
+      return { ok: true as const, memberId }
+    },
+    [roster, persistRoster]
   )
 
   const updateMemberProfile = useCallback(
@@ -336,6 +489,31 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     [roster, accounts, persistRoster, persistAccounts]
   )
 
+  const syncRosterDues = useCallback(
+    (charges: DuesCharge[], payments: DuesPayment[]) => {
+      const synced = syncAllMemberDues(roster, charges, payments)
+      const changed = synced.some((m, i) => {
+        const prev = roster[i]
+        return (
+          prev.duesPaid !== m.duesPaid ||
+          prev.duesExpected !== m.duesExpected ||
+          prev.duesStatus !== m.duesStatus
+        )
+      })
+      if (changed) persistRoster(synced)
+    },
+    [roster, persistRoster]
+  )
+
+  const syncRosterAttendance = useCallback(
+    (attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>) => {
+      const synced = syncMemberAttendancePct(roster, attendanceByEvent)
+      const changed = synced.some((m, i) => roster[i]?.attendancePct !== m.attendancePct)
+      if (changed) persistRoster(synced)
+    },
+    [roster, persistRoster]
+  )
+
   const value = useMemo<MembersContextValue>(
     () => ({
       members: roster,
@@ -350,9 +528,13 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       createInvite,
       toggleInvite,
       registerMember,
+      addMemberToRoster,
+      promoteProspectToMember,
       updateMemberProfile,
       updateMemberDetails,
       assignMemberRole,
+      syncRosterDues,
+      syncRosterAttendance,
       lockChapter,
     }),
     [
@@ -368,9 +550,13 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       createInvite,
       toggleInvite,
       registerMember,
+      addMemberToRoster,
+      promoteProspectToMember,
       updateMemberProfile,
       updateMemberDetails,
       assignMemberRole,
+      syncRosterDues,
+      syncRosterAttendance,
       lockChapter,
     ]
   )

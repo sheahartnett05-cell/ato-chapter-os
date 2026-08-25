@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check, KeyRound, Search, UserPlus } from 'lucide
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { getOrCreateUserId, useMembers } from '../context/MembersContext'
+import { getAuthUserId } from '../lib/supabaseAuth'
 import {
   ORG_CATEGORIES,
   orgsInCategory,
@@ -14,9 +15,10 @@ import {
 import type { InviteCode } from '../types/memberAccount'
 import { roleLabel, type UserProfile, type UserRole } from '../types/permissions'
 import { contrastText } from '../lib/themeUtils'
+import { isLikelyEmail } from '../lib/formUtils'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
 import { AgoraMark } from '../components/layout/Logo'
-import { OrgLetterBadge } from '../components/ui/OrgLetterBadge'
+import { OrgCrest } from '../components/ui/OrgCrest'
 
 const ORG_MOTTOS: Record<string, string> = {
   ato: 'Established 1865 · Friendship · Truth',
@@ -67,7 +69,7 @@ function BrandPanel({ org }: { org: NationalOrg | null }) {
       <div className="relative z-10 p-10 xl:p-14">
         <div className="flex items-center gap-3">
           {org ? (
-            <OrgLetterBadge letters={org.letters} backgroundColor={accent} size={44} />
+            <OrgCrest org={org} size={44} />
           ) : (
             <AgoraMark size={44} onDark={fg === '#ffffff'} />
           )}
@@ -125,7 +127,7 @@ function OrgSelectCard({
           : 'border-[var(--rule)] bg-[var(--surface-card)] hover:border-[var(--ink)]/40'
       }`}
     >
-      <OrgLetterBadge letters={org.letters} backgroundColor={org.primaryColor} size={42} />
+      <OrgCrest org={org} size={42} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-[var(--ink)]">{org.orgName}</p>
         <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
@@ -148,7 +150,13 @@ function OrgSelectCard({
 }
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { completeOnboarding } = useAuth()
+  const {
+    completeOnboarding,
+    requiresSupabaseAuth: needsAuth,
+    emailVerified,
+    sendEmailOtp,
+    verifyEmailOtp,
+  } = useAuth()
   const { orgDirectory, setSelectedOrg, setChapterMeta } = useChapter()
   const { chapterLock, validateInvite, redeemInvite, registerMember } = useMembers()
   const steps = useMemo(() => {
@@ -157,10 +165,14 @@ export default function Onboarding() {
   }, [chapterLock])
   const [step, setStep] = useState(0)
   const [entryPath, setEntryPath] = useState<'invite' | 'create' | null>(null)
-  const [createRole, setCreateRole] = useState<UserRole>('ActiveMember')
+  const [createRole, setCreateRole] = useState<UserRole>('President')
   const [inviteInput, setInviteInput] = useState('')
   const [inviteError, setInviteError] = useState('')
   const [validatedInvite, setValidatedInvite] = useState<InviteCode | null>(null)
+
+  useEffect(() => {
+    if (chapterLock && createRole === 'President') setCreateRole('ActiveMember')
+  }, [chapterLock, createRole])
   const [profile, setProfile] = useState<UserProfile>({
     firstName: '',
     lastName: '',
@@ -180,6 +192,10 @@ export default function Onboarding() {
   const [university, setUniversity] = useState('')
   const [orgQuery, setOrgQuery] = useState('')
   const [category, setCategory] = useState<OrgCategory>('fraternity')
+  const [otpCode, setOtpCode] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpError, setOtpError] = useState('')
+  const [otpBusy, setOtpBusy] = useState(false)
   const stepKey = steps[step]
   const selectedOrg = orgDirectory.find((o) => o.id === orgId) ?? null
   useEffect(() => {
@@ -209,7 +225,12 @@ export default function Onboarding() {
     stepKey === 'Start'
       ? entryPath === 'create' || (entryPath === 'invite' && inviteInput.trim().length >= 4)
       : stepKey === 'Profile'
-        ? profile.firstName.trim() && profile.lastName.trim() && profile.phone.trim() && profile.email?.trim()
+        ? profile.firstName.trim() &&
+          profile.lastName.trim() &&
+          profile.phone.trim() &&
+          profile.email?.trim() &&
+          isLikelyEmail(profile.email) &&
+          (!needsAuth || emailVerified)
         : stepKey === 'About'
           ? profile.major?.trim() && profile.birthday?.trim()
           : stepKey === 'Organization'
@@ -246,7 +267,7 @@ export default function Onboarding() {
     const selfRegistered = entryPath === 'create'
     const role = validatedInvite?.role ?? createRole
     const home = role === 'ActiveMember' || role === 'NewMember' ? '/my-dashboard' : '/home'
-    const userId = getOrCreateUserId()
+    const userId = getAuthUserId() ?? getOrCreateUserId()
     const avatar = initials
     let inviteCodeId = 'self-register'
     if (!selfRegistered) {
@@ -411,17 +432,25 @@ export default function Onboarding() {
                     <div className="space-y-2">
                       {(
                         [
-                          { id: 'ActiveMember' as const, label: 'Active member', hint: 'Initiated / continuing member' },
-                          { id: 'NewMember' as const, label: 'New member', hint: 'Pledge / associate class' },
                           ...(!chapterLock
                             ? [
                                 {
                                   id: 'President' as const,
                                   label: 'Founding president',
-                                  hint: 'Start this chapter in Agora',
+                                  hint: 'Locks this chapter and unlocks exec tools',
                                 },
                               ]
                             : []),
+                          {
+                            id: 'ActiveMember' as const,
+                            label: 'Active member',
+                            hint: 'Initiated / continuing member',
+                          },
+                          {
+                            id: 'NewMember' as const,
+                            label: 'New member',
+                            hint: 'Pledge / associate class',
+                          },
                         ] as { id: UserRole; label: string; hint: string }[]
                       ).map((opt) => (
                         <button
@@ -449,6 +478,8 @@ export default function Onboarding() {
                 <p className="pt-1">
                   <a
                     href="/preview"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline-offset-2 hover:underline"
                   >
                     Or continue as guest preview →
@@ -528,11 +559,72 @@ export default function Onboarding() {
                   <input
                     type="email"
                     value={profile.email ?? ''}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    onChange={(e) => {
+                      setProfile({ ...profile, email: e.target.value })
+                      setOtpSent(false)
+                      setOtpError('')
+                    }}
                     placeholder="you@university.edu"
                     className="input-editorial mt-1"
                   />
                 </label>
+                {needsAuth && (
+                  <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      Verify email {emailVerified ? '· signed in' : ''}
+                    </p>
+                    {!emailVerified && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={otpBusy || !profile.email?.trim()}
+                          onClick={async () => {
+                            setOtpBusy(true)
+                            setOtpError('')
+                            const res = await sendEmailOtp(profile.email ?? '')
+                            setOtpBusy(false)
+                            if (res.ok) setOtpSent(true)
+                            else setOtpError(res.error ?? 'Could not send code')
+                          }}
+                          className="btn-secondary w-full disabled:opacity-40"
+                        >
+                          {otpSent ? 'Resend login code' : 'Send login code'}
+                        </button>
+                        {otpSent && (
+                          <label className="block">
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                              6-digit code
+                            </span>
+                            <input
+                              value={otpCode}
+                              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              placeholder="123456"
+                              className="input-editorial mt-1 tracking-[0.3em]"
+                              inputMode="numeric"
+                            />
+                          </label>
+                        )}
+                        {otpSent && (
+                          <button
+                            type="button"
+                            disabled={otpBusy || otpCode.length < 6}
+                            onClick={async () => {
+                              setOtpBusy(true)
+                              setOtpError('')
+                              const res = await verifyEmailOtp(profile.email ?? '', otpCode)
+                              setOtpBusy(false)
+                              if (!res.ok) setOtpError(res.error ?? 'Invalid code')
+                            }}
+                            className="btn-primary w-full disabled:opacity-40"
+                          >
+                            Verify & sign in
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {otpError && <p className="text-xs text-red-600">{otpError}</p>}
+                  </div>
+                )}
                 <label className="block">
                   <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
                     Grad year
@@ -668,11 +760,7 @@ export default function Onboarding() {
 
                 {selectedOrg && (
                   <div className="flex items-center gap-3 rounded-md border border-[var(--primary)]/30 bg-[var(--primary-subtle)] px-3 py-2.5">
-                    <OrgLetterBadge
-                      letters={selectedOrg.letters}
-                      backgroundColor={selectedOrg.primaryColor}
-                      size={36}
-                    />
+                    <OrgCrest org={selectedOrg} size={36} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-[var(--ink)]">
                         {selectedOrg.orgName}
@@ -719,11 +807,7 @@ export default function Onboarding() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3.5 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-3.5">
-                  <OrgLetterBadge
-                    letters={selectedOrg.letters}
-                    backgroundColor={selectedOrg.primaryColor}
-                    size={48}
-                  />
+                  <OrgCrest org={selectedOrg} size={48} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-[var(--ink)]">
                       {selectedOrg.orgName}

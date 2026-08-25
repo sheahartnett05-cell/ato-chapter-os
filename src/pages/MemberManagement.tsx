@@ -15,7 +15,7 @@ import type { DuesStatus, MemberStatus } from '../types'
 
 export default function MemberManagement() {
   const navigate = useNavigate()
-  const { members } = useMembers()
+  const { members, addMemberToRoster } = useMembers()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'All'>('All')
@@ -24,6 +24,8 @@ export default function MemberManagement() {
   const [showFilters, setShowFilters] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'dues'>('name')
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '' })
+  const [addError, setAddError] = useState('')
 
   const statusFilters: (MemberStatus | 'All')[] = [
     'All',
@@ -259,27 +261,48 @@ export default function MemberManagement() {
         </Card>
       </div>
 
-      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Member">
-        <p className="mb-4 text-sm text-slate-500">
-          Demo mode — form submission is not persisted.
-        </p>
+      <Modal
+        open={showAddModal}
+        onClose={() => {
+          setShowAddModal(false)
+          setAddError('')
+          setAddForm({ firstName: '', lastName: '', email: '' })
+        }}
+        title="Add Member"
+      >
         <div className="space-y-3">
+          {addError ? <p className="text-sm text-red-600">{addError}</p> : null}
           <input
             placeholder="First name"
+            value={addForm.firstName}
+            onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })}
             className="w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
           <input
             placeholder="Last name"
+            value={addForm.lastName}
+            onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })}
             className="w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
           <input
             placeholder="Email"
             type="email"
+            value={addForm.email}
+            onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
             className="w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
           <button
             type="button"
-            onClick={() => setShowAddModal(false)}
+            onClick={() => {
+              const result = addMemberToRoster(addForm)
+              if (!result.ok) {
+                setAddError(result.error)
+                return
+              }
+              setShowAddModal(false)
+              setAddError('')
+              setAddForm({ firstName: '', lastName: '', email: '' })
+            }}
             className="w-full rounded-lg bg-navy py-2.5 text-sm font-semibold text-white hover:bg-navy-light"
           >
             Add Member

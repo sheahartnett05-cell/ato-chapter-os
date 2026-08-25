@@ -7,7 +7,7 @@ import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { usePermissions } from '../context/AuthContext'
 import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
-import { getMember, members } from '../data/mockData'
+import { useMembers } from '../context/MembersContext'
 import type { JBoardCategory } from '../types/governance'
 
 type Tab = 'overview' | 'cases' | 'fines'
@@ -37,6 +37,7 @@ function statusPill(status: string) {
 export default function JudicialBoard() {
   const { cases, fines, fineSchedule, fileCase, issueFine, updateFineStatus } = useGovernance()
   const permissions = usePermissions()
+  const { members, getMemberById } = useMembers()
   const { moduleName, configured } = useStandardsModuleConfig()
   const [tab, setTab] = useState<Tab>('overview')
   const [fineFilter, setFineFilter] = useState<FineFilter>('All')
@@ -193,7 +194,7 @@ export default function JudicialBoard() {
                   <li className="text-xs text-neutral-500">None scheduled</li>
                 ) : (
                   hearings.map((c) => {
-                    const m = getMember(c.memberId)
+                    const m = getMemberById(c.memberId)
                     return (
                       <li
                         key={c.id}
@@ -222,7 +223,7 @@ export default function JudicialBoard() {
         {tab === 'cases' && (
           <ul className="space-y-1.5">
             {cases.map((c) => {
-              const m = getMember(c.memberId)
+              const m = getMemberById(c.memberId)
               return (
                 <li
                   key={c.id}
@@ -270,7 +271,7 @@ export default function JudicialBoard() {
             </div>
             <ul className="space-y-1">
               {filteredFines.map((f) => {
-                const m = getMember(f.memberId)
+                const m = getMemberById(f.memberId)
                 return (
                   <li
                     key={f.id}

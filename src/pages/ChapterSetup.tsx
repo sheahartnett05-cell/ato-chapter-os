@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Plus, Trash2, Settings2, Users } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2, Settings2, Users, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
 import { useAuth, usePermissions } from '../context/AuthContext'
@@ -16,7 +16,8 @@ import type { EditorCapabilityId } from '../types/chapterFeatures'
 
 export default function ChapterSetup() {
   const { chapter, saveChapterMeta } = useChapter()
-  const { positions, addPosition, removePosition, assignPosition } = useChapterPositions()
+  const { positions, addPosition, removePosition, assignPosition, updatePosition } =
+    useChapterPositions()
   const {
     catalog,
     editorCatalog,
@@ -30,6 +31,10 @@ export default function ChapterSetup() {
   const permissions = usePermissions()
 
   const [newTitle, setNewTitle] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
   const [editorCap, setEditorCap] = useState<EditorCapabilityId>('editStandards')
   const [meta, setMeta] = useState({
     chapterDesignation: chapter.chapterDesignation,
@@ -50,9 +55,9 @@ export default function ChapterSetup() {
     return <Navigate to="/home" replace />
   }
 
-  const applyRole = (targetMemberId: string, role: UserRole) => {
-    assignMemberRole(targetMemberId, role)
-    if (targetMemberId === memberId) updateRole(role)
+  const applyRole = (targetMemberId: string, nextRole: UserRole) => {
+    assignMemberRole(targetMemberId, nextRole)
+    if (targetMemberId === memberId) updateRole(nextRole)
   }
 
   const onAssignSeat = (positionId: string, title: string, nextMemberId: string) => {
@@ -74,8 +79,42 @@ export default function ChapterSetup() {
 
   const add = () => {
     if (!newTitle.trim()) return
-    addPosition(newTitle.trim())
+    addPosition(newTitle.trim(), newDescription.trim() || undefined)
     setNewTitle('')
+    setNewDescription('')
+  }
+
+  const startEdit = (id: string, title: string, description?: string) => {
+    setEditingId(id)
+    setEditTitle(title)
+    setEditDescription(description ?? '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditTitle('')
+    setEditDescription('')
+  }
+
+  const saveEdit = (id: string) => {
+    const title = editTitle.trim()
+    if (!title) return
+    updatePosition(id, {
+      title,
+      description: editDescription.trim() || undefined,
+    })
+    const pos = positions.find((p) => p.id === id)
+    if (pos?.assignedMemberId) {
+      const mapped = roleFromPositionTitle(title)
+      if (mapped) applyRole(pos.assignedMemberId, mapped)
+    }
+    cancelEdit()
+  }
+
+  const deletePosition = (id: string, title: string) => {
+    if (!window.confirm(`Remove “${title}” from officer positions?`)) return
+    removePosition(id)
+    if (editingId === id) cancelEdit()
   }
 
   const roleForMember = (id: string): UserRole => {
@@ -88,6 +127,7 @@ export default function ChapterSetup() {
       <TopBar
         title="Chapter Setup"
         subtitle="Profile, features, officer seats, and who can edit"
+        showBrand={false}
         actions={
           <Link
             to="/settings"
@@ -152,71 +192,145 @@ export default function ChapterSetup() {
 
         <Section
           title="Officer positions"
-          subtitle="Assign members — matching titles also update app permissions"
-          action={
-            <div className="flex flex-wrap gap-2">
+          subtitle="Add, edit, or remove seats. Matching titles also update app permissions."
+        >
+          <div className="mb-4 space-y-3 rounded-2xl border border-[var(--rule)] bg-neutral-50/80 p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+              Add position
+            </p>
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <input
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && add()}
-                placeholder="New position title"
-                className="rounded-sm border border-black/5 bg-neutral-50 px-4 py-2 text-sm outline-none focus:border-accent/40"
+                placeholder="Title (e.g. Risk Manager)"
+                className="input-editorial w-full"
+              />
+              <input
+                type="text"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && add()}
+                placeholder="Description (optional)"
+                className="input-editorial w-full"
               />
               <button
                 type="button"
                 onClick={add}
-                className="flex items-center gap-1.5 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white"
+                disabled={!newTitle.trim()}
+                className="btn-primary disabled:opacity-40"
               >
                 <Plus size={16} /> Add
               </button>
             </div>
-          }
-        >
-          <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
-            {positions.map((pos) => {
-              const mapped = roleFromPositionTitle(pos.title)
-              return (
-                <div
-                  key={pos.id}
-                  className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold text-neutral-900">{pos.title}</p>
-                    <p className="text-xs text-neutral-500">
-                      {pos.isCustom ? 'Custom' : 'Standard'}
-                      {mapped
-                        ? ` · Grants ${roleLabel(mapped)} access`
-                        : ' · Display title only'}
-                    </p>
+          </div>
+
+          <div className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-neutral-50/60">
+            {positions.length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-neutral-500">
+                No positions yet — add one above.
+              </p>
+            ) : (
+              positions.map((pos) => {
+                const mapped = roleFromPositionTitle(pos.title)
+                const isEditing = editingId === pos.id
+                return (
+                  <div
+                    key={pos.id}
+                    className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0 flex-1 space-y-2">
+                      {isEditing ? (
+                        <>
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="input-editorial w-full max-w-md font-semibold"
+                            autoFocus
+                          />
+                          <input
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            placeholder="Description (optional)"
+                            className="input-editorial w-full max-w-md text-sm"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-semibold text-neutral-900">{pos.title}</p>
+                          {pos.description && (
+                            <p className="text-sm text-neutral-600">{pos.description}</p>
+                          )}
+                          <p className="text-xs text-neutral-500">
+                            {pos.isCustom ? 'Custom' : 'Standard'}
+                            {mapped
+                              ? ` · Grants ${roleLabel(mapped)} access`
+                              : ' · Display title only'}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isEditing && (
+                        <select
+                          value={pos.assignedMemberId ?? ''}
+                          onChange={(e) => onAssignSeat(pos.id, pos.title, e.target.value)}
+                          className="min-w-[160px] rounded-sm border border-black/5 bg-white px-3 py-2 text-sm outline-none focus:border-accent/40"
+                        >
+                          <option value="">Unassigned</option>
+                          {activeMembers.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.firstName} {m.lastName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {isEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(pos.id)}
+                            disabled={!editTitle.trim()}
+                            className="inline-flex items-center gap-1 rounded-sm bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                          >
+                            <Check size={14} /> Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="inline-flex items-center gap-1 rounded-sm border border-black/10 px-3 py-2 text-xs font-semibold text-neutral-600"
+                          >
+                            <X size={14} /> Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(pos.id, pos.title, pos.description)}
+                            className="rounded-sm p-2 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
+                            aria-label={`Edit ${pos.title}`}
+                            title="Edit position"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deletePosition(pos.id, pos.title)}
+                            className="rounded-sm p-2 text-neutral-400 hover:bg-neutral-200 hover:text-red-600"
+                            aria-label={`Delete ${pos.title}`}
+                            title="Delete position"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={pos.assignedMemberId ?? ''}
-                      onChange={(e) => onAssignSeat(pos.id, pos.title, e.target.value)}
-                      className="min-w-[180px] rounded-sm border border-black/5 bg-white px-3 py-2 text-sm outline-none focus:border-accent/40"
-                    >
-                      <option value="">Unassigned</option>
-                      {activeMembers.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.firstName} {m.lastName}
-                        </option>
-                      ))}
-                    </select>
-                    {pos.isCustom && (
-                      <button
-                        type="button"
-                        onClick={() => removePosition(pos.id)}
-                        className="rounded-sm p-2 text-neutral-400 hover:bg-neutral-200 hover:text-red-600"
-                        aria-label={`Remove ${pos.title}`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </Section>
 

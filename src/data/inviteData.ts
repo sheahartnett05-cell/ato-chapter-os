@@ -20,6 +20,7 @@ export const SEED_INVITE_CODES: InviteCode[] = [
   code('President', 'CHAPTER-FOUNDER', 'Founding President (one-time)', 1),
   code('Treasurer', 'CHAPTER-TREASURER', 'Treasurer invite', 5),
   code('ScholarshipChair', 'CHAPTER-SCHOLAR', 'Scholarship Chair invite', 3),
+  code('Chaplain', 'CHAPTER-CHAPLAIN', 'Chaplain invite', 3),
   code('ActiveMember', 'CHAPTER-MEMBER', 'Active member invite', 50),
   code('NewMember', 'CHAPTER-NEWMEMBER', 'New member invite', 30),
 ]

@@ -2,10 +2,31 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import { clearDemoData } from '../lib/demoSeed'
+import { setCachedCloudChapterId } from '../lib/chapterCloud'
+import { markGuestPreview } from '../lib/guestPreview'
+import { writeJson, removeJson } from '../lib/persist'
+import { applyPositionBoost, positionPermissionBoost } from '../lib/positionPermissions'
+import {
+  getAuthEmail,
+  getAuthUserId,
+  isEmailVerified,
+  requiresSupabaseAuth,
+  sendEmailOtp,
+  signOutSupabase,
+  upsertSupabaseProfile,
+  verifyEmailOtp,
+} from '../lib/supabaseAuth'
+import {
+  isSupabaseSessionReady,
+  subscribeSupabaseSession,
+} from '../lib/supabaseSession'
+import type { EditorCapabilityId } from '../types/chapterFeatures'
 import {
   getPermissions,
   type OnboardingData,
@@ -14,7 +35,7 @@ import {
   type UserRole,
 } from '../types/permissions'
 import { useChapterFeaturesOptional } from './ChapterFeaturesContext'
-import type { EditorCapabilityId } from '../types/chapterFeatures'
+import { useChapterPositions } from './ChapterPositionsContext'
 
 const STORAGE_KEY = 'chapter-os-onboarding'
 
@@ -46,24 +67,14 @@ function readOnboarding(): OnboardingData | null {
 }
 
 function writeOnboarding(data: OnboardingData) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEY, data)
 }
 
-import { markGuestPreview } from '../lib/guestPreview'
-import { clearDemoData } from '../lib/demoSeed'
-
 function clearOnboardingStorage() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* storage unavailable */
-  }
+  removeJson(STORAGE_KEY)
   clearDemoData()
   markGuestPreview(false)
+  setCachedCloudChapterId(null)
 }
 
 interface AuthContextValue {
@@ -74,9 +85,16 @@ interface AuthContextValue {
   memberId: string | null
   userId: string | null
   permissions: PermissionFlags
+  /** Supabase email OTP required when env is configured */
+  requiresSupabaseAuth: boolean
+  authEmail: string | null
+  emailVerified: boolean
+  authReady: boolean
+  sendEmailOtp: (email: string) => Promise<{ ok: boolean; error?: string }>
+  verifyEmailOtp: (email: string, token: string) => Promise<{ ok: boolean; error?: string }>
+  signOut: () => Promise<void>
   completeOnboarding: (data: Omit<OnboardingData, 'completed'>) => void
   updateProfile: (patch: Partial<UserProfile>) => void
-  /** President (or self) can change the signed-in user's role */
   updateRole: (role: UserRole) => void
   resetOnboarding: () => void
 }
@@ -85,24 +103,37 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(readOnboarding)
+  const [, tick] = useState(0)
+
+  useEffect(() => subscribeSupabaseSession(() => tick((n) => n + 1)), [])
+
+  const supabaseAuth = requiresSupabaseAuth()
+  const authUserId = getAuthUserId()
+  const authEmail = getAuthEmail()
 
   const completeOnboarding = useCallback(
     (data: Omit<OnboardingData, 'completed'>) => {
-      const next: OnboardingData = { ...data, completed: true }
+      const resolvedUserId = authUserId ?? data.userId
+      const next: OnboardingData = { ...data, userId: resolvedUserId, completed: true }
       writeOnboarding(next)
       setOnboarding(next)
+      void upsertSupabaseProfile({ ...next.profile, email: next.profile.email ?? authEmail ?? undefined })
     },
-    []
+    [authUserId, authEmail]
   )
 
-  const updateProfile = useCallback((patch: Partial<UserProfile>) => {
-    setOnboarding((prev) => {
-      if (!prev) return prev
-      const next = { ...prev, profile: { ...prev.profile, ...patch } }
-      writeOnboarding(next)
-      return next
-    })
-  }, [])
+  const updateProfile = useCallback(
+    (patch: Partial<UserProfile>) => {
+      setOnboarding((prev) => {
+        if (!prev) return prev
+        const next = { ...prev, profile: { ...prev.profile, ...patch } }
+        writeOnboarding(next)
+        void upsertSupabaseProfile({ ...next.profile, email: next.profile.email ?? authEmail ?? undefined })
+        return next
+      })
+    },
+    [authEmail]
+  )
 
   const updateRole = useCallback((role: UserRole) => {
     setOnboarding((prev) => {
@@ -113,16 +144,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const resetOnboarding = useCallback(() => {
+  const resetOnboarding = useCallback(async () => {
+    if (supabaseAuth) await signOutSupabase()
+    clearOnboardingStorage()
+    setOnboarding(null)
+  }, [supabaseAuth])
+
+  const signOut = useCallback(async () => {
+    await signOutSupabase()
     clearOnboardingStorage()
     setOnboarding(null)
   }, [])
 
   const value = useMemo<AuthContextValue>(() => {
     const role = onboarding?.role ?? null
-    const permissions = role
-      ? getPermissions(role)
-      : getPermissions('ActiveMember')
+    const permissions = role ? getPermissions(role) : getPermissions('ActiveMember')
+    const userId = authUserId ?? onboarding?.userId ?? null
 
     return {
       onboarding,
@@ -130,14 +167,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile: onboarding?.profile ?? DEFAULT_PROFILE,
       role,
       memberId: onboarding?.memberId ?? null,
-      userId: onboarding?.userId ?? null,
+      userId,
       permissions,
+      requiresSupabaseAuth: supabaseAuth,
+      authEmail,
+      emailVerified: supabaseAuth ? isEmailVerified() : true,
+      authReady: !supabaseAuth || isSupabaseSessionReady(),
+      sendEmailOtp,
+      verifyEmailOtp,
+      signOut,
       completeOnboarding,
       updateProfile,
       updateRole,
       resetOnboarding,
     }
-  }, [onboarding, completeOnboarding, updateProfile, updateRole, resetOnboarding])
+  }, [
+    onboarding,
+    authUserId,
+    authEmail,
+    supabaseAuth,
+    completeOnboarding,
+    updateProfile,
+    updateRole,
+    resetOnboarding,
+    signOut,
+  ])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
@@ -152,15 +206,25 @@ export function useAuth(): AuthContextValue {
 export function usePermissions(): PermissionFlags {
   const { permissions, memberId, role } = useAuth()
   const features = useChapterFeaturesOptional()
+  const { positions } = useChapterPositions()
 
-  if (role === 'President' || !memberId || !features) return permissions
+  const boost =
+    memberId && role !== 'President'
+      ? positionPermissionBoost(memberId, positions)
+      : null
+
+  if (role === 'President') return permissions
+
+  if (!memberId || !features) {
+    return boost ? applyPositionBoost(permissions, boost) : permissions
+  }
 
   const { canMemberEdit, isFeatureEnabled } = features
 
   const or = (flag: boolean, capability: EditorCapabilityId, featureOk = true) =>
     flag || (featureOk && canMemberEdit(capability, memberId))
 
-  return {
+  const merged: PermissionFlags = {
     ...permissions,
     canPostAnnouncements: or(
       permissions.canPostAnnouncements,
@@ -211,8 +275,12 @@ export function usePermissions(): PermissionFlags {
       canMemberEdit('editCalendar', memberId) ||
       canMemberEdit('editHouse', memberId) ||
       canMemberEdit('editTables', memberId),
+    canEditEventPoints:
+      or(permissions.canEditEventPoints, 'editCalendar', isFeatureEnabled('calendar')),
     canAccessAdminSettings:
       permissions.canAccessAdminSettings || canMemberEdit('editChapterSetup', memberId),
     canManageInvites: or(permissions.canManageInvites, 'manageInvites'),
   }
+
+  return boost ? applyPositionBoost(merged, boost) : merged
 }

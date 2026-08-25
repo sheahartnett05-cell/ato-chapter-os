@@ -1,41 +1,24 @@
 import { useMemo, useState } from 'react'
-
 import { Link } from 'react-router-dom'
-
 import {
-
   CalendarDays,
-
   AlertTriangle,
-
   Settings,
-
   User,
-
   BookOpen,
-
   DollarSign,
-
   Megaphone,
-
   ExternalLink,
-
   ChevronRight,
-
   Pin,
-
   UsersRound,
 } from 'lucide-react'
-
 import { Logo } from '../components/layout/Logo'
-
 import { Modal } from '../components/ui/Modal'
-
-import { CURRENT_MEMBER_ID, getMember } from '../data/mockData'
-
-import { useCommunications } from '../context/CommunicationsContext'
+import { localTodayIso } from '../lib/liveAlerts'
 import { PollCard } from '../components/communications/PollCard'
 import { SignupCard } from '../components/communications/SignupCard'
+import { useCommunications } from '../context/CommunicationsContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import {
@@ -45,23 +28,15 @@ import {
   normalizeFormRsvp,
   type FormRsvpOption,
 } from '../lib/formRsvps'
-
 import { useAuth } from '../context/AuthContext'
-
 import { useMembers } from '../context/MembersContext'
-
 import { useChapter } from '../context/ChapterContext'
-
 import { useMemberGovernance } from '../context/GovernanceContext'
 import { MemberStudyHoursPanel } from '../components/study/MemberStudyHoursPanel'
-
 import { roleLabel } from '../types/permissions'
-
 import type { Event } from '../types'
 
 type RsvpChoice = FormRsvpOption
-
-const TODAY = '2025-08-23'
 
 function memberNameFrom(member: { firstName: string; lastName: string }) {
   return `${member.firstName} ${member.lastName}`.trim()
@@ -100,6 +75,7 @@ export default function MemberDashboard() {
   const { memberId, profile, role } = useAuth()
 
   const { getMemberById } = useMembers()
+  const TODAY = localTodayIso()
 
   const {
 
@@ -115,14 +91,14 @@ export default function MemberDashboard() {
   } = useChapterOps()
   const { getEventRsvps, updateMemberFormRsvp } = useChapterTables()
 
-  const member =
-
-    (memberId ? getMemberById(memberId) : undefined) ?? getMember(CURRENT_MEMBER_ID)!
-
-  const resolvedMemberId = member.id
+  const memberRecord = memberId ? getMemberById(memberId) : undefined
+  const member = memberRecord
+  const resolvedMemberId = member?.id ?? ''
+  const memberDisplayName = member
+    ? memberNameFrom(member)
+    : `${profile.firstName} ${profile.lastName}`.trim() || 'Member'
 
   const { myCases, myFines, myCommittees, submitAppeal, submitFineAppeal } =
-
     useMemberGovernance(resolvedMemberId)
 
   const memberRsvps = useMemo(() => {
@@ -142,14 +118,16 @@ export default function MemberDashboard() {
       setDeclineTarget(event)
       return
     }
-    updateMemberFormRsvp(event.id, resolvedMemberId, memberNameFrom(member), value)
+    updateMemberFormRsvp(event.id, resolvedMemberId, memberDisplayName, value)
   }
 
   const [declineTarget, setDeclineTarget] = useState<Event | null>(null)
 
   const [excuseReason, setExcuseReason] = useState('')
 
-  const duesBalance = memberDuesBalance(resolvedMemberId) || member.duesExpected - member.duesPaid
+  const duesBalance = member
+    ? memberDuesBalance(resolvedMemberId) || member.duesExpected - member.duesPaid
+    : 0
 
   const studyHoursLogged = getMemberVerifiedHours(resolvedMemberId)
   const studyHoursTarget = getMemberStudyHoursRequired(resolvedMemberId)
@@ -184,7 +162,7 @@ export default function MemberDashboard() {
 
         .sort((a, b) => a.time.localeCompare(b.time)),
 
-    [chapterEvents]
+    [chapterEvents, TODAY]
 
   )
 
@@ -200,7 +178,7 @@ export default function MemberDashboard() {
 
         .slice(0, 5),
 
-    [chapterEvents]
+    [chapterEvents, TODAY]
 
   )
 
@@ -215,7 +193,7 @@ export default function MemberDashboard() {
     updateMemberFormRsvp(
       declineTarget.id,
       resolvedMemberId,
-      memberNameFrom(member),
+      memberDisplayName,
       'No'
     )
 
@@ -225,9 +203,24 @@ export default function MemberDashboard() {
 
   }
 
-  const displayName = profile.firstName || member.firstName
+  const displayName = profile.firstName || member?.firstName || 'Member'
 
-  const initials = profile.avatar || `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
+  const initials =
+    profile.avatar ||
+    (member
+      ? `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
+      : '?')
+
+  if (!member) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-sm text-neutral-600">No member profile linked to this session.</p>
+        <Link to="/onboarding" className="btn-primary text-sm">
+          Complete onboarding
+        </Link>
+      </div>
+    )
+  }
 
   return (
 

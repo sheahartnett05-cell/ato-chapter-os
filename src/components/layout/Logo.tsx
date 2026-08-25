@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useChapter } from '../../context/ChapterContext'
-import { OrgLetterBadge } from '../ui/OrgLetterBadge'
+import { OrgCrest } from '../ui/OrgCrest'
+import { getNationalOrgById } from '../../data/nationalOrgs'
 
 /** Product mark — agora portal with columns + arch */
 export function AgoraMark({
@@ -72,13 +73,25 @@ export function Logo({
     : chapter.chapterDesignation || chapter.letters
 
   const badgeColor = onDark ? chapter.accentColor : chapter.primaryColor
+  const nationalOrg = isProduct ? null : getNationalOrgById(chapter.id)
 
   return (
     <Link to={to} className="group flex items-center gap-2.5">
       {isProduct ? (
         <AgoraMark size={36} onDark={onDark} />
+      ) : nationalOrg ? (
+        <OrgCrest org={nationalOrg} size={36} />
       ) : (
-        <OrgLetterBadge letters={chapter.letters} backgroundColor={badgeColor} size={36} />
+        <OrgCrest
+          org={{
+            id: chapter.id,
+            orgName: chapter.orgName,
+            letters: chapter.letters,
+            primaryColor: badgeColor,
+            accentColor: chapter.accentColor,
+          }}
+          size={36}
+        />
       )}
 
       {!compact && (

@@ -15,7 +15,6 @@ import {
   memberStatusVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { getMember } from '../data/mockData'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
@@ -36,7 +35,7 @@ export default function MemberProfile() {
   const { id } = useParams<{ id: string }>()
   const { getMemberById } = useMembers()
   const { events } = useChapterOps()
-  const member = getMemberById(id ?? '') ?? getMember(id ?? '')
+  const member = getMemberById(id ?? '')
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const { languagePack } = useChapter()
 

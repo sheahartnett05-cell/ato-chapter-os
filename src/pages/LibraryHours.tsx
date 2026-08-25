@@ -13,7 +13,6 @@ import {
   resetDayLabel,
   resetFrequencyLabel,
 } from '../lib/studyHours'
-import { getMember } from '../data/mockData'
 
 type AssignmentDraft = Record<string, { included: boolean; hours: number }>
 
@@ -53,7 +52,7 @@ export default function LibraryHoursPage() {
     getMemberVerifiedHours,
   } = useChapterOps()
   const permissions = usePermissions()
-  const { members } = useMembers()
+  const { members, getMemberById } = useMembers()
 
   const canManage = permissions.canManageStudyLocations || permissions.canVerifyStudyHours
 
@@ -472,7 +471,7 @@ export default function LibraryHoursPage() {
               <li className="py-4 text-sm text-neutral-500">No pending logs in this period.</li>
             ) : (
               pendingLogs.map((entry) => {
-                const member = getMember(entry.memberId)
+                const member = getMemberById(entry.memberId)
                 return (
                   <li key={entry.id} className="flex flex-wrap items-center gap-3 py-3.5">
                     <div className="min-w-0 flex-1">

@@ -1,0 +1,645 @@
+{
+  "alpha-delta-phi": {
+    "orgName": "Alpha Delta Phi",
+    "wikipediaTitle": "Alpha Delta Phi",
+    "file": "File:Alpha Delta Phi Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/e5/Alpha_Delta_Phi_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-delta-phi.png",
+    "score": 29
+  },
+  "alpha-epsilon-pi": {
+    "orgName": "Alpha Epsilon Pi",
+    "wikipediaTitle": "Alpha Epsilon Pi",
+    "file": "File:Alpha Epsilon Pi Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/e9/Alpha_Epsilon_Pi_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-epsilon-pi.png",
+    "score": 26
+  },
+  "alpha-kappa-lambda": {
+    "orgName": "Alpha Kappa Lambda",
+    "wikipediaTitle": "Alpha Kappa Lambda",
+    "file": "File:AKL-CoatofArms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/72/AKL-CoatofArms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-kappa-lambda.png",
+    "score": 4
+  },
+  "alpha-sigma-phi": {
+    "orgName": "Alpha Sigma Phi",
+    "wikipediaTitle": "Alpha Sigma Phi",
+    "file": "File:The Alpha Sigma Phi Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/8/8c/The_Alpha_Sigma_Phi_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-sigma-phi.png",
+    "score": 29
+  },
+  "chi-phi": {
+    "orgName": "Chi Phi",
+    "wikipediaTitle": "Chi Phi",
+    "file": "File:Chi Phi Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/6a/Chi_Phi_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/chi-phi.png",
+    "score": 26
+  },
+  "delta-chi": {
+    "orgName": "Delta Chi",
+    "wikipediaTitle": "Delta Chi",
+    "file": "File:Delta Chi fraternity Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/40/Delta_Chi_fraternity_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-chi.png",
+    "score": 22
+  },
+  "delta-kappa-epsilon": {
+    "orgName": "Delta Kappa Epsilon",
+    "wikipediaTitle": "Delta Kappa Epsilon",
+    "file": "File:Delta Kappa Epsilon Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Delta_Kappa_Epsilon_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-kappa-epsilon.png",
+    "score": 29
+  },
+  "delta-sigma-phi": {
+    "orgName": "Delta Sigma Phi",
+    "wikipediaTitle": "Delta Sigma Phi",
+    "file": "File:Delta Sigma Phi crest.gif",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/a/a2/Delta_Sigma_Phi_crest.gif?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-sigma-phi.png",
+    "score": 25
+  },
+  "delta-tau-delta": {
+    "orgName": "Delta Tau Delta",
+    "wikipediaTitle": "Delta Tau Delta",
+    "file": "File:Delta Tau Delta Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/2/2a/Delta_Tau_Delta_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-tau-delta.png",
+    "score": 29
+  },
+  "pi-kappa-alpha": {
+    "orgName": "Pi Kappa Alpha",
+    "wikipediaTitle": "Pi Kappa Alpha",
+    "file": "File:Pi Kappa Alpha Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/9/90/Pi_Kappa_Alpha_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/pi-kappa-alpha.png",
+    "score": 26
+  },
+  "pi-kappa-phi": {
+    "orgName": "Pi Kappa Phi",
+    "wikipediaTitle": "Pi Kappa Phi",
+    "file": "File:PKP-CoatofArms-RGB.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3d/PKP-CoatofArms-RGB.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/pi-kappa-phi.png",
+    "score": 4
+  },
+  "pi-lambda-phi": {
+    "orgName": "Pi Lambda Phi",
+    "wikipediaTitle": "Pi Lambda Phi",
+    "file": "File:Pi Lambda Phi Crest Vector 1.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Pi_Lambda_Phi_Crest_Vector_1.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/pi-lambda-phi.png",
+    "score": 22
+  },
+  "psi-upsilon": {
+    "orgName": "Psi Upsilon",
+    "wikipediaTitle": "Psi Upsilon",
+    "file": "File:Psi Upsilon official coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/7/76/Psi_Upsilon_official_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/psi-upsilon.png",
+    "score": 26
+  },
+  "zeta-beta-tau": {
+    "orgName": "Zeta Beta Tau",
+    "wikipediaTitle": "Zeta Beta Tau",
+    "file": "File:Zeta Beta Tau Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/d/d4/Zeta_Beta_Tau_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/zeta-beta-tau.png",
+    "score": 25
+  },
+  "alpha-chi-omega": {
+    "orgName": "Alpha Chi Omega",
+    "wikipediaTitle": "Alpha Chi Omega",
+    "file": "File:Alpha Chi Omega coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/fb/Alpha_Chi_Omega_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-chi-omega.png",
+    "score": 29
+  },
+  "alpha-delta-pi": {
+    "orgName": "Alpha Delta Pi",
+    "wikipediaTitle": "Alpha Delta Pi",
+    "file": "File:Alpha Delta Pi crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/34/Alpha_Delta_Pi_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-delta-pi.png",
+    "score": 22
+  },
+  "alpha-epsilon-phi": {
+    "orgName": "Alpha Epsilon Phi",
+    "wikipediaTitle": "Alpha Epsilon Phi",
+    "file": "File:Alpha Epsilon Phi crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/45/Alpha_Epsilon_Phi_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-epsilon-phi.png",
+    "score": 25
+  },
+  "alpha-gamma-delta": {
+    "orgName": "Alpha Gamma Delta",
+    "wikipediaTitle": "Alpha Gamma Delta",
+    "file": "File:Alpha Gamma Delta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/1/16/Alpha_Gamma_Delta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-gamma-delta.png",
+    "score": 25
+  },
+  "kappa-delta": {
+    "orgName": "Kappa Delta",
+    "wikipediaTitle": "Kappa Delta",
+    "file": "File:Kappa Delta coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/f9/Kappa_Delta_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-delta.png",
+    "score": 26
+  },
+  "kappa-kappa-gamma": {
+    "orgName": "Kappa Kappa Gamma",
+    "wikipediaTitle": "Kappa Kappa Gamma",
+    "file": "File:Kappa Kappa Gamma crest.gif",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/1/13/Kappa_Kappa_Gamma_crest.gif?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-kappa-gamma.png",
+    "score": 25
+  },
+  "phi-mu": {
+    "orgName": "Phi Mu",
+    "wikipediaTitle": "Phi Mu",
+    "file": "File:Phi Mu coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/ea/Phi_Mu_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-mu.png",
+    "score": 23
+  },
+  "phi-sigma-sigma": {
+    "orgName": "Phi Sigma Sigma",
+    "wikipediaTitle": "Phi Sigma Sigma",
+    "file": "File:Phi Sigma Sigma crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/5/52/Phi_Sigma_Sigma_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-sigma-sigma.png",
+    "score": 25
+  },
+  "pi-beta-phi": {
+    "orgName": "Pi Beta Phi",
+    "wikipediaTitle": "Pi Beta Phi",
+    "file": "File:Pi Beta Phi crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/62/Pi_Beta_Phi_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/pi-beta-phi.png",
+    "score": 22
+  },
+  "lambda-theta-alpha": {
+    "orgName": "Lambda Theta Alpha",
+    "wikipediaTitle": "Lambda Theta Alpha",
+    "file": "File:The crest of Lambda Theta Alpha sorority.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/fd/The_crest_of_Lambda_Theta_Alpha_sorority.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/lambda-theta-alpha.png",
+    "score": 25
+  },
+  "lambda-upsilon-lambda": {
+    "orgName": "Lambda Upsilon Lambda",
+    "wikipediaTitle": "Lambda Upsilon Lambda",
+    "file": "File:Lambda Upsilon Lambda crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Lambda_Upsilon_Lambda_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/lambda-upsilon-lambda.png",
+    "score": 25
+  },
+  "sigma-lambda-gamma": {
+    "orgName": "Sigma Lambda Gamma",
+    "wikipediaTitle": "Sigma Lambda Gamma",
+    "file": "File:Sigma-Lambda-Gamma crest.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/45/Sigma-Lambda-Gamma_crest.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-lambda-gamma.jpg",
+    "score": 25
+  },
+  "agora": {
+    "orgName": "Agora",
+    "local": "/crests/agora.svg",
+    "note": "Product mark (generated)"
+  },
+  "ato": {
+    "orgName": "Alpha Tau Omega",
+    "wikipediaTitle": "Alpha Tau Omega",
+    "file": "File:Alpha Tau Omega Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/5/50/Alpha_Tau_Omega_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/ato.png",
+    "score": 29
+  },
+  "beta-chi-theta": {
+    "orgName": "Beta Chi Theta",
+    "wikipediaTitle": "Beta Chi Theta",
+    "file": "File:Beta Chi Theta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/6c/Beta_Chi_Theta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/beta-chi-theta.png",
+    "score": 25
+  },
+  "beta-theta-pi": {
+    "orgName": "Beta Theta Pi",
+    "wikipediaTitle": "Beta Theta Pi",
+    "file": "File:Beta Theta Pi Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/68/Beta_Theta_Pi_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/beta-theta-pi.png",
+    "score": 26
+  },
+  "delta-upsilon": {
+    "orgName": "Delta Upsilon",
+    "wikipediaTitle": "Delta Upsilon",
+    "file": "File:Delta Upsilon Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/8/87/Delta_Upsilon_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-upsilon.png",
+    "score": 26
+  },
+  "kappa-alpha-order": {
+    "orgName": "Kappa Alpha Order",
+    "wikipediaTitle": "Kappa Alpha Order",
+    "file": "File:Kappa Alpha Order coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/2/27/Kappa_Alpha_Order_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-alpha-order.png",
+    "score": 29
+  },
+  "kappa-delta-rho": {
+    "orgName": "Kappa Delta Rho",
+    "wikipediaTitle": "Kappa Delta Rho",
+    "file": "File:Coat of Arms of Kappa Delta Rho.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/0/0c/Coat_of_Arms_of_Kappa_Delta_Rho.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-delta-rho.png",
+    "score": 29
+  },
+  "kappa-sigma": {
+    "orgName": "Kappa Sigma",
+    "wikipediaTitle": "Kappa Sigma",
+    "file": "File:Official Kappa Sigma Fraternity Crest 2.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/9/90/Official_Kappa_Sigma_Fraternity_Crest_2.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-sigma.png",
+    "score": 22
+  },
+  "lambda-chi-alpha": {
+    "orgName": "Lambda Chi Alpha",
+    "wikipediaTitle": "Lambda Chi Alpha",
+    "file": "File:Lambda Chi Alpha Coat of Arms.svg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/5/51/Lambda_Chi_Alpha_Coat_of_Arms.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/lambda-chi-alpha.png",
+    "score": 29
+  },
+  "phi-delta-theta": {
+    "orgName": "Phi Delta Theta",
+    "wikipediaTitle": "Phi Delta Theta",
+    "file": "File:Phi Delta Theta Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/0/0b/Phi_Delta_Theta_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-delta-theta.png",
+    "score": 25
+  },
+  "phi-gamma-delta": {
+    "orgName": "Phi Gamma Delta",
+    "wikipediaTitle": "Phi Gamma Delta",
+    "file": "File:Phi Gamma Delta Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/37/Phi_Gamma_Delta_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-gamma-delta.png",
+    "score": 25
+  },
+  "phi-kappa-psi": {
+    "orgName": "Phi Kappa Psi",
+    "wikipediaTitle": "Phi Kappa Psi",
+    "file": "File:Phi Kappa Psi coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/7/79/Phi_Kappa_Psi_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-kappa-psi.png",
+    "score": 29
+  },
+  "phi-kappa-sigma": {
+    "orgName": "Phi Kappa Sigma",
+    "wikipediaTitle": "Phi Kappa Sigma",
+    "file": "File:Phi Kappa Sigma coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/8/83/Phi_Kappa_Sigma_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-kappa-sigma.png",
+    "score": 29
+  },
+  "phi-kappa-tau": {
+    "orgName": "Phi Kappa Tau",
+    "wikipediaTitle": "Phi Kappa Tau",
+    "file": "File:Phi Kappa Tau Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/6c/Phi_Kappa_Tau_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-kappa-tau.png",
+    "score": 29
+  },
+  "phi-kappa-theta": {
+    "orgName": "Phi Kappa Theta",
+    "wikipediaTitle": "Phi Kappa Theta",
+    "file": "File:Phi Kappa Theta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/6/65/Phi_Kappa_Theta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-kappa-theta.png",
+    "score": 25
+  },
+  "phi-sigma-kappa": {
+    "orgName": "Phi Sigma Kappa",
+    "wikipediaTitle": "Phi Sigma Kappa",
+    "file": "File:Phi Sigma Kappa's Kinney Coat of Arms, late 1800s.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/0/09/Phi_Sigma_Kappa%27s_Kinney_Coat_of_Arms%2C_late_1800s.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-sigma-kappa.jpg",
+    "score": 29
+  },
+  "sigma-alpha-mu": {
+    "orgName": "Sigma Alpha Mu",
+    "wikipediaTitle": "Sigma Alpha Mu",
+    "file": "File:Sigma Alpha Mu Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/1/1e/Sigma_Alpha_Mu_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-alpha-mu.png",
+    "score": 26
+  },
+  "sigma-chi": {
+    "orgName": "Sigma Chi",
+    "wikipediaTitle": "Sigma Chi",
+    "file": "File:Sigma Chi Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/47/Sigma_Chi_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-chi.png",
+    "score": 22
+  },
+  "sigma-nu": {
+    "orgName": "Sigma Nu",
+    "wikipediaTitle": "Sigma Nu",
+    "file": "File:Sigmanucoatofarms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/2/28/Sigmanucoatofarms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-nu.png",
+    "score": 15
+  },
+  "sigma-pi": {
+    "orgName": "Sigma Pi",
+    "wikipediaTitle": "Sigma Pi",
+    "file": "File:Sigma Pi fraternity Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/3c/Sigma_Pi_fraternity_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-pi.png",
+    "score": 19
+  },
+  "sigma-tau-gamma": {
+    "orgName": "Sigma Tau Gamma",
+    "wikipediaTitle": "Sigma Tau Gamma",
+    "file": "File:Sigma Tau Gamma Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/2/2b/Sigma_Tau_Gamma_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-tau-gamma.png",
+    "score": 25
+  },
+  "tau-epsilon-phi": {
+    "orgName": "Tau Epsilon Phi",
+    "wikipediaTitle": "Tau Epsilon Phi",
+    "file": "File:Tau Epsilon Phi official crest current.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/34/Tau_Epsilon_Phi_official_crest_current.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/tau-epsilon-phi.png",
+    "score": 25
+  },
+  "tau-kappa-epsilon": {
+    "orgName": "Tau Kappa Epsilon",
+    "wikipediaTitle": "Tau Kappa Epsilon",
+    "file": "File:Tau Kappa Epsilon Coat of Arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/7/75/Tau_Kappa_Epsilon_Coat_of_Arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/tau-kappa-epsilon.png",
+    "score": 29
+  },
+  "theta-chi": {
+    "orgName": "Theta Chi",
+    "wikipediaTitle": "Theta Chi",
+    "file": "File:Theta Chi fraternity Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/5/58/Theta_Chi_fraternity_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/theta-chi.png",
+    "score": 22
+  },
+  "theta-xi": {
+    "orgName": "Theta Xi",
+    "wikipediaTitle": "Theta Xi",
+    "file": "File:Theta Xi coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/3e/Theta_Xi_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/theta-xi.png",
+    "score": 23
+  },
+  "triangle": {
+    "orgName": "Triangle",
+    "wikipediaTitle": "Triangle Fraternity",
+    "file": "File:Triangle Fraternity Crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/c/c1/Triangle_Fraternity_Crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/triangle.png",
+    "score": 19
+  },
+  "alpha-phi": {
+    "orgName": "Alpha Phi",
+    "wikipediaTitle": "Alpha Phi",
+    "file": "File:Alpha Phi coat of arms.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/46/Alpha_Phi_coat_of_arms.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-phi.png",
+    "score": 26
+  },
+  "alpha-sigma-alpha": {
+    "orgName": "Alpha Sigma Alpha",
+    "wikipediaTitle": "Alpha Sigma Alpha",
+    "file": "File:Alpha Sigma Alpha crest.gif",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/1/1a/Alpha_Sigma_Alpha_crest.gif?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-sigma-alpha.gif",
+    "score": 25
+  },
+  "alpha-sigma-tau": {
+    "orgName": "Alpha Sigma Tau",
+    "wikipediaTitle": "Alpha Sigma Tau",
+    "file": "File:Alpha Sigma Tau crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/e8/Alpha_Sigma_Tau_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-sigma-tau.png",
+    "score": 25
+  },
+  "alpha-xi-delta": {
+    "orgName": "Alpha Xi Delta",
+    "wikipediaTitle": "Alpha Xi Delta",
+    "file": "File:Alpha Xi Delta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/f8/Alpha_Xi_Delta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-xi-delta.png",
+    "score": 22
+  },
+  "chi-omega": {
+    "orgName": "Chi Omega",
+    "wikipediaTitle": "Chi Omega",
+    "file": "File:Chi Omega crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/eb/Chi_Omega_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/chi-omega.png",
+    "score": 22
+  },
+  "delta-delta-delta": {
+    "orgName": "Delta Delta Delta",
+    "wikipediaTitle": "Delta Delta Delta",
+    "file": "File:The crest of Delta Delta Delta.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/9/94/The_crest_of_Delta_Delta_Delta.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-delta-delta.jpg",
+    "score": 25
+  },
+  "delta-gamma": {
+    "orgName": "Delta Gamma",
+    "wikipediaTitle": "Delta Gamma",
+    "file": "File:Delta Gamma crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/1/1d/Delta_Gamma_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-gamma.png",
+    "score": 22
+  },
+  "delta-zeta": {
+    "orgName": "Delta Zeta",
+    "wikipediaTitle": "Delta Zeta",
+    "file": "File:Delta Zeta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/d/d3/Delta_Zeta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-zeta.png",
+    "score": 22
+  },
+  "kappa-alpha-theta": {
+    "orgName": "Kappa Alpha Theta",
+    "wikipediaTitle": "Kappa Alpha Theta",
+    "file": "File:Kappa Alpha Theta crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/b/b4/Kappa_Alpha_Theta_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-alpha-theta.png",
+    "score": 25
+  },
+  "sigma-kappa": {
+    "orgName": "Sigma Kappa",
+    "wikipediaTitle": "Sigma Kappa",
+    "file": "File:Sigma Kappa crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/b/bd/Sigma_Kappa_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-kappa.png",
+    "score": 22
+  },
+  "sigma-sigma-sigma": {
+    "orgName": "Sigma Sigma Sigma",
+    "wikipediaTitle": "Sigma Sigma Sigma",
+    "file": "File:Sigma Sigma Sigma crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/fd/Sigma_Sigma_Sigma_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-sigma-sigma.png",
+    "score": 25
+  },
+  "theta-phi-alpha": {
+    "orgName": "Theta Phi Alpha",
+    "wikipediaTitle": "Theta Phi Alpha",
+    "file": "File:Theta Phi Alpha crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/3/3e/Theta_Phi_Alpha_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/theta-phi-alpha.png",
+    "score": 25
+  },
+  "zeta-tau-alpha": {
+    "orgName": "Zeta Tau Alpha",
+    "wikipediaTitle": "Zeta Tau Alpha",
+    "file": "File:Zeta Tau Alpha crest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/0/0a/Zeta_Tau_Alpha_crest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/zeta-tau-alpha.png",
+    "score": 25
+  },
+  "aka": {
+    "orgName": "Alpha Kappa Alpha",
+    "wikipediaTitle": "Alpha Kappa Alpha",
+    "file": "File:Alpha Kappa Alpha shield.svg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/f/fd/Alpha_Kappa_Alpha_shield.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/aka.png",
+    "score": 21
+  },
+  "sigma-gamma-rho": {
+    "orgName": "Sigma Gamma Rho",
+    "wikipediaTitle": "Sigma Gamma Rho",
+    "file": "File:Sigma Gamma Rho Shield.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Sigma_Gamma_Rho_Shield.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-gamma-rho.png",
+    "score": 21
+  },
+  "kappa-delta-chi": {
+    "orgName": "Kappa Delta Chi",
+    "wikipediaTitle": "Kappa Delta Chi",
+    "file": "File:The Crest of Kappa Delta Chi sorority.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/d/d3/The_Crest_of_Kappa_Delta_Chi_sorority.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/kappa-delta-chi.png",
+    "score": 25
+  },
+  "alpha-gamma-rho": {
+    "orgName": "Alpha Gamma Rho",
+    "file": "File:Alpha Gamma Rho.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/0/04/Alpha_Gamma_Rho.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-gamma-rho.png"
+  },
+  "farmhouse": {
+    "orgName": "FarmHouse",
+    "file": "File:FarmHouse Coat of Arms.gif",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/b/bb/FarmHouse_Coat_of_Arms.gif?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/farmhouse.gif"
+  },
+  "sigma-alpha-epsilon": {
+    "orgName": "Sigma Alpha Epsilon",
+    "file": "File:The Norwich Guidon, Volume 5, Issue 20.pdf",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b6/The_Norwich_Guidon%2C_Volume_5%2C_Issue_20.pdf?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-alpha-epsilon.jpg"
+  },
+  "sigma-phi-epsilon": {
+    "orgName": "Sigma Phi Epsilon",
+    "file": "File:OU Sigma Phi Epsilon.JPG",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cb/OU_Sigma_Phi_Epsilon.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-phi-epsilon.jpg"
+  },
+  "theta-delta-chi": {
+    "orgName": "Theta Delta Chi",
+    "file": "File:Seventh catalogue of Theta delta chi; (IA seventhcatalogue00tomb).pdf",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/2/29/Seventh_catalogue_of_Theta_delta_chi%3B_%28IA_seventhcatalogue00tomb%29.pdf?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/theta-delta-chi.jpg"
+  },
+  "alpha-omicron-pi": {
+    "orgName": "Alpha Omicron Pi",
+    "file": "File:Michiganensian 1938.pdf",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Michiganensian_1938.pdf?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-omicron-pi.jpg"
+  },
+  "delta-phi-epsilon": {
+    "orgName": "Delta Phi Epsilon",
+    "file": "File:Oak leaves (electronic resource) (IA oakleaves2004bapt).pdf",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/Oak_leaves_%28electronic_resource%29_%28IA_oakleaves2004bapt%29.pdf?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-phi-epsilon.jpg"
+  },
+  "gamma-phi-beta": {
+    "orgName": "Gamma Phi Beta",
+    "file": "File:Gamma Phi Beta.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/b/bb/Gamma_Phi_Beta.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/gamma-phi-beta.png"
+  },
+  "gamma-sigma-sigma": {
+    "orgName": "Gamma Sigma Sigma",
+    "file": "File:The Edelweiss (1910) (IA edelweiss19101910pres).pdf",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/The_Edelweiss_%281910%29_%28IA_edelweiss19101910pres%29.pdf?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/gamma-sigma-sigma.jpg"
+  },
+  "sigma-delta-tau": {
+    "orgName": "Sigma Delta Tau",
+    "file": "File:Sigma Delta Tau.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/9/9e/Sigma_Delta_Tau.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-delta-tau.png"
+  },
+  "alpha-phi-alpha": {
+    "orgName": "Alpha Phi Alpha",
+    "file": "File:AlphaPhiAlphaCrest.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/e/e1/AlphaPhiAlphaCrest.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/alpha-phi-alpha.png"
+  },
+  "delta-sigma-theta": {
+    "orgName": "Delta Sigma Theta",
+    "file": "File:DeltaSigmaTheta.svg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/d/de/DeltaSigmaTheta.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/delta-sigma-theta.png"
+  },
+  "iota-phi-theta": {
+    "orgName": "Iota Phi Theta",
+    "file": "File:IotaPhiTheta.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/4/4c/IotaPhiTheta.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/iota-phi-theta.jpg"
+  },
+  "omega-psi-phi": {
+    "orgName": "Omega Psi Phi",
+    "file": "File:OmegaPsiPhiCrest.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/9/9f/OmegaPsiPhiCrest.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/omega-psi-phi.jpg"
+  },
+  "phi-beta-sigma": {
+    "orgName": "Phi Beta Sigma",
+    "file": "File:PhiBetaSigmaShield.png",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/a/a9/PhiBetaSigmaShield.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/phi-beta-sigma.png"
+  },
+  "zeta-phi-beta": {
+    "orgName": "Zeta Phi Beta",
+    "file": "File:Zeta Phi Beta DC.JPG",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/5/50/Zeta_Phi_Beta_DC.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/zeta-phi-beta.jpg"
+  },
+  "sigma-lambda-beta": {
+    "orgName": "Sigma Lambda Beta",
+    "file": "File:SigmaLambdaBetaShield.jpg",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/en/a/a2/SigmaLambdaBetaShield.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "local": "/crests/sigma-lambda-beta.jpg"
+  }
+}

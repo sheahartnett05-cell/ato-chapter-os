@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { STORAGE_KEYS } from '../lib/demoSeed'
+import { writeJson } from '../lib/persist'
 import {
   CHAPTER_FEATURES,
   EDITOR_CAPABILITIES,
@@ -36,11 +37,7 @@ function readState(): ChapterFeaturesState {
 }
 
 function writeState(state: ChapterFeaturesState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    /* ignore */
-  }
+  writeJson(STORAGE_KEY, state)
 }
 
 interface ChapterFeaturesContextValue {

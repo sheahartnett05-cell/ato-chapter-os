@@ -26,6 +26,7 @@ import { PIPELINE_STAGES } from '../data/mockData'
 import { useRecruitment } from '../context/RecruitmentContext'
 import type { PipelineStage, Prospect } from '../types'
 import { useChapter } from '../context/ChapterContext'
+import { useMembers } from '../context/MembersContext'
 
 function ProspectCard({ prospect, isOverlay }: { prospect: Prospect; isOverlay?: boolean }) {
   const navigate = useNavigate()
@@ -131,6 +132,7 @@ function PipelineColumn({
 export default function RecruitmentPipeline() {
   const { languagePack } = useChapter()
   const { prospects, updateProspectStatus, templates } = useRecruitment()
+  const { promoteProspectToMember } = useMembers()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
 
@@ -163,6 +165,21 @@ export default function RecruitmentPipeline() {
 
     if (newStage) {
       updateProspectStatus(prospectId, newStage)
+      if (newStage === 'Accepted' || newStage === 'New Member') {
+        const p = prospects.find((x) => x.id === prospectId)
+        if (p) {
+          promoteProspectToMember({
+            firstName: p.firstName,
+            lastName: p.lastName,
+            email: p.email,
+            phone: p.phone,
+            major: p.major,
+            graduationYear: p.graduationYear,
+            photoUrl: p.photoUrl,
+            avatar: p.avatar,
+          })
+        }
+      }
     }
   }
 

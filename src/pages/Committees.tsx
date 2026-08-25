@@ -7,7 +7,6 @@ import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
-import { getMember } from '../data/mockData'
 
 type Tab = 'groups' | 'chats'
 
@@ -16,8 +15,8 @@ export default function Committees() {
   const { committees, committeeChat, createCommittee, getCommittee } = useGovernance()
   const { memberId } = useAuth()
   const permissions = usePermissions()
-  const { members } = useMembers()
-  const resolvedMemberId = memberId ?? 'm1'
+  const { members, getMemberById } = useMembers()
+  const resolvedMemberId = memberId ?? members[0]?.id ?? ''
   const canManageAll = permissions.canAccessExecTools
 
   const [tab, setTab] = useState<Tab>('groups')
@@ -97,7 +96,7 @@ export default function Committees() {
   }
 
   const renderCard = (c: (typeof committees)[number]) => {
-    const chair = getMember(c.chairId)
+    const chair = getMemberById(c.chairId)
     const parent = c.parentId ? getCommittee(c.parentId) : undefined
     return (
       <Link
@@ -224,7 +223,7 @@ export default function Committees() {
               </p>
             ) : (
               chatThreads.map(({ committee, last }) => {
-                const author = last ? getMember(last.authorId) : undefined
+                const author = last ? getMemberById(last.authorId) : undefined
                 return (
                   <Link
                     key={committee.id}

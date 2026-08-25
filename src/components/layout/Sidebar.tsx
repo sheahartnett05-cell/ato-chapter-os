@@ -17,6 +17,7 @@ import {
   PieChart,
   Home,
   ScrollText,
+  DollarSign,
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { MemberAvatar } from '../ui/MemberAvatar'
@@ -54,6 +55,13 @@ const mainNav = [
     feature: 'budgets' as const,
   },
   { to: '/house', label: 'House', icon: Home, feature: 'house' as const },
+  {
+    to: '/dues',
+    label: 'Dues',
+    icon: DollarSign,
+    feature: 'dues' as const,
+    perm: 'canAccessTreasurerSettings' as const,
+  },
   { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
   { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
   {
@@ -171,7 +179,7 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-2 py-5">
         <div>
-          <SectionLabel>Main</SectionLabel>
+          <SectionLabel>{languagePack.memberPlural}</SectionLabel>
           <ul>
             {visibleMain.map((item) => (
               <li key={item.to}>
