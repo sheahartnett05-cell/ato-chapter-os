@@ -280,32 +280,37 @@ export default function Onboarding() {
       }
       inviteCodeId = redeemed.id
     }
-    const { memberId } = registerMember({
-      userId,
-      profile: { ...profile, avatar },
-      role,
-      inviteCodeId,
-      orgId: resolvedOrgId,
-      chapterDesignation: chapter,
-      university: school,
-      email: profile.email,
-    })
-    flushSync(() => {
-      setSelectedOrg(resolvedOrgId)
-      setChapterMeta({ chapterDesignation: chapter, university: school })
-      completeOnboarding({
+    try {
+      const { memberId } = registerMember({
+        userId,
         profile: { ...profile, avatar },
+        role,
+        inviteCodeId,
         orgId: resolvedOrgId,
         chapterDesignation: chapter,
         university: school,
-        role,
-        memberId,
-        userId,
-        inviteCodeId,
-        selfRegistered,
+        email: profile.email,
       })
-    })
-    navigate(home, { replace: true })
+      flushSync(() => {
+        setSelectedOrg(resolvedOrgId)
+        setChapterMeta({ chapterDesignation: chapter, university: school })
+        completeOnboarding({
+          profile: { ...profile, avatar },
+          orgId: resolvedOrgId,
+          chapterDesignation: chapter,
+          university: school,
+          role,
+          memberId,
+          userId,
+          inviteCodeId,
+          selfRegistered,
+        })
+      })
+      navigate(home, { replace: true })
+    } catch (e) {
+      setInviteError(e instanceof Error ? e.message : 'Could not create account')
+      setStep(0)
+    }
   }
   const goNext = () => {
     if (stepKey === 'Start') {

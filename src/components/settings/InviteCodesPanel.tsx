@@ -3,11 +3,15 @@ import { Copy, Plus } from 'lucide-react'
 import { useMembers } from '../../context/MembersContext'
 import { ONBOARDING_ROLES, roleLabel, type UserRole } from '../../types/permissions'
 
+function usageLabel(usedCount: number, maxUses: number | null) {
+  if (maxUses == null) return `${usedCount} joined · unlimited`
+  return `${usedCount}/${maxUses} used`
+}
+
 export function InviteCodesPanel() {
   const { inviteCodes, createInvite, toggleInvite } = useMembers()
   const [role, setRole] = useState<UserRole>('ActiveMember')
   const [label, setLabel] = useState('')
-  const [maxUses, setMaxUses] = useState(10)
   const [copied, setCopied] = useState<string | null>(null)
 
   const copyCode = async (code: string) => {
@@ -21,7 +25,8 @@ export function InviteCodesPanel() {
   }
 
   const handleCreate = () => {
-    const invite = createInvite(role, label.trim() || roleLabel(role), maxUses)
+    // Unlimited uses — uniqueness is one account per email
+    const invite = createInvite(role, label.trim() || roleLabel(role), null)
     setLabel('')
     copyCode(invite.code)
   }
@@ -63,18 +68,9 @@ export function InviteCodesPanel() {
               className="input-editorial mt-1"
             />
           </label>
-          <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              Max uses
-            </span>
-            <input
-              type="number"
-              min={1}
-              value={maxUses}
-              onChange={(e) => setMaxUses(Number(e.target.value))}
-              className="input-editorial mt-1 font-mono"
-            />
-          </label>
+          <p className="text-xs text-[var(--muted)]">
+            Codes are unlimited. Each email can only create one account.
+          </p>
           <button type="button" onClick={handleCreate} className="btn-primary">
             <Plus size={14} /> Create code
           </button>
@@ -91,7 +87,7 @@ export function InviteCodesPanel() {
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-sm font-semibold tracking-wide">{inv.code}</p>
                 <p className="text-xs text-[var(--muted)]">
-                  {inv.label} · {roleLabel(inv.role)} · {inv.usedCount}/{inv.maxUses} used
+                  {inv.label} · {roleLabel(inv.role)} · {usageLabel(inv.usedCount, inv.maxUses)}
                 </p>
               </div>
               <button

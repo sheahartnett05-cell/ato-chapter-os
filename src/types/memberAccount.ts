@@ -1,6 +1,6 @@
 import type { UserProfile, UserRole } from './permissions'
 
-/** Single-use or multi-use invite for chapter onboarding */
+/** Multi-use invite for chapter onboarding. `maxUses: null` = unlimited. */
 export interface InviteCode {
   id: string
   code: string
@@ -9,7 +9,8 @@ export interface InviteCode {
   role: UserRole
   createdBy: string
   createdAt: string
-  maxUses: number
+  /** Cap on redemptions; null means as many members as needed */
+  maxUses: number | null
   usedCount: number
   expiresAt?: string
   active: boolean

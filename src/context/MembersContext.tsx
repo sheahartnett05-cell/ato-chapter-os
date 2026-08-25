@@ -48,7 +48,7 @@ interface MembersContextValue {
   getAccountByMemberId: (memberId: string) => MemberAccount | undefined
   validateInvite: (code: string) => { valid: boolean; invite?: InviteCode; error?: string }
   redeemInvite: (code: string) => InviteCode | null
-  createInvite: (role: UserRole, label: string, maxUses?: number) => InviteCode
+  createInvite: (role: UserRole, label: string, maxUses?: number | null) => InviteCode
   toggleInvite: (id: string) => void
   registerMember: (input: {
     userId: string
@@ -103,9 +103,25 @@ function readInviteCodes(): InviteCode[] {
   const stored = readJson<InviteCode[] | null>(INVITES_KEY, null)
   const base = stored && Array.isArray(stored) ? stored : []
   // Always ensure system codes (esp. CHAPTER-FOUNDER) exist — even outside guest demo
-  const byCode = new Map(base.map((i) => [i.code.toUpperCase(), i]))
+  const byCode = new Map(
+    base.map((i) => [
+      i.code.toUpperCase(),
+      {
+        ...i,
+        // Legacy: missing maxUses → unlimited
+        maxUses: i.maxUses === undefined ? null : i.maxUses,
+      } as InviteCode,
+    ])
+  )
   for (const seed of SEED_INVITE_CODES) {
-    if (!byCode.has(seed.code.toUpperCase())) byCode.set(seed.code.toUpperCase(), seed)
+    const key = seed.code.toUpperCase()
+    const existing = byCode.get(key)
+    if (!existing) {
+      byCode.set(key, seed)
+    } else if (seed.maxUses === null && existing.maxUses != null && seed.code !== 'CHAPTER-FOUNDER') {
+      // Upgrade old capped member codes to unlimited
+      byCode.set(key, { ...existing, maxUses: null })
+    }
   }
   return [...byCode.values()]
 }
@@ -165,7 +181,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         (i) => i.code.toUpperCase() === normalized && i.active
       )
       if (!invite) return { valid: false, error: 'Invalid invite code' }
-      if (invite.usedCount >= invite.maxUses)
+      if (invite.maxUses != null && invite.usedCount >= invite.maxUses)
         return { valid: false, error: 'Invite code has no uses left' }
       if (invite.expiresAt && new Date(invite.expiresAt) < new Date())
         return { valid: false, error: 'Invite code expired' }
@@ -191,7 +207,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   )
 
   const createInvite = useCallback(
-    (role: UserRole, label: string, maxUses = 10) => {
+    (role: UserRole, label: string, maxUses: number | null = null) => {
       const invite: InviteCode = {
         id: uid('inv'),
         code: generateInviteCode(role, label, maxUses),
@@ -253,9 +269,11 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       const existing = email
         ? roster.find((m) => m.email.trim().toLowerCase() === email)
         : undefined
-      if (existing) {
-        const existingAcct = accounts.find((a) => a.memberId === existing.id)
-        if (existingAcct) return { memberId: existing.id, account: existingAcct }
+      const existingAcct = email
+        ? accounts.find((a) => (a.email ?? a.profile.email ?? '').trim().toLowerCase() === email)
+        : undefined
+      if (existing || existingAcct) {
+        throw new Error('An account with this email already exists. Use a different email.')
       }
       const memberId = uid('m')
       const isExec = !['ActiveMember', 'NewMember'].includes(input.role)

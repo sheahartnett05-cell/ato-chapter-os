@@ -1,7 +1,12 @@
 import type { InviteCode } from '../types/memberAccount'
 import type { UserRole } from '../types/permissions'
 
-function code(role: UserRole, value: string, label: string, maxUses: number): InviteCode {
+function code(
+  role: UserRole,
+  value: string,
+  label: string,
+  maxUses: number | null
+): InviteCode {
   return {
     id: `inv-${value.toLowerCase()}`,
     code: value,
@@ -15,17 +20,17 @@ function code(role: UserRole, value: string, label: string, maxUses: number): In
   }
 }
 
-/** Seed invite codes — org-agnostic; execs generate chapter-specific codes later */
+/** Seed invite codes — member codes are unlimited; one account per email enforces uniqueness */
 export const SEED_INVITE_CODES: InviteCode[] = [
   code('President', 'CHAPTER-FOUNDER', 'Founding President (one-time)', 1),
-  code('Treasurer', 'CHAPTER-TREASURER', 'Treasurer invite', 5),
-  code('ScholarshipChair', 'CHAPTER-SCHOLAR', 'Scholarship Chair invite', 3),
-  code('Chaplain', 'CHAPTER-CHAPLAIN', 'Chaplain invite', 3),
-  code('ActiveMember', 'CHAPTER-MEMBER', 'Active member invite', 50),
-  code('NewMember', 'CHAPTER-NEWMEMBER', 'New member invite', 30),
+  code('Treasurer', 'CHAPTER-TREASURER', 'Treasurer invite', null),
+  code('ScholarshipChair', 'CHAPTER-SCHOLAR', 'Scholarship Chair invite', null),
+  code('Chaplain', 'CHAPTER-CHAPLAIN', 'Chaplain invite', null),
+  code('ActiveMember', 'CHAPTER-MEMBER', 'Active member invite', null),
+  code('NewMember', 'CHAPTER-NEWMEMBER', 'New member invite', null),
 ]
 
-export function generateInviteCode(role: UserRole, _label: string, _maxUses = 10): string {
+export function generateInviteCode(role: UserRole, _label: string, _maxUses: number | null = null): string {
   const prefix = role
     .replace(/([A-Z])/g, '-$1')
     .replace(/^-/, '')
