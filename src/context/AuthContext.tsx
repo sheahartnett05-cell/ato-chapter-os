@@ -145,7 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const resetOnboarding = useCallback(async () => {
-    if (supabaseAuth) await signOutSupabase()
+    if (supabaseAuth) {
+      try {
+        const { wipeLocalAndLeaveCloudChapters } = await import('../lib/chapterCloud')
+        await wipeLocalAndLeaveCloudChapters()
+      } catch {
+        /* ignore */
+      }
+      await signOutSupabase()
+    }
     clearOnboardingStorage()
     setOnboarding(null)
   }, [supabaseAuth])

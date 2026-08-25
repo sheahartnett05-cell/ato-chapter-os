@@ -18,8 +18,18 @@
    - `20260324000000_agora_initial.sql`
    - `20260325000000_chapter_kv.sql`
    - `20260326000000_auth_membership_rls.sql`
+   - `20260327000000_wipe_test_chapters_fix_claim.sql` (wipes simulation chapters + claim RPC)
 3. Supabase Dashboard → **Authentication → Providers → Email**: enable Email, enable OTP/magic link
 4. Restart `npm run dev`
+
+## Wipe test chapters
+If onboarding fails with a duplicate chapter / cloud link error after simulations:
+
+1. Run `supabase/migrations/20260327000000_wipe_test_chapters_fix_claim.sql` in the SQL Editor (deletes simulation/test chapter rows).
+2. In the app: **Settings → Wipe test chapter data** (or the error screen **Wipe chapter & restart**).
+3. Complete onboarding again.
+
+The claim RPC (`claim_or_create_chapter`) prevents the unique-index race where founders could not see an existing chapter under RLS and then failed on insert.
 
 ## User flow
 1. Onboarding → Profile → enter email → **Send login code** → verify 6-digit OTP

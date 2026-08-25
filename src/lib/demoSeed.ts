@@ -130,6 +130,8 @@ const EXTRA_SESSION_KEYS = [
   'chapter-os-selected-org',
   'chapter-os-budgets',
   'chapter-os-user-id',
+  'chapter-os-supabase-chapter-id',
+  'chapter-os-session-backup',
 ] as const
 
 /** Snapshot real chapter data before guest preview wipes storage. */

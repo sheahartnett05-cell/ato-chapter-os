@@ -208,7 +208,34 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      claim_or_create_chapter: {
+        Args: {
+          p_org_id: string
+          p_designation: string
+          p_university: string
+          p_org_name?: string | null
+          p_nickname?: string | null
+          p_letters?: string | null
+          p_semester?: string | null
+          p_primary_color?: string | null
+          p_secondary_color?: string | null
+          p_accent_color?: string | null
+          p_app_member_id?: string | null
+          p_role?: string | null
+          p_is_founder?: boolean | null
+        }
+        Returns: string
+      }
+      leave_all_chapters: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
+      is_chapter_member: {
+        Args: { p_chapter_id: string }
+        Returns: boolean
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

@@ -305,11 +305,31 @@ function AdminPanel() {
   const navigate = useNavigate()
   const { resetOnboarding } = useAuth()
   const { chapter } = useChapter()
+  const [wiping, setWiping] = useState(false)
 
   const rerunOnboarding = () => {
     resetOnboarding()
     // Full reload so MembersContext chapterLock / invites reset with storage
     window.location.assign('/onboarding')
+  }
+
+  const wipeEverything = async () => {
+    if (
+      !window.confirm(
+        'Wipe this browser’s chapter data and leave cloud test memberships? You will start onboarding again.'
+      )
+    ) {
+      return
+    }
+    setWiping(true)
+    try {
+      const { wipeLocalAndLeaveCloudChapters } = await import('../lib/chapterCloud')
+      await wipeLocalAndLeaveCloudChapters()
+      resetOnboarding()
+      window.location.assign('/onboarding')
+    } finally {
+      setWiping(false)
+    }
   }
 
   return (
@@ -340,13 +360,23 @@ function AdminPanel() {
 
       <div>
         <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Onboarding</p>
-        <button
-          type="button"
-          onClick={rerunOnboarding}
-          className="theme-pill-muted rounded-sm px-4 py-2 text-xs font-semibold"
-        >
-          Re-run setup wizard
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={rerunOnboarding}
+            className="theme-pill-muted rounded-sm px-4 py-2 text-xs font-semibold"
+          >
+            Re-run setup wizard
+          </button>
+          <button
+            type="button"
+            disabled={wiping}
+            onClick={() => void wipeEverything()}
+            className="rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800"
+          >
+            {wiping ? 'Wiping…' : 'Wipe test chapter data'}
+          </button>
+        </div>
       </div>
 
       <div>

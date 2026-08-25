@@ -143,11 +143,51 @@ async function createChapterRow(
     .select('id')
     .single()
 
-  if (error || !data?.id) {
-    console.warn('[agora cloud] create chapter failed', error?.message)
+  if (error) {
+    // Unique org+campus+designation — re-find (may be visible via founded_by policy)
+    const existing = await findChapterByIdentity(orgId, designation, university)
+    if (existing) return existing
+    console.warn('[agora cloud] create chapter failed', error.message)
     return null
   }
-  return data.id
+  return data?.id ?? null
+}
+
+/** Prefer RPC that claims/creates under security definer (avoids RLS + unique races). */
+async function claimOrCreateChapterRpc(input: {
+  orgId: string
+  designation: string
+  university: string
+  appMemberId?: string
+  role?: UserRole
+  isFounder?: boolean
+}): Promise<string | null> {
+  const sb = getSupabase()
+  if (!sb) return null
+  const org = getNationalOrgById(input.orgId)
+  const meta = readMeta()
+
+  const { data, error } = await sb.rpc('claim_or_create_chapter', {
+    p_org_id: input.orgId,
+    p_designation: input.designation,
+    p_university: input.university,
+    p_org_name: org?.orgName ?? input.orgId,
+    p_nickname: org?.nickname ?? null,
+    p_letters: org?.letters ?? null,
+    p_semester: meta.semester ?? '',
+    p_primary_color: org?.primaryColor ?? null,
+    p_secondary_color: org?.secondaryColor ?? null,
+    p_accent_color: org?.accentColor ?? null,
+    p_app_member_id: input.appMemberId ?? null,
+    p_role: input.role ?? 'President',
+    p_is_founder: input.isFounder ?? true,
+  })
+
+  if (error) {
+    console.warn('[agora cloud] claim_or_create_chapter failed', error.message)
+    return null
+  }
+  return typeof data === 'string' ? data : null
 }
 
 /**
@@ -166,6 +206,14 @@ export async function ensureCloudChapter(options?: {
   const membershipChapter = await fetchUserChapterId()
   if (membershipChapter) {
     setCachedCloudChapterId(membershipChapter)
+    if (options?.appMemberId && options.role) {
+      await linkChapterMembership({
+        chapterId: membershipChapter,
+        appMemberId: options.appMemberId,
+        role: options.role,
+        isFounder: options.isFounder,
+      })
+    }
     return membershipChapter
   }
 
@@ -188,6 +236,21 @@ export async function ensureCloudChapter(options?: {
 
   const { orgId, designation, university } = chapterIdentity()
   if (!orgId) return null
+
+  if (options?.allowCreate && designation && university) {
+    const claimed = await claimOrCreateChapterRpc({
+      orgId,
+      designation,
+      university,
+      appMemberId: options.appMemberId,
+      role: options.role,
+      isFounder: options.isFounder,
+    })
+    if (claimed) {
+      setCachedCloudChapterId(claimed)
+      return claimed
+    }
+  }
 
   let chapterId = await findChapterByIdentity(orgId, designation, university)
 
@@ -231,6 +294,30 @@ export async function bootstrapChapterCloud(input: {
   }
   await pushLocalChapterToCloud()
   return { ok: true }
+}
+
+/** Leave cloud memberships + clear local chapter data (dev / recovery). */
+export async function wipeLocalAndLeaveCloudChapters(): Promise<void> {
+  const sb = getSupabase()
+  if (sb && getSupabaseUser()) {
+    const { error } = await sb.rpc('leave_all_chapters')
+    if (error) console.warn('[agora cloud] leave_all_chapters', error.message)
+  }
+  setCachedCloudChapterId(null)
+  try {
+    const keys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && (k.startsWith('chapter-os-') || k.startsWith('sb-'))) keys.push(k)
+    }
+    for (const k of keys) {
+      // Keep supabase auth session so user can re-onboard without re-OTP if desired
+      if (k.startsWith('sb-')) continue
+      localStorage.removeItem(k)
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function queueChapterKvWrite(key: string, value: unknown) {
