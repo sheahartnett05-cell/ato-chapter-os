@@ -20,17 +20,16 @@ function code(
 }
 
 /**
- * Seed codes only:
- * - CHAPTER-FOUNDER — one-time founding president
- * - CHAPTER-MEMBER — general join (president assigns roles later)
+ * Only the founder bootstrap code is seeded.
+ * Each chapter gets its own primary join code when the founding president creates it.
  */
 export const SEED_INVITE_CODES: InviteCode[] = [
   code('CHAPTER-FOUNDER', 'Founding President (one-time)', 1, 'President'),
-  code('CHAPTER-MEMBER', 'Chapter join code', null, 'ActiveMember'),
 ]
 
-/** Legacy role-specific seeds — deactivated on read so they stop acting as loopholes */
+/** Legacy shared/role seeds — deactivated on read */
 export const LEGACY_ROLE_INVITE_CODES = [
+  'CHAPTER-MEMBER',
   'CHAPTER-TREASURER',
   'CHAPTER-SCHOLAR',
   'CHAPTER-CHAPLAIN',

@@ -14,6 +14,8 @@ export interface InviteCode {
   usedCount: number
   expiresAt?: string
   active: boolean
+  /** Auto-created when the founding president locks the chapter */
+  isPrimary?: boolean
 }
 
 /** Auth user linked to chapter roster */
@@ -34,4 +36,6 @@ export interface ChapterLock {
   university: string
   lockedAt: string
   lockedByUserId: string
+  /** Invite code id issued at founding for members to join */
+  primaryJoinCodeId?: string
 }

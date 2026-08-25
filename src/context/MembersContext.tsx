@@ -50,6 +50,10 @@ interface MembersContextValue {
   redeemInvite: (code: string) => InviteCode | null
   /** Create a general join code (ActiveMember). President assigns roles later. */
   createInvite: (label?: string) => InviteCode
+  /** Chapter's main join code (created at founding). */
+  primaryJoinCode: InviteCode | null
+  /** Ensure a primary join code exists for a locked chapter (backfill). */
+  ensurePrimaryJoinCode: () => InviteCode | null
   toggleInvite: (id: string) => void
   registerMember: (input: {
     userId: string
@@ -121,18 +125,7 @@ function readInviteCodes(): InviteCode[] {
 
   for (const seed of SEED_INVITE_CODES) {
     const key = seed.code.toUpperCase()
-    const existing = byCode.get(key)
-    if (!existing) {
-      byCode.set(key, seed)
-    } else if (seed.code === 'CHAPTER-MEMBER') {
-      byCode.set(key, {
-        ...existing,
-        role: 'ActiveMember',
-        maxUses: null,
-        active: existing.active,
-        label: existing.label || seed.label,
-      })
-    }
+    if (!byCode.has(key)) byCode.set(key, seed)
   }
 
   return [...byCode.values()]
@@ -237,6 +230,38 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     [inviteCodes, persistInvites]
   )
 
+  const primaryJoinCode = useMemo(() => {
+    if (chapterLock?.primaryJoinCodeId) {
+      const byId = inviteCodes.find((i) => i.id === chapterLock.primaryJoinCodeId && i.active)
+      if (byId) return byId
+    }
+    return inviteCodes.find((i) => i.isPrimary && i.active) ?? null
+  }, [chapterLock, inviteCodes])
+
+  const ensurePrimaryJoinCode = useCallback(() => {
+    if (!chapterLock) return null
+    if (primaryJoinCode) return primaryJoinCode
+
+    const invite: InviteCode = {
+      id: uid('inv'),
+      code: generateJoinCode(),
+      label: `${chapterLock.chapterDesignation || 'Chapter'} join code`,
+      role: 'ActiveMember',
+      createdBy: 'system',
+      createdAt: new Date().toISOString(),
+      maxUses: null,
+      usedCount: 0,
+      active: true,
+      isPrimary: true,
+    }
+    persistInvites([invite, ...inviteCodes.filter((i) => !i.isPrimary)])
+    const nextLock: ChapterLock = { ...chapterLock, primaryJoinCodeId: invite.id }
+    setChapterLock(nextLock)
+    writeJson(CHAPTER_LOCK_KEY, nextLock)
+    void pushLocalChapterToCloud()
+    return invite
+  }, [chapterLock, primaryJoinCode, inviteCodes, persistInvites])
+
   const toggleInvite = useCallback(
     (id: string) => {
       persistInvites(
@@ -330,12 +355,34 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       persistRoster([...roster, newMember])
       persistAccounts([...accounts, account])
 
-      if (input.role === 'President' && !chapterLock) {
+      const founding = input.role === 'President' && !chapterLock
+      if (founding) {
+        const joinInvite: InviteCode = {
+          id: uid('inv'),
+          code: generateJoinCode(),
+          label: `${input.chapterDesignation || 'Chapter'} join code`,
+          role: 'ActiveMember',
+          createdBy: input.userId,
+          createdAt: new Date().toISOString(),
+          maxUses: null,
+          usedCount: 0,
+          active: true,
+          isPrimary: true,
+        }
+        persistInvites([
+          joinInvite,
+          ...inviteCodes.map((i) =>
+            i.isPrimary || i.code.toUpperCase() === 'CHAPTER-MEMBER'
+              ? { ...i, active: false, isPrimary: false }
+              : i
+          ),
+        ])
         lockChapter(
           {
             orgId: input.orgId,
             chapterDesignation: input.chapterDesignation,
             university: input.university,
+            primaryJoinCodeId: joinInvite.id,
           },
           input.userId
         )
@@ -345,13 +392,22 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         void bootstrapChapterCloud({
           appMemberId: memberId,
           role: input.role,
-          isFounder: input.role === 'President' && !chapterLock,
+          isFounder: founding,
         })
       }
 
       return { memberId, account }
     },
-    [roster, accounts, chapterLock, lockChapter, persistRoster, persistAccounts]
+    [
+      roster,
+      accounts,
+      chapterLock,
+      inviteCodes,
+      lockChapter,
+      persistRoster,
+      persistAccounts,
+      persistInvites,
+    ]
   )
 
   const addMemberToRoster = useCallback(
@@ -556,6 +612,8 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       validateInvite,
       redeemInvite,
       createInvite,
+      primaryJoinCode,
+      ensurePrimaryJoinCode,
       toggleInvite,
       registerMember,
       addMemberToRoster,
@@ -578,6 +636,8 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       validateInvite,
       redeemInvite,
       createInvite,
+      primaryJoinCode,
+      ensurePrimaryJoinCode,
       toggleInvite,
       registerMember,
       addMemberToRoster,

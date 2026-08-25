@@ -423,18 +423,17 @@ export default function Onboarding() {
                           setInviteInput(e.target.value.toUpperCase())
                           setInviteError('')
                         }}
-                        placeholder="CHAPTER-MEMBER"
+                        placeholder="CHAPTER-JOIN-…"
                         className="input-editorial mt-1 font-mono uppercase tracking-wider"
                         autoFocus
                       />
                     </label>
                     {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
                     <p className="text-xs leading-relaxed text-[var(--muted)]">
-                      Use the chapter join code from your president (e.g.{' '}
-                      <span className="font-mono font-semibold text-[var(--ink)]">CHAPTER-MEMBER</span>
-                      ). Founding a new chapter? Use{' '}
+                      Ask your president for the chapter join code (created when the chapter was
+                      founded). Starting a new chapter? Use{' '}
                       <span className="font-mono font-semibold text-[var(--ink)]">CHAPTER-FOUNDER</span>
-                      . Officer roles are assigned after you join.
+                      — a unique join code is generated for members afterward.
                     </p>
                   </div>
                 )}
