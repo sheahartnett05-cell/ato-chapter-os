@@ -265,7 +265,13 @@ export default function Onboarding() {
     const chapter = chapterLock?.chapterDesignation ?? chapterDesignation.trim()
     const school = chapterLock?.university ?? university.trim()
     const selfRegistered = entryPath === 'create'
-    const role = validatedInvite?.role ?? createRole
+    // Join codes → ActiveMember; only founder invite → President; create path uses createRole
+    const role: UserRole =
+      entryPath === 'invite'
+        ? validatedInvite?.code.toUpperCase() === 'CHAPTER-FOUNDER'
+          ? 'President'
+          : 'ActiveMember'
+        : createRole
     const home = role === 'ActiveMember' || role === 'NewMember' ? '/my-dashboard' : '/home'
     const userId = getAuthUserId() ?? getOrCreateUserId()
     const avatar = initials
@@ -424,8 +430,11 @@ export default function Onboarding() {
                     </label>
                     {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
                     <p className="text-xs leading-relaxed text-[var(--muted)]">
-                      Founding a chapter? Use{' '}
+                      Use the chapter join code from your president (e.g.{' '}
+                      <span className="font-mono font-semibold text-[var(--ink)]">CHAPTER-MEMBER</span>
+                      ). Founding a new chapter? Use{' '}
                       <span className="font-mono font-semibold text-[var(--ink)]">CHAPTER-FOUNDER</span>
+                      . Officer roles are assigned after you join.
                     </p>
                   </div>
                 )}
@@ -498,7 +507,9 @@ export default function Onboarding() {
                   <h2 className="font-serif text-3xl tracking-tight">Your profile</h2>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
                     {validatedInvite
-                      ? `Joining as ${roleLabel(validatedInvite.role)}`
+                      ? validatedInvite.code.toUpperCase() === 'CHAPTER-FOUNDER'
+                        ? 'Founding as President'
+                        : 'Joining as member — president assigns roles later'
                       : entryPath === 'create'
                         ? `Creating profile · ${roleLabel(createRole)}`
                         : 'Identity for the chapter roster'}

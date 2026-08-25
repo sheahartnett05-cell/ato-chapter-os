@@ -1,15 +1,15 @@
 import type { UserProfile, UserRole } from './permissions'
 
-/** Multi-use invite for chapter onboarding. `maxUses: null` = unlimited. */
+/** Chapter join / founder invite. Join codes always onboard as ActiveMember. */
 export interface InviteCode {
   id: string
   code: string
   label: string
-  /** When set, role step is locked to this position */
+  /** Only CHAPTER-FOUNDER uses President; all join codes use ActiveMember */
   role: UserRole
   createdBy: string
   createdAt: string
-  /** Cap on redemptions; null means as many members as needed */
+  /** Cap on redemptions; null means unlimited */
   maxUses: number | null
   usedCount: number
   expiresAt?: string

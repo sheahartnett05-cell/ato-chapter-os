@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Copy, Plus } from 'lucide-react'
 import { useMembers } from '../../context/MembersContext'
-import { ONBOARDING_ROLES, roleLabel, type UserRole } from '../../types/permissions'
 
 function usageLabel(usedCount: number, maxUses: number | null) {
   if (maxUses == null) return `${usedCount} joined · unlimited`
@@ -10,7 +9,6 @@ function usageLabel(usedCount: number, maxUses: number | null) {
 
 export function InviteCodesPanel() {
   const { inviteCodes, createInvite, toggleInvite } = useMembers()
-  const [role, setRole] = useState<UserRole>('ActiveMember')
   const [label, setLabel] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
 
@@ -25,8 +23,7 @@ export function InviteCodesPanel() {
   }
 
   const handleCreate = () => {
-    // Unlimited uses — uniqueness is one account per email
-    const invite = createInvite(role, label.trim() || roleLabel(role), null)
+    const invite = createInvite(label.trim() || 'Chapter join code')
     setLabel('')
     copyCode(invite.code)
   }
@@ -38,25 +35,9 @@ export function InviteCodesPanel() {
     <div className="space-y-6">
       <div>
         <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-          Generate invite
+          Generate join code
         </p>
         <div className="space-y-3 border border-[var(--rule)] p-4">
-          <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              Role
-            </span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="input-editorial mt-1"
-            >
-              {ONBOARDING_ROLES.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="block">
             <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
               Label (optional)
@@ -64,15 +45,16 @@ export function InviteCodesPanel() {
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="Fall 2025 pledge class"
+              placeholder="Fall 2025 join link"
               className="input-editorial mt-1"
             />
           </label>
           <p className="text-xs text-[var(--muted)]">
-            Codes are unlimited. Each email can only create one account.
+            One general code for everyone. Members join as Active Member — assign officer roles in
+            Chapter Setup after they are in.
           </p>
           <button type="button" onClick={handleCreate} className="btn-primary">
-            <Plus size={14} /> Create code
+            <Plus size={14} /> Create join code
           </button>
         </div>
       </div>
@@ -87,7 +69,8 @@ export function InviteCodesPanel() {
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-sm font-semibold tracking-wide">{inv.code}</p>
                 <p className="text-xs text-[var(--muted)]">
-                  {inv.label} · {roleLabel(inv.role)} · {usageLabel(inv.usedCount, inv.maxUses)}
+                  {inv.label} · {usageLabel(inv.usedCount, inv.maxUses)}
+                  {inv.code === 'CHAPTER-FOUNDER' ? ' · founder only' : ''}
                 </p>
               </div>
               <button
@@ -123,7 +106,7 @@ export function InviteCodesPanel() {
               <li key={inv.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="font-mono text-sm">{inv.code}</p>
-                  <p className="text-xs text-[var(--muted)]">{roleLabel(inv.role)}</p>
+                  <p className="text-xs text-[var(--muted)]">{inv.label}</p>
                 </div>
                 <button
                   type="button"
@@ -139,7 +122,7 @@ export function InviteCodesPanel() {
       )}
 
       <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-        Demo codes: CHAPTER-FOUNDER · CHAPTER-MEMBER · CHAPTER-TREASURER
+        Starter: CHAPTER-FOUNDER (once) · CHAPTER-MEMBER (general join)
       </p>
     </div>
   )

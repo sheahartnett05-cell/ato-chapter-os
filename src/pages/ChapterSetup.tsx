@@ -477,11 +477,11 @@ export default function ChapterSetup() {
             <Link to="/standards/setup" className="font-semibold text-accent">
               Standards setup wizard
             </Link>
-            . Generate role invites in{' '}
+            . Share a general join code in{' '}
             <Link to="/settings" className="font-semibold text-accent">
               Settings → Invites
             </Link>
-            .
+            , then assign officer roles here.
           </p>
         </Section>
       </PageShell>

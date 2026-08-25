@@ -10,7 +10,7 @@ import { DEMO_MEMBERS as seedMembers } from '../data/mockData'
 import { allowDemoData } from '../lib/demoSeed'
 import { syncAllMemberDues } from '../lib/duesSync'
 import { syncMemberAttendancePct } from '../lib/attendanceSync'
-import { generateInviteCode, SEED_INVITE_CODES } from '../data/inviteData'
+import { generateJoinCode, LEGACY_ROLE_INVITE_CODES, SEED_INVITE_CODES } from '../data/inviteData'
 import { pushLocalChapterToCloud, bootstrapChapterCloud } from '../lib/chapterCloud'
 import { requiresSupabaseAuth } from '../lib/supabaseAuth'
 import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
@@ -48,7 +48,8 @@ interface MembersContextValue {
   getAccountByMemberId: (memberId: string) => MemberAccount | undefined
   validateInvite: (code: string) => { valid: boolean; invite?: InviteCode; error?: string }
   redeemInvite: (code: string) => InviteCode | null
-  createInvite: (role: UserRole, label: string, maxUses?: number | null) => InviteCode
+  /** Create a general join code (ActiveMember). President assigns roles later. */
+  createInvite: (label?: string) => InviteCode
   toggleInvite: (id: string) => void
   registerMember: (input: {
     userId: string
@@ -102,27 +103,38 @@ const MembersContext = createContext<MembersContextValue | null>(null)
 function readInviteCodes(): InviteCode[] {
   const stored = readJson<InviteCode[] | null>(INVITES_KEY, null)
   const base = stored && Array.isArray(stored) ? stored : []
-  // Always ensure system codes (esp. CHAPTER-FOUNDER) exist — even outside guest demo
-  const byCode = new Map(
-    base.map((i) => [
-      i.code.toUpperCase(),
-      {
-        ...i,
-        // Legacy: missing maxUses → unlimited
-        maxUses: i.maxUses === undefined ? null : i.maxUses,
-      } as InviteCode,
-    ])
-  )
+  const byCode = new Map<string, InviteCode>()
+
+  for (const i of base) {
+    const key = i.code.toUpperCase()
+    const isLegacy = (LEGACY_ROLE_INVITE_CODES as readonly string[]).includes(key)
+    const isFounder = key === 'CHAPTER-FOUNDER'
+    byCode.set(key, {
+      ...i,
+      maxUses: i.maxUses === undefined ? null : i.maxUses,
+      // General join: force ActiveMember except founder
+      role: isFounder ? 'President' : 'ActiveMember',
+      // Kill old role-specific seed loopholes
+      active: isLegacy ? false : i.active,
+    })
+  }
+
   for (const seed of SEED_INVITE_CODES) {
     const key = seed.code.toUpperCase()
     const existing = byCode.get(key)
     if (!existing) {
       byCode.set(key, seed)
-    } else if (seed.maxUses === null && existing.maxUses != null && seed.code !== 'CHAPTER-FOUNDER') {
-      // Upgrade old capped member codes to unlimited
-      byCode.set(key, { ...existing, maxUses: null })
+    } else if (seed.code === 'CHAPTER-MEMBER') {
+      byCode.set(key, {
+        ...existing,
+        role: 'ActiveMember',
+        maxUses: null,
+        active: existing.active,
+        label: existing.label || seed.label,
+      })
     }
   }
+
   return [...byCode.values()]
 }
 
@@ -207,15 +219,15 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   )
 
   const createInvite = useCallback(
-    (role: UserRole, label: string, maxUses: number | null = null) => {
+    (label = 'Chapter join code') => {
       const invite: InviteCode = {
         id: uid('inv'),
-        code: generateInviteCode(role, label, maxUses),
-        label,
-        role,
+        code: generateJoinCode(),
+        label: label.trim() || 'Chapter join code',
+        role: 'ActiveMember',
         createdBy: 'exec',
         createdAt: new Date().toISOString(),
-        maxUses,
+        maxUses: null,
         usedCount: 0,
         active: true,
       }
