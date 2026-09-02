@@ -14,7 +14,10 @@ const C = {
   white: '#ffffff',
 }
 
-function layout({ preheader, eyebrow, title, body, ctaLabel, ctaHref, token, footerNote }) {
+const PRODUCT_NAME = 'Agora'
+const TAGLINE = 'Greek org management platform'
+
+function layout({ preheader, title, body, ctaLabel, ctaHref, token, footerNote }) {
   const tokenBlock = token
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;"><tr><td align="center" style="background:${C.card};border:1px solid ${C.rule};border-radius:4px;padding:20px 16px;"><p style="margin:0 0 8px;font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:${C.muted};">Login code</p><p style="margin:0;font-family:'JetBrains Mono',Consolas,monospace;font-size:32px;font-weight:600;letter-spacing:0.28em;color:${C.ink};">${token}</p></td></tr></table>`
     : ''
@@ -39,15 +42,16 @@ function layout({ preheader, eyebrow, title, body, ctaLabel, ctaHref, token, foo
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.card};border:1px solid ${C.rule};border-radius:4px;overflow:hidden;">
 <tr><td style="height:3px;background:${C.accent};font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="background:${C.primary};padding:28px 32px 24px;">
-<p style="margin:0 0 6px;font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.55);">${eyebrow}</p>
-<h1 style="margin:0;font-family:Georgia,'Libre Baskerville','Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-0.02em;color:${C.white};">${title}</h1>
+<h1 style="margin:0;font-family:Georgia,'Libre Baskerville','Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-0.02em;color:${C.white};">${PRODUCT_NAME}</h1>
+<p style="margin:8px 0 0;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;color:rgba(255,255,255,0.72);">${TAGLINE}</p>
+<p style="margin:16px 0 0;font-family:Georgia,'Libre Baskerville','Times New Roman',serif;font-size:18px;line-height:1.3;font-weight:700;color:${C.white};">${title}</p>
 </td></tr>
 <tr><td style="padding:32px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 ${body}${tokenBlock}${ctaBlock}
 <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:${C.muted};">${footerNote ?? 'If you did not request this, you can safely ignore this email.'}</p>
 </td></tr>
 <tr><td style="padding:16px 32px 24px;border-top:1px solid ${C.rule};">
-<p style="margin:0;font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${C.muted};">Agora</p>
+<p style="margin:0;font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${C.muted};">${PRODUCT_NAME} · ${TAGLINE}</p>
 </td></tr>
 </table>
 </td></tr>
@@ -68,7 +72,7 @@ export function getAgoraAuthEmailTemplates() {
     paragraph(`This code was sent to <strong style="color:${C.ink};">{{ .Email }}</strong>.`)
 
   const confirmBody =
-    paragraph('Welcome to Agora.') +
+    paragraph(`Welcome to ${PRODUCT_NAME}. ${TAGLINE}.`) +
     paragraph('Confirm your email address to finish setting up your account.')
 
   const recoveryBody =
@@ -93,7 +97,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_magic_link: 'Your Agora sign-in code',
     mailer_templates_magic_link_content: layout({
       preheader: 'Your Agora sign-in code',
-      eyebrow: 'Sign in',
       title: 'Your sign-in code',
       body: magicLinkBody,
       token: '{{ .Token }}',
@@ -104,7 +107,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_confirmation: 'Confirm your Agora account',
     mailer_templates_confirmation_content: layout({
       preheader: 'Confirm your Agora account',
-      eyebrow: 'Welcome',
       title: 'Confirm your email',
       body: confirmBody,
       ctaLabel: 'Confirm email',
@@ -114,7 +116,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_recovery: 'Reset your Agora password',
     mailer_templates_recovery_content: layout({
       preheader: 'Reset your Agora password',
-      eyebrow: 'Security',
       title: 'Reset password',
       body: recoveryBody,
       ctaLabel: 'Reset password',
@@ -124,7 +125,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_invite: 'You are invited to Agora',
     mailer_templates_invite_content: layout({
       preheader: 'You are invited to Agora',
-      eyebrow: 'Invitation',
       title: 'You are invited',
       body: inviteBody,
       ctaLabel: 'Accept invitation',
@@ -134,7 +134,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_email_change: 'Confirm your new Agora email',
     mailer_templates_email_change_content: layout({
       preheader: 'Confirm your new email on Agora',
-      eyebrow: 'Account',
       title: 'Confirm new email',
       body: emailChangeBody,
       ctaLabel: 'Confirm new email',
@@ -144,7 +143,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_reauthentication: 'Your Agora verification code',
     mailer_templates_reauthentication_content: layout({
       preheader: 'Your Agora verification code',
-      eyebrow: 'Verify',
       title: 'Verification code',
       body: reauthBody,
       token: '{{ .Token }}',
@@ -153,7 +151,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_password_changed_notification: 'Your Agora password was changed',
     mailer_templates_password_changed_notification_content: layout({
       preheader: 'Your Agora password was changed',
-      eyebrow: 'Security alert',
       title: 'Password changed',
       body: securityBody('The password for your Agora account was recently changed.'),
     }),
@@ -161,7 +158,6 @@ export function getAgoraAuthEmailTemplates() {
     mailer_subjects_email_changed_notification: 'Your Agora email was changed',
     mailer_templates_email_changed_notification_content: layout({
       preheader: 'Your Agora email was changed',
-      eyebrow: 'Security alert',
       title: 'Email changed',
       body: securityBody(
         'Your account email was changed from {{ .OldEmail }} to {{ .Email }}.'

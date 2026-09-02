@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useChapter } from '../../context/ChapterContext'
 import { OrgCrest } from '../ui/OrgCrest'
 import { getNationalOrgById } from '../../data/nationalOrgs'
+import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../../lib/brandCopy'
 
 /** Product mark — agora portal with columns + arch */
 export function AgoraMark({
@@ -67,9 +68,9 @@ export function Logo({
   const { chapter } = useChapter()
   const isProduct = chapter.id === 'agora' || chapter.id === 'chapter-os'
 
-  const title = isProduct ? 'Agora' : chapter.nickname
+  const title = isProduct ? AGORA_PRODUCT_NAME : chapter.nickname
   const subtitle = isProduct
-    ? 'Chapter operations'
+    ? AGORA_TAGLINE
     : chapter.chapterDesignation || chapter.letters
 
   const badgeColor = onDark ? chapter.accentColor : chapter.primaryColor

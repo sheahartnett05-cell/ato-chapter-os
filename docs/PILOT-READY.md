@@ -34,7 +34,7 @@ For a real founding president (creates auth user + membership + KV sync):
 
 ## Optional before wider pilot
 
-- [ ] Verify a domain in Resend → update `RESEND_FROM_EMAIL` → `npm run configure-pilot`
+- [ ] **Customer emails** — verify `shopwildflowerboho.com` in Resend → see [`docs/CUSTOMER-EMAILS.md`](./CUSTOMER-EMAILS.md)
 - [ ] Revoke exposed API tokens (Supabase PAT, Resend key from chat)
 - [ ] Connect Vercel to GitHub for auto-deploy on push
 - [ ] Run manual cross-device test (phone + laptop) with invite link

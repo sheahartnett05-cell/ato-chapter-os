@@ -15,6 +15,7 @@ import {
 import { clearDemoData, seedGuestDemo, backupRealSession } from '../lib/demoSeed'
 import { contrastText } from '../lib/themeUtils'
 import { defaultHomePath } from '../lib/onboardingStorage'
+import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../lib/brandCopy'
 
 /**
  * Guest / collaborator preview — no invite code required.
@@ -122,10 +123,8 @@ export default function GuestLogin() {
           <div className="flex items-center gap-3">
             <AgoraMark size={44} onDark />
             <div>
-              <p className="font-serif text-lg tracking-tight">Agora</p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] opacity-65">
-                Preview
-              </p>
+              <p className="font-serif text-lg tracking-tight">{AGORA_PRODUCT_NAME}</p>
+              <p className="mt-0.5 text-sm opacity-75">{AGORA_TAGLINE}</p>
             </div>
           </div>
           <h1 className="mt-10 max-w-md font-serif text-5xl tracking-tight">
@@ -137,7 +136,7 @@ export default function GuestLogin() {
           </p>
         </div>
         <p className="relative z-10 font-mono text-[10px] uppercase tracking-wider opacity-55">
-          Built for every chapter · IFC · Panhellenic · NPHC · MGC
+          {AGORA_TAGLINE}
         </p>
       </aside>
 
@@ -145,10 +144,8 @@ export default function GuestLogin() {
         <div className="mb-8 flex items-center gap-3 lg:hidden">
           <AgoraMark size={40} />
           <div>
-            <p className="font-serif text-base text-[var(--ink)]">Agora</p>
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">
-              Guest login
-            </p>
+            <p className="font-serif text-base text-[var(--ink)]">{AGORA_PRODUCT_NAME}</p>
+            <p className="text-xs text-[var(--muted)]">{AGORA_TAGLINE}</p>
           </div>
         </div>
         <p className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)] lg:block">
