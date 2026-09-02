@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { ArrowRight, Eye, Shield, Smartphone } from 'lucide-react'
+import { BrandHeroPanel } from '../components/onboarding/BrandHeroPanel'
 import { AgoraMark } from '../components/layout/Logo'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
@@ -13,7 +14,6 @@ import {
   type GuestPreviewMode,
 } from '../lib/guestPreview'
 import { clearDemoData, seedGuestDemo, backupRealSession } from '../lib/demoSeed'
-import { contrastText } from '../lib/themeUtils'
 import { defaultHomePath } from '../lib/onboardingStorage'
 import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../lib/brandCopy'
 
@@ -103,42 +103,9 @@ export default function GuestLogin() {
     window.location.assign(preset.home)
   }
 
-  const primary = '#1a1a1a'
-  const accent = '#c4a35a'
-  const fg = contrastText(primary)
-
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--surface-tint)' }}>
-      <aside
-        className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 lg:flex"
-        style={{ backgroundColor: primary, color: fg }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `linear-gradient(135deg, ${accent}, transparent 50%)`,
-          }}
-        />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <AgoraMark size={44} onDark />
-            <div>
-              <p className="font-serif text-lg tracking-tight">{AGORA_PRODUCT_NAME}</p>
-              <p className="mt-0.5 text-sm opacity-75">{AGORA_TAGLINE}</p>
-            </div>
-          </div>
-          <h1 className="mt-10 max-w-md font-serif text-5xl tracking-tight">
-            Tour the product as a guest
-          </h1>
-          <p className="mt-4 max-w-sm text-sm opacity-75">
-            Collaborators and reviewers can explore without an invite code. Demo data stays in this
-            browser only.
-          </p>
-        </div>
-        <p className="relative z-10 font-mono text-[10px] uppercase tracking-wider opacity-55">
-          {AGORA_TAGLINE}
-        </p>
-      </aside>
+      <BrandHeroPanel variant="guest" org={null} />
 
       <main className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-14">
         <div className="mb-8 flex items-center gap-3 lg:hidden">
