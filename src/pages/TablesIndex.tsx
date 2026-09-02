@@ -8,6 +8,7 @@ import { useChapterTables } from '../context/ChapterTablesContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { templatesForKind } from '../data/tableFormTemplates'
 import type { FormKind } from '../types'
+import { localTodayIso } from '../lib/liveAlerts'
 
 export default function TablesIndex() {
   const navigate = useNavigate()
@@ -37,7 +38,7 @@ export default function TablesIndex() {
   const eventName = (id: string) => events.find((e) => e.id === id)?.name ?? 'Unknown event'
   const eventDate = (id: string) => events.find((e) => e.id === id)?.date ?? ''
 
-  const TODAY = '2025-08-23'
+  const TODAY = localTodayIso()
 
   const linkableEvents = useMemo(
     () =>

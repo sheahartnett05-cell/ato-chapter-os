@@ -4,6 +4,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase'
 import { getSupabaseUser } from './supabaseSession'
 
 export function requiresSupabaseAuth(): boolean {
+  if (import.meta.env.VITE_SMOKE_TEST === '1') return false
   return isSupabaseConfigured()
 }
 

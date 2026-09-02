@@ -202,17 +202,23 @@ export default function DuesPage() {
             <h2 className="font-serif text-xl tracking-tight">Charges</h2>
           </div>
           <ul className="list-editorial">
-            {duesCharges.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-3 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{c.label}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                    {c.semester} · Due {c.dueDate}
-                  </p>
-                </div>
-                <span className="metric text-sm">${c.amount}</span>
+            {duesCharges.length === 0 ? (
+              <li className="py-6 text-sm text-[var(--muted)]">
+                No charges yet. Use the form above to create your first semester charge.
               </li>
-            ))}
+            ) : (
+              duesCharges.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-3 py-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{c.label}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {c.semester} · Due {c.dueDate}
+                    </p>
+                  </div>
+                  <span className="metric text-sm">${c.amount}</span>
+                </li>
+              ))
+            )}
           </ul>
         </section>
 

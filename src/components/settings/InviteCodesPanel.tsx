@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Copy, Plus } from 'lucide-react'
+import { Copy, Link2, Plus } from 'lucide-react'
 import { useMembers } from '../../context/MembersContext'
+import { buildJoinLink } from '../../lib/joinLinks'
 
 function usageLabel(usedCount: number, maxUses: number | null) {
   if (maxUses == null) return `${usedCount} joined · unlimited`
@@ -23,20 +24,23 @@ export function InviteCodesPanel() {
     if (chapterLock) ensurePrimaryJoinCode()
   }, [chapterLock, ensurePrimaryJoinCode])
 
-  const copyCode = async (code: string) => {
+  const copyText = async (text: string, key: string) => {
     try {
-      await navigator.clipboard.writeText(code)
-      setCopied(code)
+      await navigator.clipboard.writeText(text)
+      setCopied(key)
       setTimeout(() => setCopied(null), 2000)
     } catch {
       /* clipboard unavailable */
     }
   }
 
+  const copyCode = (code: string) => copyText(code, code)
+  const copyLink = (code: string) => copyText(buildJoinLink(code), `link:${code}`)
+
   const handleCreate = () => {
     const invite = createInvite(label.trim() || 'Extra join code')
     setLabel('')
-    copyCode(invite.code)
+    copyLink(invite.code)
   }
 
   const active = inviteCodes.filter(
@@ -56,21 +60,34 @@ export function InviteCodesPanel() {
               <p className="font-mono text-xl font-semibold tracking-wider text-[var(--ink)]">
                 {primaryJoinCode.code}
               </p>
+              <p className="break-all font-mono text-xs text-[var(--muted)]">
+                {buildJoinLink(primaryJoinCode.code)}
+              </p>
               <p className="text-xs text-[var(--muted)]">
-                Created when you founded the chapter. Share this with members — they join as Active
-                Member; assign officer roles in Chapter Setup.
+                Share the link or code with members — they join as Active Member; assign officer
+                roles in Chapter Setup.
               </p>
               <p className="text-xs text-[var(--muted)]">
                 {usageLabel(primaryJoinCode.usedCount, primaryJoinCode.maxUses)}
               </p>
-              <button
-                type="button"
-                onClick={() => copyCode(primaryJoinCode.code)}
-                className="btn-primary"
-              >
-                <Copy size={14} />
-                {copied === primaryJoinCode.code ? 'Copied' : 'Copy join code'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyLink(primaryJoinCode.code)}
+                  className="btn-primary"
+                >
+                  <Link2 size={14} />
+                  {copied === `link:${primaryJoinCode.code}` ? 'Copied link' : 'Copy invite link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyCode(primaryJoinCode.code)}
+                  className="btn-ghost"
+                >
+                  <Copy size={14} />
+                  {copied === primaryJoinCode.code ? 'Copied code' : 'Copy code only'}
+                </button>
+              </div>
             </>
           ) : (
             <p className="text-sm text-[var(--muted)]">Generating join code…</p>
@@ -113,14 +130,25 @@ export function InviteCodesPanel() {
                   <p className="text-xs text-[var(--muted)]">
                     {inv.label} · {usageLabel(inv.usedCount, inv.maxUses)}
                   </p>
+                  <p className="mt-1 break-all font-mono text-[10px] text-[var(--muted)]">
+                    {buildJoinLink(inv.code)}
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => copyLink(inv.code)}
+                  className="btn-ghost text-xs"
+                >
+                  <Link2 size={12} />
+                  {copied === `link:${inv.code}` ? 'Copied' : 'Link'}
+                </button>
                 <button
                   type="button"
                   onClick={() => copyCode(inv.code)}
                   className="btn-ghost text-xs"
                 >
                   <Copy size={12} />
-                  {copied === inv.code ? 'Copied' : 'Copy'}
+                  {copied === inv.code ? 'Copied' : 'Code'}
                 </button>
                 <button
                   type="button"

@@ -9,6 +9,7 @@ import {
 import { DEMO_CHAPTER_TABLES } from '../data/chapterTablesData'
 import { getTableTemplate, TABLE_FORM_TEMPLATES } from '../data/tableFormTemplates'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import {
   findMemberColumnId,
   findRsvpColumnId,
@@ -26,24 +27,13 @@ function uid(prefix: string) {
 }
 
 function readTables(): ChapterTableForm[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as ChapterTableForm[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    }
-  } catch {
-    /* ignore */
-  }
+  const parsed = readJson<ChapterTableForm[] | null>(STORAGE_KEY, null)
+  if (parsed && Array.isArray(parsed) && parsed.length > 0) return parsed
   return allowDemoData() ? DEMO_CHAPTER_TABLES : []
 }
 
 function writeTables(tables: ChapterTableForm[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tables))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEY, tables)
 }
 
 function defaultCellValue(col: TableColumn): string | boolean | number {

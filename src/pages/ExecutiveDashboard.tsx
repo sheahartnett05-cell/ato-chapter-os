@@ -8,6 +8,7 @@ import { useChapterOps } from '../context/ChapterOpsContext'
 import { useMembers } from '../context/MembersContext'
 import { useRecruitment } from '../context/RecruitmentContext'
 import { buildLiveAlerts, localTodayIso } from '../lib/liveAlerts'
+import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 
 function priorityLabel(p: string) {
   return p === 'high' ? 'HIGH' : p === 'medium' ? 'MED' : 'LOW'
@@ -21,19 +22,33 @@ export default function ExecutiveDashboard() {
   const { chapter, languagePack } = useChapter()
   const { profile } = useAuth()
   const { posts } = useCommunications()
-  const { events, excuses } = useChapterOps()
+  const { events, excuses, studyLocations } = useChapterOps()
   const { members } = useMembers()
   const { prospects } = useRecruitment()
+  const { configured: standardsConfigured } = useStandardsModuleConfig()
   const activeMembers = members.filter((m) => m.status === 'Active' || m.status === 'New Member')
   const avgAttendance = activeMembers.length
     ? Math.round(activeMembers.reduce((s, m) => s + m.attendancePct, 0) / activeMembers.length)
     : 0
   const duesCollected = members.reduce((s, m) => s + m.duesPaid, 0)
-  const activeProspects = prospects.filter((p) => !['Accepted', 'New Member'].includes(p.status))
+  const activeProspects = prospects.filter(
+    (p) => !p.archived && !['Accepted', 'New Member'].includes(p.status)
+  )
   const pendingExcuses = excuses.filter((e) => e.status === 'pending').length
   const chapterPosts = posts.filter((p) => p.kind === 'announcement')
   const today = localTodayIso()
   const liveAlerts = buildLiveAlerts({ members, excuses, prospects })
+
+  const launchSteps = [
+    { label: 'Schedule first event', done: events.length > 0, to: '/calendar' },
+    { label: 'Add study location', done: studyLocations.length > 0, to: '/library-hours' },
+    { label: 'Post announcement', done: posts.length > 0, to: '/announcements' },
+    { label: 'Invite members', done: activeMembers.length > 1, to: '/settings' },
+    { label: 'Configure standards & fines', done: standardsConfigured, to: '/standards/setup' },
+  ]
+  const showLaunchChecklist = launchSteps.some((s) => !s.done)
+
+  const chapterTag = chapter.chapterDesignation.toUpperCase()
 
   const stats = [
     { label: 'MEMBERS', value: String(activeMembers.length) },
@@ -53,8 +68,6 @@ export default function ExecutiveDashboard() {
     .filter((e) => e.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
     .slice(0, 4)
-
-  const chapterTag = chapter.chapterDesignation.toUpperCase()
 
   return (
     <PageShell className="space-y-0 py-8">
@@ -83,6 +96,38 @@ export default function ExecutiveDashboard() {
         </div>
       </header>
 
+      {showLaunchChecklist && (
+        <section className="mb-8 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-5">
+          <h2 className="font-serif text-xl tracking-tight">Chapter launch checklist</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Get your chapter ready — complete these steps to unlock the full experience.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {launchSteps.map((step) => (
+              <li key={step.label}>
+                <Link
+                  to={step.to}
+                  className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm transition hover:bg-black/[0.03] ${
+                    step.done ? 'text-[var(--muted)] line-through' : 'text-[var(--ink)]'
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
+                      step.done
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : 'border-[var(--rule)]'
+                    }`}
+                  >
+                    {step.done ? '✓' : '○'}
+                  </span>
+                  {step.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="ledger-bar mb-10 grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="ledger-cell">
@@ -106,26 +151,35 @@ export default function ExecutiveDashboard() {
             </Link>
           </div>
           <ul className="list-editorial">
-            {chapterPosts.slice(0, 5).map((a) => (
-              <li key={a.id}>
-                <Link
-                  to="/announcements"
-                  className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
-                >
-                  <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                    {formatTime(a.createdAt)}
-                  </span>
-                  <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
-                    {a.pinned && (
-                      <span className="tag mr-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--primary)]">
-                        Pin
-                      </span>
-                    )}
-                    {a.title}
-                  </span>
+            {chapterPosts.length === 0 ? (
+              <li className="py-6 text-sm text-[var(--muted)]">
+                No announcements yet.{' '}
+                <Link to="/announcements" className="font-semibold text-[var(--primary)] hover:underline">
+                  Post the first one →
                 </Link>
               </li>
-            ))}
+            ) : (
+              chapterPosts.slice(0, 5).map((a) => (
+                <li key={a.id}>
+                  <Link
+                    to="/announcements"
+                    className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                  >
+                    <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {formatTime(a.createdAt)}
+                    </span>
+                    <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
+                      {a.pinned && (
+                        <span className="tag mr-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--primary)]">
+                          Pin
+                        </span>
+                      )}
+                      {a.title}
+                    </span>
+                  </Link>
+                </li>
+              ))
+            )}
           </ul>
 
           <div className="mt-8">
@@ -139,26 +193,35 @@ export default function ExecutiveDashboard() {
               </Link>
             </div>
             <ul className="list-editorial">
-              {upcomingEvents.map((event) => (
-                <li key={event.id}>
-                  <Link
-                    to={`/events/${event.id}`}
-                    className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
-                  >
-                    <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      {new Date(event.date + 'T12:00:00')
-                        .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        .toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1 text-[15px] text-[var(--ink)]">{event.name}</span>
-                    {event.required && (
-                      <span className="tag text-[9px] font-semibold uppercase tracking-wider text-red-700">
-                        Req
-                      </span>
-                    )}
+              {upcomingEvents.length === 0 ? (
+                <li className="py-6 text-sm text-[var(--muted)]">
+                  No upcoming events.{' '}
+                  <Link to="/calendar" className="font-semibold text-[var(--primary)] hover:underline">
+                    Create one on the calendar →
                   </Link>
                 </li>
-              ))}
+              ) : (
+                upcomingEvents.map((event) => (
+                  <li key={event.id}>
+                    <Link
+                      to={`/events/${event.id}`}
+                      className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                    >
+                      <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                        {new Date(event.date + 'T12:00:00')
+                          .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          .toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1 text-[15px] text-[var(--ink)]">{event.name}</span>
+                      {event.required && (
+                        <span className="tag text-[9px] font-semibold uppercase tracking-wider text-red-700">
+                          Req
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </section>

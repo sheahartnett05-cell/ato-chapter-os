@@ -22,6 +22,8 @@ type ChapterRow = {
   secondary_color: string | null
   accent_color: string | null
   founded_by: string | null
+  join_code: string | null
+  invite_codes: Json
   created_at: string
   updated_at: string
 }
@@ -51,6 +53,8 @@ export interface Database {
           secondary_color?: string | null
           accent_color?: string | null
           founded_by?: string | null
+          join_code?: string | null
+          invite_codes?: Json
           created_at?: string
           updated_at?: string
         }
@@ -229,6 +233,18 @@ export interface Database {
       }
       leave_all_chapters: {
         Args: Record<string, never>
+        Returns: undefined
+      }
+      resolve_join_code: {
+        Args: { p_code: string }
+        Returns: Json
+      }
+      sync_chapter_join_codes: {
+        Args: {
+          p_chapter_id: string
+          p_join_code: string | null
+          p_invite_codes?: Json
+        }
         Returns: undefined
       }
       is_chapter_member: {

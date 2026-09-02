@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Phone,
@@ -20,11 +20,22 @@ import { Modal } from '../components/ui/Modal'
 import { useRecruitment } from '../context/RecruitmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
+import { useMembers } from '../context/MembersContext'
 
 export default function PNMProfile() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { profile } = useAuth()
-  const { getProspect, getActivities, updateProspect, appendNote } = useRecruitment()
+  const {
+    getProspect,
+    getActivities,
+    updateProspect,
+    appendNote,
+    archiveProspect,
+    unarchiveProspect,
+    deleteProspect,
+  } = useRecruitment()
+  const { members } = useMembers()
   const prospect = id ? getProspect(id) : undefined
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [newNote, setNewNote] = useState('')
@@ -64,19 +75,61 @@ export default function PNMProfile() {
 
   const authorName = `${profile.firstName} ${profile.lastName}`.trim() || 'Officer'
 
+  const assignableMembers = useMemo(
+    () =>
+      members
+        .filter((m) => m.status === 'Active' || m.status === 'New Member')
+        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+    [members]
+  )
+
+  const handleDelete = () => {
+    if (!window.confirm(`Remove ${prospect.firstName} ${prospect.lastName} from the pipeline?`)) {
+      return
+    }
+    deleteProspect(prospect.id)
+    navigate('/recruitment/pipeline')
+  }
+
   return (
     <>
       <TopBar
         title={`${prospect.firstName} ${prospect.lastName}`}
         subtitle="Potential New Member Profile"
         actions={
-          <Link
-            to="/recruitment/pipeline"
-            className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-          >
-            <ArrowLeft size={16} />
-            Pipeline
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {prospect.archived ? (
+              <button
+                type="button"
+                onClick={() => unarchiveProspect(prospect.id)}
+                className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+              >
+                Unarchive
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => archiveProspect(prospect.id)}
+                className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+              >
+                Archive
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-sm border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+            >
+              Delete
+            </button>
+            <Link
+              to="/recruitment/pipeline"
+              className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+            >
+              <ArrowLeft size={16} />
+              Pipeline
+            </Link>
+          </div>
         }
       />
 
@@ -176,9 +229,26 @@ export default function PNMProfile() {
             <Card>
               <CardHeader title={`${languagePack.recruitmentTerm} Info`} />
               <dl className="space-y-3 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <dt className="text-neutral-500">Assigned {languagePack.memberSingular}</dt>
-                  <dd className="font-medium text-neutral-900">{prospect.assignedBrother || '—'}</dd>
+                  <dd className="font-medium text-neutral-900">
+                    <select
+                      value={prospect.assignedBrother ?? ''}
+                      onChange={(e) =>
+                        updateProspect(prospect.id, {
+                          assignedBrother: e.target.value || undefined,
+                        })
+                      }
+                      className="rounded-sm border border-black/5 bg-white px-2 py-1 text-sm"
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableMembers.map((m) => (
+                        <option key={m.id} value={`${m.firstName} ${m.lastName}`}>
+                          {m.firstName} {m.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-neutral-500">Source</dt>

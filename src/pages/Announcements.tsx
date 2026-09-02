@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, ClipboardList, FileText, Megaphone, Pin, Plus } from 'lucide-react'
+import { BarChart3, ClipboardList, FileText, Megaphone, Pin, Plus, Pencil, Trash2 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
@@ -34,13 +34,16 @@ export default function Announcements() {
   const { chapter, languagePack } = useChapter()
   const { profile, role, memberId } = useAuth()
   const permissions = usePermissions()
-  const { posts, templates, addPost, togglePin } = useCommunications()
+  const { posts, templates, addPost, updatePost, deletePost, togglePin } = useCommunications()
 
   const voterId = memberId ?? ''
   const canCreate = permissions.canPostAnnouncements
 
   const [tab, setTab] = useState<Tab>('feed')
   const [composerOpen, setComposerOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editBody, setEditBody] = useState('')
   const [composerKind, setComposerKind] = useState<ComposerKind>('announcement')
   const [selectedTemplate, setSelectedTemplate] = useState<AnnouncementTemplate | null>(null)
   const [title, setTitle] = useState('')
@@ -279,14 +282,40 @@ export default function Announcements() {
                           })}
                         </p>
                       </div>
-                      {canCreate && a.kind === 'announcement' && (
-                        <button
-                          type="button"
-                          onClick={() => togglePin(a.id)}
-                          className="btn-ghost shrink-0 text-[10px]"
-                        >
-                          {a.pinned ? 'Unpin' : 'Pin'}
-                        </button>
+                      {canCreate && (
+                        <div className="flex shrink-0 gap-1">
+                          {a.kind === 'announcement' && (
+                            <button
+                              type="button"
+                              onClick={() => togglePin(a.id)}
+                              className="btn-ghost text-[10px]"
+                            >
+                              {a.pinned ? 'Unpin' : 'Pin'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingId(a.id)
+                              setEditTitle(a.title)
+                              setEditBody(a.body)
+                            }}
+                            className="btn-ghost p-1.5"
+                            aria-label="Edit"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('Delete this post permanently?')) deletePost(a.id)
+                            }}
+                            className="btn-ghost p-1.5 text-red-600"
+                            aria-label="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -437,6 +466,39 @@ export default function Announcements() {
             className="btn-primary w-full disabled:opacity-40"
           >
             Publish
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={editingId != null}
+        onClose={() => setEditingId(null)}
+        title="Edit post"
+      >
+        <div className="space-y-3">
+          <input
+            className="input-editorial"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Title"
+          />
+          <textarea
+            className="input-editorial min-h-[100px] resize-none"
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            placeholder="Body"
+          />
+          <button
+            type="button"
+            className="btn-primary w-full"
+            onClick={() => {
+              if (editingId && editTitle.trim()) {
+                updatePost(editingId, { title: editTitle, body: editBody })
+                setEditingId(null)
+              }
+            }}
+          >
+            Save changes
           </button>
         </div>
       </Modal>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, KeyRound, Search, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
@@ -16,6 +16,7 @@ import type { InviteCode } from '../types/memberAccount'
 import { roleLabel, type UserProfile, type UserRole } from '../types/permissions'
 import { contrastText } from '../lib/themeUtils'
 import { isLikelyEmail } from '../lib/formUtils'
+import { parseJoinCodeFromSearch } from '../lib/joinLinks'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
 import { AgoraMark } from '../components/layout/Logo'
 import { OrgCrest } from '../components/ui/OrgCrest'
@@ -150,6 +151,11 @@ function OrgSelectCard({
 }
 export default function Onboarding() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const urlJoinCode = useMemo(
+    () => parseJoinCodeFromSearch(searchParams.toString()),
+    [searchParams]
+  )
   const {
     completeOnboarding,
     requiresSupabaseAuth: needsAuth,
@@ -159,16 +165,32 @@ export default function Onboarding() {
   } = useAuth()
   const { orgDirectory, setSelectedOrg, setChapterMeta } = useChapter()
   const { chapterLock, validateInvite, redeemInvite, registerMember } = useMembers()
+  const [resolvedCloudChapterId, setResolvedCloudChapterId] = useState<string | undefined>()
+  const [inviteChapterMeta, setInviteChapterMeta] = useState<{
+    orgId: string
+    chapterDesignation: string
+    university: string
+  } | null>(null)
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [finishBusy, setFinishBusy] = useState(false)
+  const chapterKnown = Boolean(chapterLock || inviteChapterMeta)
   const steps = useMemo(() => {
-    if (chapterLock) return ['Start', 'Profile', 'About'] as const
+    if (chapterKnown) return ['Start', 'Profile', 'About'] as const
     return ['Start', 'Profile', 'About', 'Organization', 'Chapter'] as const
-  }, [chapterLock])
+  }, [chapterKnown])
   const [step, setStep] = useState(0)
   const [entryPath, setEntryPath] = useState<'invite' | 'create' | null>(null)
   const [createRole, setCreateRole] = useState<UserRole>('President')
   const [inviteInput, setInviteInput] = useState('')
   const [inviteError, setInviteError] = useState('')
   const [validatedInvite, setValidatedInvite] = useState<InviteCode | null>(null)
+
+  useEffect(() => {
+    if (!urlJoinCode) return
+    setEntryPath('invite')
+    setInviteInput(urlJoinCode)
+    setInviteError('')
+  }, [urlJoinCode])
 
   useEffect(() => {
     if (chapterLock && createRole === 'President') setCreateRole('ActiveMember')
@@ -204,8 +226,15 @@ export default function Onboarding() {
       setChapterDesignation(chapterLock.chapterDesignation)
       setUniversity(chapterLock.university)
       setSelectedOrg(chapterLock.orgId)
+      return
     }
-  }, [chapterLock, setSelectedOrg])
+    if (inviteChapterMeta) {
+      setOrgId(inviteChapterMeta.orgId)
+      setChapterDesignation(inviteChapterMeta.chapterDesignation)
+      setUniversity(inviteChapterMeta.university)
+      setSelectedOrg(inviteChapterMeta.orgId)
+    }
+  }, [chapterLock, inviteChapterMeta, setSelectedOrg])
   const filteredOrgs = useMemo(() => {
     const q = orgQuery.trim().toLowerCase()
     return orgsInCategory(category).filter((o) => {
@@ -242,28 +271,49 @@ export default function Onboarding() {
     setOrgId(id)
     setSelectedOrg(id)
   }
-  const advanceFromStart = () => {
+  const advanceFromStart = async () => {
     if (entryPath === 'create') {
       setValidatedInvite(null)
+      setResolvedCloudChapterId(undefined)
+      setInviteChapterMeta(null)
       setInviteError('')
       setStep((s) => s + 1)
       return
     }
     if (entryPath !== 'invite') return
-    const result = validateInvite(inviteInput)
-    if (!result.valid || !result.invite) {
-      setInviteError(result.error ?? 'Invalid code')
-      return
-    }
+    setInviteBusy(true)
     setInviteError('')
-    setValidatedInvite(result.invite)
-    setStep((s) => s + 1)
+    try {
+      const result = await validateInvite(inviteInput)
+      if (!result.valid || !result.invite) {
+        setInviteError(result.error ?? 'Invalid code')
+        return
+      }
+      setValidatedInvite(result.invite)
+      setResolvedCloudChapterId(result.cloudChapterId)
+      if (result.orgId && result.chapterDesignation != null && result.university != null) {
+        setInviteChapterMeta({
+          orgId: result.orgId,
+          chapterDesignation: result.chapterDesignation,
+          university: result.university,
+        })
+      } else {
+        setInviteChapterMeta(null)
+      }
+      setStep((s) => s + 1)
+    } finally {
+      setInviteBusy(false)
+    }
   }
-  const finish = () => {
-    const resolvedOrgId = chapterLock?.orgId ?? orgId
+  const finish = async () => {
+    const resolvedOrgId = chapterLock?.orgId ?? inviteChapterMeta?.orgId ?? orgId
     if (!resolvedOrgId) return
-    const chapter = chapterLock?.chapterDesignation ?? chapterDesignation.trim()
-    const school = chapterLock?.university ?? university.trim()
+    const chapter =
+      chapterLock?.chapterDesignation ??
+      inviteChapterMeta?.chapterDesignation ??
+      chapterDesignation.trim()
+    const school =
+      chapterLock?.university ?? inviteChapterMeta?.university ?? university.trim()
     const selfRegistered = entryPath === 'create'
     // Join codes → ActiveMember; only founder invite → President; create path uses createRole
     const role: UserRole =
@@ -276,15 +326,26 @@ export default function Onboarding() {
     const userId = getAuthUserId() ?? getOrCreateUserId()
     const avatar = initials
     let inviteCodeId = 'self-register'
+    const normalizedInviteCode = inviteInput.trim().toUpperCase()
     if (!selfRegistered) {
       if (!validatedInvite) return
-      const redeemed = redeemInvite(inviteInput)
-      if (!redeemed) {
-        setInviteError('Invite code could not be redeemed')
-        setStep(0)
-        return
+      setFinishBusy(true)
+      try {
+        // Cloud joiners increment usage after hydrate (mergeJoinerAfterHydrate)
+        if (!resolvedCloudChapterId) {
+          const redeemed = await redeemInvite(inviteInput)
+          if (!redeemed) {
+            setInviteError('Invite code could not be redeemed')
+            setStep(0)
+            return
+          }
+          inviteCodeId = redeemed.id
+        } else {
+          inviteCodeId = validatedInvite.id
+        }
+      } finally {
+        setFinishBusy(false)
       }
-      inviteCodeId = redeemed.id
     }
     try {
       const { memberId } = registerMember({
@@ -292,10 +353,12 @@ export default function Onboarding() {
         profile: { ...profile, avatar },
         role,
         inviteCodeId,
+        inviteCode: selfRegistered ? undefined : normalizedInviteCode,
         orgId: resolvedOrgId,
         chapterDesignation: chapter,
         university: school,
         email: profile.email,
+        cloudChapterId: resolvedCloudChapterId,
       })
       flushSync(() => {
         setSelectedOrg(resolvedOrgId)
@@ -320,14 +383,14 @@ export default function Onboarding() {
   }
   const goNext = () => {
     if (stepKey === 'Start') {
-      advanceFromStart()
+      void advanceFromStart()
       return
     }
     if (step < steps.length - 1) {
       setStep((s) => s + 1)
       return
     }
-    finish()
+    void finish()
   }
   return (
     <div className="flex min-h-screen bg-[var(--surface-tint)] text-[var(--ink)]">
@@ -429,6 +492,11 @@ export default function Onboarding() {
                       />
                     </label>
                     {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
+                    {urlJoinCode && (
+                      <p className="text-xs text-[var(--primary)]">
+                        Invite link detected — confirm the code and continue.
+                      </p>
+                    )}
                     <p className="text-xs leading-relaxed text-[var(--muted)]">
                       Ask your president for the chapter join code (created when the chapter was
                       founded). Starting a new chapter? Use{' '}
@@ -874,11 +942,13 @@ export default function Onboarding() {
             )}
             <button
               type="button"
-              disabled={!canNext}
+              disabled={!canNext || inviteBusy || finishBusy}
               onClick={goNext}
               className="btn-primary ml-auto disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {step < steps.length - 1 ? (
+              {inviteBusy || finishBusy ? (
+                'Checking…'
+              ) : step < steps.length - 1 ? (
                 <>
                   Continue <ArrowRight size={14} />
                 </>

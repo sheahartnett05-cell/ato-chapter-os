@@ -25,6 +25,7 @@ import {
 } from '../data/chapterOpsData'
 import { memberVerifiedHours, memberStudyHoursRequired } from '../lib/studyHours'
 import { allowDemoData, EMPTY_BILL_HIGHWAY, STORAGE_KEYS } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type { AttendanceEntry, Event, RsvpEntry } from '../types'
 import type { RsvpExcuse } from '../types/features'
 import type {
@@ -96,6 +97,7 @@ export interface ChapterOpsContextValue {
   toggleStudyLocation: (id: string) => void
   logStudyHours: (entry: Omit<StudyHoursLog, 'id' | 'verified'>) => void
   verifyStudyHours: (id: string) => void
+  denyStudyHours: (id: string) => void
 
   duesCharges: DuesCharge[]
   duesPayments: DuesPayment[]
@@ -126,15 +128,8 @@ function seedEventList(): Event[] {
 }
 
 function readEvents(): Event[] {
-  try {
-    const raw = localStorage.getItem(EVENTS_KEY)
-    if (raw) {
-      const stored = JSON.parse(raw) as Event[]
-      if (Array.isArray(stored)) return stored
-    }
-  } catch {
-    /* ignore */
-  }
+  const stored = readJson<Event[] | null>(EVENTS_KEY, null)
+  if (stored && Array.isArray(stored)) return stored
   return allowDemoData() ? seedEventList() : []
 }
 
@@ -157,29 +152,7 @@ function readExcuses(): RsvpExcuse[] {
 }
 
 function writeEvents(next: Event[]) {
-  try {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(next))
-  } catch {
-    /* storage unavailable */
-  }
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T
-  } catch {
-    /* ignore */
-  }
-  return fallback
-}
-
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(EVENTS_KEY, next)
 }
 
 function readStudyHoursRequirements(): StudyHoursRequirementsConfig {
@@ -489,7 +462,19 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
 
   const verifyStudyHours = useCallback((id: string) => {
     setStudyLogs((prev) => {
-      const next = prev.map((l) => (l.id === id ? { ...l, verified: true } : l))
+      const next = prev.map((l) =>
+        l.id === id ? { ...l, verified: true, rejected: false } : l
+      )
+      writeJson(STORAGE_KEYS.studyLogs, next)
+      return next
+    })
+  }, [])
+
+  const denyStudyHours = useCallback((id: string) => {
+    setStudyLogs((prev) => {
+      const next = prev.map((l) =>
+        l.id === id ? { ...l, verified: false, rejected: true } : l
+      )
       writeJson(STORAGE_KEYS.studyLogs, next)
       return next
     })
@@ -630,6 +615,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       toggleStudyLocation,
       logStudyHours,
       verifyStudyHours,
+      denyStudyHours,
       duesCharges,
       duesPayments,
       billHighway,
@@ -673,6 +659,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       toggleStudyLocation,
       logStudyHours,
       verifyStudyHours,
+      denyStudyHours,
       getMemberVerifiedHours,
       updateStudyHoursReset,
       duesCharges,

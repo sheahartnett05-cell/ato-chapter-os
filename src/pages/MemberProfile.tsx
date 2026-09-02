@@ -1,12 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  Mail,
-  Phone,
-  Calendar,
-  Shirt,
-} from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Calendar, Shirt } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { Card, CardHeader } from '../components/ui/Card'
 import {
@@ -18,26 +12,58 @@ import {
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { localTodayIso } from '../lib/liveAlerts'
 
-const tabs = [
-  'Overview',
-  'Attendance',
-  'Dues',
-  'Events',
-  'Points',
-  'Tasks',
-  'Forms',
-] as const
-
+const tabs = ['Overview', 'Attendance', 'Dues', 'Events', 'Points'] as const
 type Tab = (typeof tabs)[number]
 
 export default function MemberProfile() {
   const { id } = useParams<{ id: string }>()
   const { getMemberById } = useMembers()
-  const { events } = useChapterOps()
+  const { events, duesPayments, duesCharges, getEventAttendance } = useChapterOps()
   const member = getMemberById(id ?? '')
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const { languagePack } = useChapter()
+
+  const attendanceRows = useMemo(() => {
+    if (!member) return []
+    const rows: Array<{
+      eventId: string
+      event: string
+      date: string
+      status: string
+      pts: number
+    }> = []
+    for (const ev of events) {
+      const entry = getEventAttendance(ev.id).find((a) => a.memberId === member.id)
+      if (entry) {
+        rows.push({
+          eventId: ev.id,
+          event: ev.name,
+          date: ev.date,
+          status: entry.status,
+          pts: entry.pointsEarned,
+        })
+      }
+    }
+    return rows.sort((a, b) => b.date.localeCompare(a.date))
+  }, [events, getEventAttendance, member])
+
+  const totalPoints = useMemo(
+    () => attendanceRows.reduce((sum, row) => sum + row.pts, 0),
+    [attendanceRows]
+  )
+
+  const paymentHistory = useMemo(() => {
+    if (!member) return []
+    return duesPayments
+      .filter((p) => p.memberId === member.id && p.amountPaid > 0)
+      .map((p) => ({
+        ...p,
+        chargeLabel: duesCharges.find((c) => c.id === p.chargeId)?.label ?? 'Dues',
+      }))
+      .sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
+  }, [duesPayments, duesCharges, member])
 
   if (!member) {
     return (
@@ -53,7 +79,7 @@ export default function MemberProfile() {
   }
 
   const memberEvents = events
-    .filter((e) => e.date >= '2025-08-23')
+    .filter((e) => e.date >= localTodayIso())
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4)
 
@@ -74,7 +100,6 @@ export default function MemberProfile() {
       />
 
       <div className="p-8">
-        {/* Profile header */}
         <Card className="mb-6">
           <div className="flex flex-col gap-6 sm:flex-row">
             <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-navy text-3xl font-bold text-white">
@@ -99,7 +124,7 @@ export default function MemberProfile() {
                   <Phone size={14} /> {member.phone}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Calendar size={14} />{' '}
+                  <Calendar size={14} />
                   {new Date(member.birthday + 'T12:00:00').toLocaleDateString('en-US', {
                     month: 'long',
                     day: 'numeric',
@@ -116,20 +141,17 @@ export default function MemberProfile() {
                 <p className="text-xs text-slate-500">Attendance</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-navy">{member.points}</p>
+                <p className="text-2xl font-bold text-navy">{totalPoints}</p>
                 <p className="text-xs text-slate-500">Points</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-navy">
-                  ${member.duesPaid}
-                </p>
+                <p className="text-2xl font-bold text-navy">${member.duesPaid}</p>
                 <p className="text-xs text-slate-500">Dues Paid</p>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Tabs */}
         <div className="mb-6 flex gap-1 overflow-x-auto border-b border-border">
           {tabs.map((tab) => (
             <button
@@ -197,35 +219,40 @@ export default function MemberProfile() {
                 Semester attendance: <strong className="text-navy">{member.attendancePct}%</strong>
               </p>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
-                  <th className="px-5 py-3">Event</th>
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {[
-                  { event: 'Weekly Chapter Meeting', date: '2025-08-18', status: 'Present', pts: 5 },
-                  { event: 'Weekly Chapter Meeting', date: '2025-08-11', status: 'Present', pts: 5 },
-                  { event: 'Summer Work Day', date: '2025-08-04', status: 'Excused', pts: 0 },
-                  { event: 'IFC Mandatory Meeting', date: '2025-07-28', status: 'Absent', pts: 0 },
-                ].map((row, i) => (
-                  <tr key={i}>
-                    <td className="px-5 py-3 font-medium text-navy">{row.event}</td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {new Date(row.date + 'T12:00:00').toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusPill label={row.status} variant={attendanceVariant(row.status)} />
-                    </td>
-                    <td className="px-5 py-3 text-navy">{row.pts}</td>
+            {attendanceRows.length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-slate-500">
+                No attendance recorded yet.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
+                    <th className="px-5 py-3">Event</th>
+                    <th className="px-5 py-3">Date</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Points</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {attendanceRows.map((row) => (
+                    <tr key={row.eventId}>
+                      <td className="px-5 py-3 font-medium text-navy">
+                        <Link to={`/events/${row.eventId}`} className="hover:underline">
+                          {row.event}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">
+                        {new Date(row.date + 'T12:00:00').toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusPill label={row.status} variant={attendanceVariant(row.status)} />
+                      </td>
+                      <td className="px-5 py-3 text-navy">{row.pts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </Card>
         )}
 
@@ -257,25 +284,21 @@ export default function MemberProfile() {
             <Card>
               <CardHeader title="Payment History" />
               <ul className="space-y-3 text-sm">
-                {member.duesPaid > 0 ? (
-                  <>
-                    <li className="flex justify-between rounded-lg bg-surface p-3">
-                      <span>Aug 1, 2025 — Venmo</span>
-                      <span className="font-medium text-emerald-600">
-                        ${Math.min(member.duesPaid, 425)}
-                      </span>
-                    </li>
-                    {member.duesPaid > 425 && (
-                      <li className="flex justify-between rounded-lg bg-surface p-3">
-                        <span>Jul 15, 2025 — Check</span>
-                        <span className="font-medium text-emerald-600">
-                          ${member.duesPaid - 425}
-                        </span>
-                      </li>
-                    )}
-                  </>
-                ) : (
+                {paymentHistory.length === 0 ? (
                   <li className="text-slate-500">No payments recorded</li>
+                ) : (
+                  paymentHistory.map((p) => (
+                    <li key={p.id} className="flex justify-between rounded-lg bg-surface p-3">
+                      <span>
+                        {p.paidAt
+                          ? new Date(p.paidAt + 'T12:00:00').toLocaleDateString()
+                          : '—'}{' '}
+                        — {p.chargeLabel}
+                        {p.method ? ` · ${p.method}` : ''}
+                      </span>
+                      <span className="font-medium text-emerald-600">${p.amountPaid}</span>
+                    </li>
+                  ))
                 )}
               </ul>
             </Card>
@@ -284,92 +307,57 @@ export default function MemberProfile() {
 
         {activeTab === 'Events' && (
           <div className="grid gap-3 sm:grid-cols-2">
-            {memberEvents.map((event) => (
-              <Link
-                key={event.id}
-                to={`/events/${event.id}`}
-                className="rounded-xl border border-border bg-white p-4 transition hover:border-gold/40 hover:shadow-md"
-              >
-                <StatusPill label={event.type} variant="gold" />
-                <h4 className="mt-2 font-semibold text-navy">{event.name}</h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  {new Date(event.date + 'T12:00:00').toLocaleDateString()} · {event.time}
-                </p>
-              </Link>
-            ))}
+            {memberEvents.length === 0 ? (
+              <p className="text-sm text-slate-500">No upcoming events.</p>
+            ) : (
+              memberEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  to={`/events/${event.id}`}
+                  className="rounded-xl border border-border bg-white p-4 transition hover:border-gold/40 hover:shadow-md"
+                >
+                  <StatusPill label={event.type} variant="gold" />
+                  <h4 className="mt-2 font-semibold text-navy">{event.name}</h4>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {new Date(event.date + 'T12:00:00').toLocaleDateString()} · {event.time}
+                  </p>
+                </Link>
+              ))
+            )}
           </div>
         )}
 
         {activeTab === 'Points' && (
           <Card padding={false}>
             <div className="border-b border-border px-5 py-4">
-              <p className="text-lg font-bold text-navy">Total: {member.points} points</p>
+              <p className="text-lg font-bold text-navy">Total: {totalPoints} points</p>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
-                  <th className="px-5 py-3">Event</th>
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {[
-                  { event: 'Philanthropy Day', date: '2025-08-10', pts: 15 },
-                  { event: 'Chapter Meeting', date: '2025-08-18', pts: 5 },
-                  { event: 'Brotherhood BBQ', date: '2025-08-05', pts: 10 },
-                ].map((row, i) => (
-                  <tr key={i}>
-                    <td className="px-5 py-3 font-medium text-navy">{row.event}</td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {new Date(row.date + 'T12:00:00').toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3 font-medium text-gold">+{row.pts}</td>
+            {attendanceRows.filter((r) => r.pts > 0).length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-slate-500">No points earned yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
+                    <th className="px-5 py-3">Event</th>
+                    <th className="px-5 py-3">Date</th>
+                    <th className="px-5 py-3">Points</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
-
-        {activeTab === 'Tasks' && (
-          <Card>
-            <ul className="space-y-3">
-              {[
-                { task: 'Submit Fall Formal RSVP', due: 'Aug 30', status: 'In Progress' },
-                { task: 'Complete risk management quiz', due: 'Sep 5', status: 'Not Started' },
-              ].map((t, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between rounded-lg border border-border p-4"
-                >
-                  <div>
-                    <p className="font-medium text-navy">{t.task}</p>
-                    <p className="text-xs text-slate-500">Due {t.due}</p>
-                  </div>
-                  <StatusPill label={t.status} variant="medium" />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
-
-        {activeTab === 'Forms' && (
-          <Card>
-            <ul className="space-y-3">
-              {[
-                { form: 'Absence Excuse — Aug 4 Work Day', submitted: 'Aug 3, 2025' },
-                { form: 'Fall Formal Guest Registration', submitted: 'Pending' },
-              ].map((f, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between rounded-lg border border-border p-4"
-                >
-                  <p className="font-medium text-navy">{f.form}</p>
-                  <span className="text-xs text-slate-500">{f.submitted}</span>
-                </li>
-              ))}
-            </ul>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {attendanceRows
+                    .filter((r) => r.pts > 0)
+                    .map((row) => (
+                      <tr key={row.eventId}>
+                        <td className="px-5 py-3 font-medium text-navy">{row.event}</td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {new Date(row.date + 'T12:00:00').toLocaleDateString()}
+                        </td>
+                        <td className="px-5 py-3 font-medium text-gold">+{row.pts}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
           </Card>
         )}
       </div>

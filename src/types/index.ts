@@ -124,6 +124,8 @@ export interface Prospect {
   photoUrl?: string
   templateId?: string
   customFields?: Record<string, string | boolean | number>
+  /** Hidden from pipeline board; data retained */
+  archived?: boolean
 }
 
 export interface ActivityItem {

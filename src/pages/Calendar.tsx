@@ -22,9 +22,9 @@ import {
   eventTypeColor,
 } from '../lib/eventColors'
 import type { Event } from '../types'
+import { localTodayIso } from '../lib/liveAlerts'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DEMO_TODAY = '2025-08-23'
 
 type ViewMode = 'month' | 'agenda'
 
@@ -212,8 +212,8 @@ export default function CalendarPage() {
   const permissions = usePermissions()
   const canEditPoints = permissions.canEditEventPoints
 
-  const todayIso = DEMO_TODAY
-  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(DEMO_TODAY)))
+  const todayIso = localTodayIso()
+  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(localTodayIso())))
   const [view, setView] = useState<ViewMode>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
@@ -231,6 +231,7 @@ export default function CalendarPage() {
     points: 5,
     required: false,
     rsvpRequired: true,
+    dressCode: 'Casual',
   })
 
   const sortedEvents = useMemo(
@@ -328,7 +329,7 @@ export default function CalendarPage() {
       description: newEvent.description.trim(),
       required: newEvent.required,
       points: newEvent.points,
-      dressCode: 'Casual',
+      dressCode: newEvent.dressCode,
       rsvpRequired: newEvent.rsvpRequired,
       guestAllowed: false,
     })
@@ -348,6 +349,7 @@ export default function CalendarPage() {
       points: 5,
       required: false,
       rsvpRequired: true,
+      dressCode: 'Casual',
     })
   }
 
@@ -693,6 +695,19 @@ export default function CalendarPage() {
             value={newEvent.location}
             onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
           />
+          <select
+            className="input-editorial"
+            value={newEvent.dressCode}
+            onChange={(e) => setNewEvent({ ...newEvent, dressCode: e.target.value })}
+          >
+            {['Casual', 'Business Casual', 'Cocktail', 'Formal', 'Themed', 'No dress code'].map(
+              (d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              )
+            )}
+          </select>
           <textarea
             className="input-editorial min-h-[72px] resize-none"
             placeholder="Description (optional)"

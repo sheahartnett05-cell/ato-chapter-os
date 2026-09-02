@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   DndContext,
@@ -135,13 +135,16 @@ export default function RecruitmentPipeline() {
   const { promoteProspectToMember } = useMembers()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [promoteError, setPromoteError] = useState('')
+
+  const activeProspects = useMemo(() => prospects.filter((p) => !p.archived), [prospects])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
   )
 
-  const activeProspect = prospects.find((p) => p.id === activeId)
+  const activeProspect = activeProspects.find((p) => p.id === activeId)
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id))
@@ -150,6 +153,7 @@ export default function RecruitmentPipeline() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveId(null)
+    setPromoteError('')
 
     if (!over) return
 
@@ -159,27 +163,33 @@ export default function RecruitmentPipeline() {
     if (PIPELINE_STAGES.includes(over.id as PipelineStage)) {
       newStage = over.id as PipelineStage
     } else {
-      const overProspect = prospects.find((p) => p.id === over.id)
+      const overProspect = activeProspects.find((p) => p.id === over.id)
       if (overProspect) newStage = overProspect.status
     }
 
     if (newStage) {
-      updateProspectStatus(prospectId, newStage)
-      if (newStage === 'Accepted' || newStage === 'New Member') {
-        const p = prospects.find((x) => x.id === prospectId)
-        if (p) {
-          promoteProspectToMember({
-            firstName: p.firstName,
-            lastName: p.lastName,
-            email: p.email,
-            phone: p.phone,
-            major: p.major,
-            graduationYear: p.graduationYear,
-            photoUrl: p.photoUrl,
-            avatar: p.avatar,
-          })
+      const p = activeProspects.find((x) => x.id === prospectId)
+      const priorStage = p?.status
+      if ((newStage === 'Accepted' || newStage === 'New Member') && p) {
+        const result = promoteProspectToMember({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email,
+          phone: p.phone,
+          major: p.major,
+          graduationYear: p.graduationYear,
+          photoUrl: p.photoUrl,
+          avatar: p.avatar,
+        })
+        if (!result.ok) {
+          setPromoteError(result.error)
+          if (priorStage && priorStage !== newStage) {
+            updateProspectStatus(prospectId, priorStage)
+          }
+          return
         }
       }
+      updateProspectStatus(prospectId, newStage)
     }
   }
 
@@ -209,6 +219,11 @@ export default function RecruitmentPipeline() {
       />
 
       <div className="space-y-6 p-8">
+        {promoteError && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Could not add to roster: {promoteError}
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {templates.map((t) => (
             <div key={t.id} className="rounded-2xl bg-neutral-50 px-4 py-3">
@@ -227,7 +242,7 @@ export default function RecruitmentPipeline() {
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
             {PIPELINE_STAGES.map((stage) => (
-              <PipelineColumn key={stage} stage={stage} prospects={prospects} />
+              <PipelineColumn key={stage} stage={stage} prospects={activeProspects} />
             ))}
           </div>
 

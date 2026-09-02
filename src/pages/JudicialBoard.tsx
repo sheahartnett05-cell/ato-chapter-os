@@ -44,7 +44,7 @@ export default function JudicialBoard() {
   const [showFile, setShowFile] = useState(false)
   const [showFine, setShowFine] = useState(false)
   const [form, setForm] = useState({
-    memberId: 'm5',
+    memberId: '',
     category: 'Unexcused Absence' as JBoardCategory,
     description: '',
     fineAmount: 25,
@@ -67,6 +67,7 @@ export default function JudicialBoard() {
   })
 
   const handleFileCase = () => {
+    if (!form.memberId) return
     const rule = fineSchedule.find((r) => r.category === form.category)
     const amount = form.fineAmount || rule?.amount || 25
     fileCase({
@@ -80,10 +81,11 @@ export default function JudicialBoard() {
       evidenceUrls: [],
     })
     setShowFile(false)
-    setForm({ memberId: 'm5', category: 'Unexcused Absence', description: '', fineAmount: 25 })
+    setForm({ memberId: '', category: 'Unexcused Absence', description: '', fineAmount: 25 })
   }
 
   const handleDirectFine = () => {
+    if (!form.memberId) return
     issueFine({
       memberId: form.memberId,
       amount: form.fineAmount,
@@ -93,6 +95,7 @@ export default function JudicialBoard() {
       status: 'Unpaid',
     })
     setShowFine(false)
+    setForm({ memberId: '', category: 'Unexcused Absence', description: '', fineAmount: 25 })
   }
 
   return (
@@ -222,7 +225,12 @@ export default function JudicialBoard() {
 
         {tab === 'cases' && (
           <ul className="space-y-1.5">
-            {cases.map((c) => {
+            {cases.length === 0 ? (
+              <li className="rounded-xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+                No cases filed yet.
+              </li>
+            ) : (
+              cases.map((c) => {
               const m = getMemberById(c.memberId)
               return (
                 <li
@@ -247,7 +255,8 @@ export default function JudicialBoard() {
                   )}
                 </li>
               )
-            })}
+            })
+            )}
           </ul>
         )}
 
@@ -270,7 +279,12 @@ export default function JudicialBoard() {
               ))}
             </div>
             <ul className="space-y-1">
-              {filteredFines.map((f) => {
+              {filteredFines.length === 0 ? (
+                <li className="rounded-xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+                  No fines on record.
+                </li>
+              ) : (
+              filteredFines.map((f) => {
                 const m = getMemberById(f.memberId)
                 return (
                   <li
@@ -310,7 +324,8 @@ export default function JudicialBoard() {
                     )}
                   </li>
                 )
-              })}
+              })
+              )}
             </ul>
           </>
         )}
@@ -323,6 +338,7 @@ export default function JudicialBoard() {
             onChange={(e) => setForm({ ...form, memberId: e.target.value })}
             className="w-full rounded-xl border border-black/5 bg-neutral-50 px-3 py-2 text-sm"
           >
+            <option value="">Select member…</option>
             {members.filter((m) => m.status === 'Active').map((m) => (
               <option key={m.id} value={m.id}>
                 {m.firstName} {m.lastName}
@@ -358,7 +374,8 @@ export default function JudicialBoard() {
           <button
             type="button"
             onClick={handleFileCase}
-            className="w-full rounded-sm bg-[var(--primary)] py-2.5 text-sm font-semibold text-white"
+            disabled={!form.memberId}
+            className="w-full rounded-sm bg-[var(--primary)] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             Issue violation + fine
           </button>
@@ -372,6 +389,7 @@ export default function JudicialBoard() {
             onChange={(e) => setForm({ ...form, memberId: e.target.value })}
             className="w-full rounded-xl border border-black/5 bg-neutral-50 px-3 py-2 text-sm"
           >
+            <option value="">Select member…</option>
             {members.filter((m) => m.status === 'Active').map((m) => (
               <option key={m.id} value={m.id}>
                 {m.firstName} {m.lastName}
@@ -393,7 +411,8 @@ export default function JudicialBoard() {
           <button
             type="button"
             onClick={handleDirectFine}
-            className="w-full rounded-sm bg-[var(--primary)] py-2.5 text-sm font-semibold text-white"
+            disabled={!form.memberId}
+            className="w-full rounded-sm bg-[var(--primary)] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             Issue fine
           </button>

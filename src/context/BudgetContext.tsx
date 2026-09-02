@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { DEMO_BUDGETS } from '../data/budgetData'
 import { allowDemoData } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type { BudgetExpense, BudgetLineItem, ChapterBudget } from '../types/budget'
 
 const STORAGE_KEY = 'chapter-os-budgets'
@@ -50,24 +51,13 @@ function normalizeBudget(raw: ChapterBudget & { lineItems?: Array<BudgetLineItem
 }
 
 function readBudgets(): ChapterBudget[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as ChapterBudget[]
-      return parsed.map(normalizeBudget)
-    }
-  } catch {
-    /* ignore */
-  }
+  const raw = readJson<ChapterBudget[] | null>(STORAGE_KEY, null)
+  if (raw && Array.isArray(raw)) return raw.map(normalizeBudget)
   return allowDemoData() ? DEMO_BUDGETS : []
 }
 
 function writeBudgets(budgets: ChapterBudget[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEY, budgets)
 }
 
 interface CreateBudgetInput {

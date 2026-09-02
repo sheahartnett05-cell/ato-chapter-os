@@ -102,6 +102,9 @@ interface RecruitmentContextValue {
   updateProspectStatus: (id: string, status: PipelineStage) => void
   addActivity: (prospectId: string, activity: Omit<ActivityItem, 'id'>) => void
   appendNote: (prospectId: string, note: string, author: string) => void
+  archiveProspect: (id: string) => void
+  unarchiveProspect: (id: string) => void
+  deleteProspect: (id: string) => void
 }
 
 const RecruitmentContext = createContext<RecruitmentContextValue | null>(null)
@@ -211,6 +214,26 @@ export function RecruitmentProvider({ children }: { children: ReactNode }) {
     [prospects, updateProspect, addActivity]
   )
 
+  const archiveProspect = useCallback(
+    (id: string) => updateProspect(id, { archived: true }),
+    [updateProspect]
+  )
+
+  const unarchiveProspect = useCallback(
+    (id: string) => updateProspect(id, { archived: false }),
+    [updateProspect]
+  )
+
+  const deleteProspect = useCallback(
+    (id: string) => {
+      persistProspects(prospects.filter((p) => p.id !== id))
+      const next = { ...activities }
+      delete next[id]
+      persistActivities(next)
+    },
+    [prospects, activities, persistProspects, persistActivities]
+  )
+
   const value = useMemo<RecruitmentContextValue>(
     () => ({
       prospects,
@@ -222,6 +245,9 @@ export function RecruitmentProvider({ children }: { children: ReactNode }) {
       updateProspectStatus,
       addActivity,
       appendNote,
+      archiveProspect,
+      unarchiveProspect,
+      deleteProspect,
     }),
     [
       prospects,
@@ -232,6 +258,9 @@ export function RecruitmentProvider({ children }: { children: ReactNode }) {
       updateProspectStatus,
       addActivity,
       appendNote,
+      archiveProspect,
+      unarchiveProspect,
+      deleteProspect,
     ]
   )
 

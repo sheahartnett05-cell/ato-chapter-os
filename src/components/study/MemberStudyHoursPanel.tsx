@@ -3,8 +3,7 @@ import { Plus } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { useChapterOps } from '../../context/ChapterOpsContext'
 import { resetFrequencyLabel, resetDayLabel } from '../../lib/studyHours'
-
-const TODAY = '2025-08-23'
+import { localTodayIso } from '../../lib/liveAlerts'
 
 interface MemberStudyHoursPanelProps {
   memberId: string
@@ -22,7 +21,7 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
 
   const [logOpen, setLogOpen] = useState(false)
   const [form, setForm] = useState({
-    date: TODAY,
+    date: localTodayIso(),
     hours: 2,
     locationId: '',
     notes: '',
@@ -58,7 +57,7 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
       notes: form.notes.trim() || undefined,
     })
     setLogOpen(false)
-    setForm({ date: TODAY, hours: 2, locationId: '', notes: '' })
+    setForm({ date: localTodayIso(), hours: 2, locationId: '', notes: '' })
   }
 
   return (
@@ -130,10 +129,12 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
                   className={`shrink-0 font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${
                     entry.verified
                       ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-amber-100 text-amber-900'
+                      : entry.rejected
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-amber-100 text-amber-900'
                   }`}
                 >
-                  {entry.verified ? 'Verified' : 'Pending'}
+                  {entry.verified ? 'Verified' : entry.rejected ? 'Denied' : 'Pending'}
                 </span>
               </li>
             ))

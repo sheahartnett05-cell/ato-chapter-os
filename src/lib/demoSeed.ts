@@ -39,6 +39,7 @@ export const STORAGE_KEYS = {
   accounts: 'chapter-os-member-accounts',
   roster: 'chapter-os-roster-members',
   chapterLock: 'chapter-os-chapter-lock',
+  joinRegistry: 'chapter-os-join-registry',
   studyLocations: 'chapter-os-study-locations',
   studyLogs: 'chapter-os-study-logs',
   studyRequired: 'chapter-os-study-required',

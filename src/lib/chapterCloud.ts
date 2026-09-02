@@ -237,14 +237,14 @@ export async function ensureCloudChapter(options?: {
   const { orgId, designation, university } = chapterIdentity()
   if (!orgId) return null
 
-  if (options?.allowCreate && designation && university) {
+  if (designation && university) {
     const claimed = await claimOrCreateChapterRpc({
       orgId,
       designation,
       university,
-      appMemberId: options.appMemberId,
-      role: options.role,
-      isFounder: options.isFounder,
+      appMemberId: options?.appMemberId,
+      role: options?.role,
+      isFounder: options?.isFounder ?? false,
     })
     if (claimed) {
       setCachedCloudChapterId(claimed)
@@ -292,7 +292,16 @@ export async function bootstrapChapterCloud(input: {
   if (!chapterId) {
     return { ok: false, error: 'Could not link chapter to cloud' }
   }
-  await pushLocalChapterToCloud()
+  if (input.isFounder) {
+    await pushLocalChapterToCloud()
+    const { publishInviteCodesToCloud } = await import('./joinCodes')
+    const published = await publishInviteCodesToCloud()
+    if (!published.ok) {
+      console.warn('[agora cloud] publish join codes after bootstrap', published.error)
+    }
+  } else {
+    await hydrateFromCloud()
+  }
   return { ok: true }
 }
 

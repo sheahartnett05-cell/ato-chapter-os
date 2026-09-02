@@ -10,29 +10,35 @@ import { PIPELINE_STAGES } from '../data/mockData'
 import { useRecruitment } from '../context/RecruitmentContext'
 import type { PipelineStage } from '../types'
 import { useChapter } from '../context/ChapterContext'
+import { localTodayIso } from '../lib/liveAlerts'
 
 export default function RecruitmentDashboard() {
   const { languagePack } = useChapter()
   const { prospects } = useRecruitment()
   const [addOpen, setAddOpen] = useState(false)
 
+  const visibleProspects = prospects.filter((p) => !p.archived)
+
   const stageCounts = PIPELINE_STAGES.reduce(
     (acc, stage) => {
-      acc[stage] = prospects.filter((p) => p.status === stage).length
+      acc[stage] = visibleProspects.filter((p) => p.status === stage).length
       return acc
     },
     {} as Record<PipelineStage, number>
   )
 
-  const totalActive = prospects.filter(
+  const totalActive = visibleProspects.filter(
     (p) => !['Accepted', 'New Member'].includes(p.status)
   ).length
 
-  const needsFollowUp = prospects.filter(
-    (p) => p.nextFollowUp && new Date(p.nextFollowUp) <= new Date('2025-08-26')
+  const needsFollowUp = visibleProspects.filter(
+    (p) =>
+      !['Accepted', 'New Member'].includes(p.status) &&
+      p.nextFollowUp &&
+      p.nextFollowUp <= localTodayIso()
   )
 
-  const topProspects = prospects
+  const topProspects = visibleProspects
     .filter((p) => p.rating >= 4)
     .sort((a, b) => b.rating - a.rating)
     .slice(0, 5)

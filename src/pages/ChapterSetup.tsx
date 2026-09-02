@@ -50,7 +50,8 @@ export default function ChapterSetup() {
     [members]
   )
 
-  const canManageSetup = permissions.canAccessAdminSettings || role === 'President'
+  const canManageSetup =
+    permissions.canAccessAdminSettings || role === 'President' || role === 'Treasurer'
   if (!canManageSetup) {
     return <Navigate to="/home" replace />
   }
@@ -61,11 +62,17 @@ export default function ChapterSetup() {
   }
 
   const onAssignSeat = (positionId: string, title: string, nextMemberId: string) => {
+    const previousHolderId = positions.find((p) => p.id === positionId)?.assignedMemberId
     const assigned = nextMemberId || undefined
-    assignPosition(positionId, assigned)
-    if (!assigned) return
     const mapped = roleFromPositionTitle(title)
-    if (mapped) applyRole(assigned, mapped)
+
+    assignPosition(positionId, assigned)
+
+    if (previousHolderId && previousHolderId !== assigned && mapped) {
+      applyRole(previousHolderId, 'ActiveMember')
+    }
+    if (!assigned || !mapped) return
+    applyRole(assigned, mapped)
   }
 
   const saveMeta = () => {

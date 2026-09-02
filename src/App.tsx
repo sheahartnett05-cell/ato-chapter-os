@@ -12,7 +12,7 @@ import { ChapterResourcesProvider } from './context/ChapterResourcesContext'
 import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { BudgetProvider } from './context/BudgetContext'
-import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
+import { JoinPage, OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
 import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
 import { FeatureRoute } from './components/routing/FeatureRoute'
 import { DuesSyncBridge } from './components/routing/DuesSyncBridge'
@@ -66,6 +66,8 @@ export default function App() {
                                 <Routes>
                                   <Route path="/preview" element={<PreviewPage />} />
                                   <Route path="/login" element={<PreviewPage />} />
+                                  <Route path="/join" element={<JoinPage />} />
+                                  <Route path="/join/:code" element={<JoinPage />} />
                                   <Route path="/onboarding" element={<OnboardingPage />} />
                                   <Route path="/" element={<RootRedirect />} />
 
@@ -101,7 +103,9 @@ export default function App() {
                                     path="/members/:id"
                                     element={
                                       <ExecShell>
-                                        <MemberProfile />
+                                        <FeatureRoute feature="roster">
+                                          <MemberProfile />
+                                        </FeatureRoute>
                                       </ExecShell>
                                     }
                                   />

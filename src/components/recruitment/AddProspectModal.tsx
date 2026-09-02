@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal'
 import { PhotoUpload } from '../ui/PhotoUpload'
 import { getRushTemplate, type RushFormField } from '../../data/rushFormTemplates'
 import { useRecruitment } from '../../context/RecruitmentContext'
+import { isLikelyEmail } from '../../lib/formUtils'
 
 type FormValues = Record<string, string | boolean | number | string[]>
 
@@ -124,6 +125,7 @@ export function AddProspectModal({
   const { templates, addProspectFromForm } = useRecruitment()
   const [templateId, setTemplateId] = useState(defaultTemplateId)
   const [values, setValues] = useState<FormValues>({})
+  const [submitError, setSubmitError] = useState('')
 
   const template = getRushTemplate(templateId)
 
@@ -140,17 +142,27 @@ export function AddProspectModal({
   const reset = () => {
     setValues({})
     setTemplateId(defaultTemplateId)
+    setSubmitError('')
   }
 
-  const canSubmit = template?.fields
-    .filter((f) => f.required && f.type !== 'photo')
-    .every((f) => {
-      const v = values[f.id]
-      return v !== undefined && v !== ''
-    })
+  const emailValue = String(values.email ?? '')
+  const emailInvalid = emailValue.trim() !== '' && !isLikelyEmail(emailValue)
+
+  const canSubmit =
+    template?.fields
+      .filter((f) => f.required && f.type !== 'photo')
+      .every((f) => {
+        const v = values[f.id]
+        return v !== undefined && v !== ''
+      }) && !emailInvalid
 
   const handleSubmit = () => {
     if (!canSubmit) return
+    if (emailValue.trim() && !isLikelyEmail(emailValue)) {
+      setSubmitError('Enter a valid email address.')
+      return
+    }
+    setSubmitError('')
     const prospect = addProspectFromForm(templateId, values)
     reset()
     onClose()
@@ -201,6 +213,11 @@ export function AddProspectModal({
             </div>
           </label>
         ))}
+
+        {submitError && <p className="text-sm text-red-700">{submitError}</p>}
+        {emailInvalid && !submitError && (
+          <p className="text-sm text-red-700">Enter a valid email address.</p>
+        )}
 
         <button
           type="button"

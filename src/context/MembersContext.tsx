@@ -2,17 +2,26 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { DEMO_MEMBERS as seedMembers } from '../data/mockData'
-import { allowDemoData } from '../lib/demoSeed'
+import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import { syncAllMemberDues } from '../lib/duesSync'
 import { syncMemberAttendancePct } from '../lib/attendanceSync'
 import { generateJoinCode, LEGACY_ROLE_INVITE_CODES, SEED_INVITE_CODES } from '../data/inviteData'
-import { pushLocalChapterToCloud, bootstrapChapterCloud } from '../lib/chapterCloud'
-import { requiresSupabaseAuth } from '../lib/supabaseAuth'
+import {
+  bumpJoinCodeUse,
+  clearJoinCodeFromCloud,
+  deactivateJoinCode,
+  publishJoinCode,
+  publishInviteCodesToCloud,
+  resolveJoinCode,
+} from '../lib/joinCodes'
+import { pushLocalChapterToCloud, bootstrapChapterCloud, setCachedCloudChapterId, getCachedCloudChapterId, hydrateFromCloud, canSyncToCloud } from '../lib/chapterCloud'
+import { linkChapterMembership, requiresSupabaseAuth } from '../lib/supabaseAuth'
 import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
 import type { ChapterLock, InviteCode, MemberAccount } from '../types/memberAccount'
 import type { Member } from '../types'
@@ -24,6 +33,50 @@ const ACCOUNTS_KEY = 'chapter-os-member-accounts'
 const MEMBERS_KEY = 'chapter-os-roster-members'
 const CHAPTER_LOCK_KEY = 'chapter-os-chapter-lock'
 const USER_ID_KEY = 'chapter-os-user-id'
+
+function mergeJoinerAfterHydrate(input: {
+  memberId: string
+  newMember: Member
+  account: MemberAccount
+  inviteCodeId?: string
+  inviteCode?: string
+}) {
+  const freshRoster = readJson<Member[]>(MEMBERS_KEY, [])
+  const freshAccounts = readJson<MemberAccount[]>(ACCOUNTS_KEY, [])
+  if (!freshRoster.some((m) => m.id === input.memberId)) {
+    writeJson(MEMBERS_KEY, [...freshRoster, input.newMember])
+  }
+  if (!freshAccounts.some((a) => a.memberId === input.memberId)) {
+    writeJson(ACCOUNTS_KEY, [...freshAccounts, input.account])
+  }
+  const codeNorm = input.inviteCode?.trim().toUpperCase()
+  if (codeNorm || (input.inviteCodeId && input.inviteCodeId !== 'self-register')) {
+    const invites = readJson<InviteCode[]>(INVITES_KEY, [])
+    const nextInvites = invites.map((i) => {
+      const match =
+        (input.inviteCodeId && i.id === input.inviteCodeId) ||
+        (codeNorm && i.code.toUpperCase() === codeNorm)
+      if (!match) return i
+      return { ...i, usedCount: i.usedCount + 1 }
+    })
+    writeJson(INVITES_KEY, nextInvites)
+    if (codeNorm) bumpJoinCodeUse(codeNorm)
+    void publishInviteCodesToCloud(nextInvites)
+  }
+}
+
+function primeChapterIdentityForCloud(input: {
+  orgId: string
+  chapterDesignation: string
+  university: string
+}) {
+  writeJson(STORAGE_KEYS.chapterMeta, {
+    chapterDesignation: input.chapterDesignation,
+    university: input.university,
+    semester: '',
+  })
+  writeJson('chapter-os-selected-org', input.orgId)
+}
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -46,8 +99,18 @@ interface MembersContextValue {
   getMemberById: (id: string) => Member | undefined
   getAccountByUserId: (userId: string) => MemberAccount | undefined
   getAccountByMemberId: (memberId: string) => MemberAccount | undefined
-  validateInvite: (code: string) => { valid: boolean; invite?: InviteCode; error?: string }
-  redeemInvite: (code: string) => InviteCode | null
+  validateInvite: (
+    code: string
+  ) => Promise<{
+    valid: boolean
+    invite?: InviteCode
+    error?: string
+    cloudChapterId?: string
+    orgId?: string
+    chapterDesignation?: string
+    university?: string
+  }>
+  redeemInvite: (code: string) => Promise<InviteCode | null>
   /** Create a general join code (ActiveMember). President assigns roles later. */
   createInvite: (label?: string) => InviteCode
   /** Chapter's main join code (created at founding). */
@@ -64,7 +127,11 @@ interface MembersContextValue {
     chapterDesignation: string
     university: string
     email?: string
-  }) => { memberId: string; account: MemberAccount }
+      /** Chapter resolved from cloud join-code lookup */
+      cloudChapterId?: string
+      /** Redeemed invite code string (for usage sync after cloud hydrate) */
+      inviteCode?: string
+    }) => { memberId: string; account: MemberAccount }
   /** Add a roster member (exec add form). Rejects duplicate emails. */
   addMemberToRoster: (input: {
     firstName: string
@@ -152,6 +219,9 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   const persistInvites = useCallback((next: InviteCode[]) => {
     setInviteCodes(next)
     writeJson(INVITES_KEY, next)
+    if (readJson<ChapterLock | null>(CHAPTER_LOCK_KEY, null)) {
+      void publishInviteCodesToCloud(next)
+    }
   }, [])
 
   const persistAccounts = useCallback((next: MemberAccount[]) => {
@@ -179,36 +249,110 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     [accounts]
   )
 
-  const validateInvite = useCallback(
-    (code: string) => {
-      const normalized = code.trim().toUpperCase()
-      const invite = inviteCodes.find(
-        (i) => i.code.toUpperCase() === normalized && i.active
-      )
-      if (!invite) return { valid: false, error: 'Invalid invite code' }
-      if (invite.maxUses != null && invite.usedCount >= invite.maxUses)
-        return { valid: false, error: 'Invite code has no uses left' }
-      if (invite.expiresAt && new Date(invite.expiresAt) < new Date())
-        return { valid: false, error: 'Invite code expired' }
-      if (invite.code === 'CHAPTER-FOUNDER' && chapterLock)
-        return { valid: false, error: 'Chapter already has a founder' }
-      return { valid: true, invite }
-    },
-    [inviteCodes, chapterLock]
-  )
+  const validateInvite = useCallback(async (code: string) => {
+    const normalized = code.trim().toUpperCase()
+    if (!normalized) return { valid: false as const, error: 'Enter an invite code' }
+
+    // Prefer fresh localStorage (not just React state) so newly founded codes resolve immediately
+    const fresh = readInviteCodes()
+    const local = fresh.find((i) => i.code.toUpperCase() === normalized && i.active)
+    if (local) {
+      if (local.maxUses != null && local.usedCount >= local.maxUses)
+        return { valid: false as const, error: 'Invite code has no uses left' }
+      if (local.expiresAt && new Date(local.expiresAt) < new Date())
+        return { valid: false as const, error: 'Invite code expired' }
+      if (local.code.toUpperCase() === 'CHAPTER-FOUNDER' && chapterLock)
+        return { valid: false as const, error: 'Chapter already has a founder' }
+      // Keep React state in sync if LS had codes state missed
+      if (!inviteCodes.some((i) => i.id === local.id)) {
+        persistInvites(fresh)
+      }
+      return {
+        valid: true as const,
+        invite: local,
+        cloudChapterId: getCachedCloudChapterId() ?? undefined,
+        orgId: chapterLock?.orgId,
+        chapterDesignation: chapterLock?.chapterDesignation,
+        university: chapterLock?.university,
+      }
+    }
+
+    // Lock stores the primary code string even if invite row was lost
+    if (
+      chapterLock?.primaryJoinCode &&
+      chapterLock.primaryJoinCode.toUpperCase() === normalized
+    ) {
+      const recovered: InviteCode = {
+        id: chapterLock.primaryJoinCodeId ?? uid('inv'),
+        code: chapterLock.primaryJoinCode.toUpperCase(),
+        label: `${chapterLock.chapterDesignation || 'Chapter'} join code`,
+        role: 'ActiveMember',
+        createdBy: 'recovered',
+        createdAt: new Date().toISOString(),
+        maxUses: null,
+        usedCount: 0,
+        active: true,
+        isPrimary: true,
+      }
+      publishJoinCode(recovered, {
+        chapterDesignation: chapterLock.chapterDesignation,
+        university: chapterLock.university,
+        orgId: chapterLock.orgId,
+      })
+      persistInvites([recovered, ...fresh.filter((i) => i.code.toUpperCase() !== normalized)])
+      return {
+        valid: true as const,
+        invite: recovered,
+        cloudChapterId: getCachedCloudChapterId() ?? undefined,
+        orgId: chapterLock.orgId,
+        chapterDesignation: chapterLock.chapterDesignation,
+        university: chapterLock.university,
+      }
+    }
+
+    if (normalized === 'CHAPTER-FOUNDER' && chapterLock) {
+      return { valid: false as const, error: 'Chapter already has a founder' }
+    }
+
+    const resolved = await resolveJoinCode(normalized)
+    if (!resolved) return { valid: false as const, error: 'Invalid invite code' }
+
+    if (resolved.invite.code.toUpperCase() === 'CHAPTER-FOUNDER' && chapterLock) {
+      return { valid: false as const, error: 'Chapter already has a founder' }
+    }
+
+    // Merge cloud/registry invite into local list for redeem
+    const merged = [
+      resolved.invite,
+      ...fresh.filter((i) => i.code.toUpperCase() !== normalized),
+    ]
+    persistInvites(merged)
+
+    return {
+      valid: true as const,
+      invite: resolved.invite,
+      cloudChapterId: resolved.cloudChapterId,
+      orgId: resolved.orgId,
+      chapterDesignation: resolved.chapterDesignation,
+      university: resolved.university,
+    }
+  }, [chapterLock, inviteCodes, persistInvites])
 
   const redeemInvite = useCallback(
-    (code: string) => {
-      const result = validateInvite(code)
+    async (code: string) => {
+      const result = await validateInvite(code)
       if (!result.valid || !result.invite) return null
       const invite = result.invite
-      const next = inviteCodes.map((i) =>
-        i.id === invite.id ? { ...i, usedCount: i.usedCount + 1 } : i
+      const next = readInviteCodes().map((i) =>
+        i.id === invite.id || i.code.toUpperCase() === invite.code.toUpperCase()
+          ? { ...i, usedCount: i.usedCount + 1 }
+          : i
       )
       persistInvites(next)
+      bumpJoinCodeUse(invite.code)
       return invite
     },
-    [inviteCodes, validateInvite, persistInvites]
+    [validateInvite, persistInvites]
   )
 
   const createInvite = useCallback(
@@ -225,9 +369,15 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         active: true,
       }
       persistInvites([invite, ...inviteCodes])
+      publishJoinCode(invite, {
+        chapterDesignation: chapterLock?.chapterDesignation,
+        university: chapterLock?.university,
+        orgId: chapterLock?.orgId,
+      })
+      // Extra codes stay local/registry; only the primary code is stored on chapters.join_code
       return invite
     },
-    [inviteCodes, persistInvites]
+    [inviteCodes, persistInvites, chapterLock]
   )
 
   const primaryJoinCode = useMemo(() => {
@@ -235,12 +385,59 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       const byId = inviteCodes.find((i) => i.id === chapterLock.primaryJoinCodeId && i.active)
       if (byId) return byId
     }
+    if (chapterLock?.primaryJoinCode) {
+      const byCode = inviteCodes.find(
+        (i) => i.code.toUpperCase() === chapterLock.primaryJoinCode!.toUpperCase() && i.active
+      )
+      if (byCode) return byCode
+    }
     return inviteCodes.find((i) => i.isPrimary && i.active) ?? null
   }, [chapterLock, inviteCodes])
 
   const ensurePrimaryJoinCode = useCallback(() => {
     if (!chapterLock) return null
-    if (primaryJoinCode) return primaryJoinCode
+    if (primaryJoinCode) {
+      publishJoinCode(primaryJoinCode, {
+        chapterDesignation: chapterLock.chapterDesignation,
+        university: chapterLock.university,
+        orgId: chapterLock.orgId,
+      })
+      void publishInviteCodesToCloud(inviteCodes)
+      if (!chapterLock.primaryJoinCode || chapterLock.primaryJoinCodeId !== primaryJoinCode.id) {
+        const nextLock: ChapterLock = {
+          ...chapterLock,
+          primaryJoinCodeId: primaryJoinCode.id,
+          primaryJoinCode: primaryJoinCode.code,
+        }
+        setChapterLock(nextLock)
+        writeJson(CHAPTER_LOCK_KEY, nextLock)
+      }
+      return primaryJoinCode
+    }
+
+    // Reuse any existing active CHAPTER-JOIN-* instead of rotating a new one
+    const existingJoin = inviteCodes.find(
+      (i) => i.active && i.code.toUpperCase().startsWith('CHAPTER-JOIN-')
+    )
+    if (existingJoin) {
+      const marked = { ...existingJoin, isPrimary: true }
+      persistInvites(
+        inviteCodes.map((i) => (i.id === marked.id ? marked : { ...i, isPrimary: false }))
+      )
+      publishJoinCode(marked, {
+        chapterDesignation: chapterLock.chapterDesignation,
+        university: chapterLock.university,
+        orgId: chapterLock.orgId,
+      })
+      const nextLock: ChapterLock = {
+        ...chapterLock,
+        primaryJoinCodeId: marked.id,
+        primaryJoinCode: marked.code,
+      }
+      setChapterLock(nextLock)
+      writeJson(CHAPTER_LOCK_KEY, nextLock)
+      return marked
+    }
 
     const invite: InviteCode = {
       id: uid('inv'),
@@ -255,7 +452,16 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       isPrimary: true,
     }
     persistInvites([invite, ...inviteCodes.filter((i) => !i.isPrimary)])
-    const nextLock: ChapterLock = { ...chapterLock, primaryJoinCodeId: invite.id }
+    publishJoinCode(invite, {
+      chapterDesignation: chapterLock.chapterDesignation,
+      university: chapterLock.university,
+      orgId: chapterLock.orgId,
+    })
+    const nextLock: ChapterLock = {
+      ...chapterLock,
+      primaryJoinCodeId: invite.id,
+      primaryJoinCode: invite.code,
+    }
     setChapterLock(nextLock)
     writeJson(CHAPTER_LOCK_KEY, nextLock)
     void pushLocalChapterToCloud()
@@ -264,11 +470,27 @@ export function MembersProvider({ children }: { children: ReactNode }) {
 
   const toggleInvite = useCallback(
     (id: string) => {
-      persistInvites(
-        inviteCodes.map((i) => (i.id === id ? { ...i, active: !i.active } : i))
-      )
+      const target = inviteCodes.find((i) => i.id === id)
+      if (!target) return
+      const nextActive = !target.active
+      const next = inviteCodes.map((i) => (i.id === id ? { ...i, active: nextActive } : i))
+      persistInvites(next)
+      if (nextActive) {
+        publishJoinCode({ ...target, active: true }, {
+          chapterDesignation: chapterLock?.chapterDesignation,
+          university: chapterLock?.university,
+          orgId: chapterLock?.orgId,
+        })
+      } else {
+        deactivateJoinCode(target.code)
+      }
+      const isPrimary =
+        target.isPrimary ||
+        target.id === chapterLock?.primaryJoinCodeId ||
+        target.code.toUpperCase() === chapterLock?.primaryJoinCode?.toUpperCase()
+      if (isPrimary && !nextActive) void clearJoinCodeFromCloud()
     },
-    [inviteCodes, persistInvites]
+    [inviteCodes, persistInvites, chapterLock]
   )
 
   const lockChapter = useCallback(
@@ -295,6 +517,8 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       chapterDesignation: string
       university: string
       email?: string
+      cloudChapterId?: string
+      inviteCode?: string
     }) => {
       const email = (
         input.email ??
@@ -377,23 +601,88 @@ export function MembersProvider({ children }: { children: ReactNode }) {
               : i
           ),
         ])
+        publishJoinCode(joinInvite, {
+          chapterDesignation: input.chapterDesignation,
+          university: input.university,
+          orgId: input.orgId,
+        })
         lockChapter(
           {
             orgId: input.orgId,
             chapterDesignation: input.chapterDesignation,
             university: input.university,
             primaryJoinCodeId: joinInvite.id,
+            primaryJoinCode: joinInvite.code,
           },
           input.userId
         )
-      }
-
-      if (requiresSupabaseAuth()) {
-        void bootstrapChapterCloud({
-          appMemberId: memberId,
-          role: input.role,
-          isFounder: founding,
-        })
+        void (async () => {
+          primeChapterIdentityForCloud({
+            orgId: input.orgId,
+            chapterDesignation: input.chapterDesignation,
+            university: input.university,
+          })
+          const boot = await bootstrapChapterCloud({
+            appMemberId: memberId,
+            role: input.role,
+            isFounder: true,
+          })
+          if (!boot.ok) {
+            console.warn('[agora] founder cloud bootstrap failed', boot.error)
+          }
+          const syncedInvites = readInviteCodes()
+          const published = await publishInviteCodesToCloud(syncedInvites)
+          if (!published.ok) {
+            console.warn('[agora] publish join codes failed', published.error)
+          }
+          publishJoinCode(joinInvite, {
+            chapterDesignation: input.chapterDesignation,
+            university: input.university,
+            orgId: input.orgId,
+            cloudChapterId: published.chapterId ?? getCachedCloudChapterId() ?? undefined,
+          })
+        })()
+      } else if (input.cloudChapterId) {
+        setCachedCloudChapterId(input.cloudChapterId)
+        primeChapterIdentityForCloud(input)
+        if (requiresSupabaseAuth()) {
+          void (async () => {
+            await linkChapterMembership({
+              chapterId: input.cloudChapterId!,
+              appMemberId: memberId,
+              role: input.role,
+              isFounder: false,
+            })
+            await hydrateFromCloud()
+            mergeJoinerAfterHydrate({
+              memberId,
+              newMember,
+              account,
+              inviteCodeId: input.inviteCodeId,
+              inviteCode:
+                input.inviteCode ??
+                inviteCodes.find((i) => i.id === input.inviteCodeId)?.code,
+            })
+          })()
+        }
+      } else if (requiresSupabaseAuth()) {
+        primeChapterIdentityForCloud(input)
+        void (async () => {
+          await bootstrapChapterCloud({
+            appMemberId: memberId,
+            role: input.role,
+            isFounder: false,
+          })
+          mergeJoinerAfterHydrate({
+            memberId,
+            newMember,
+            account,
+            inviteCodeId: input.inviteCodeId,
+            inviteCode:
+              input.inviteCode ??
+              inviteCodes.find((i) => i.id === input.inviteCodeId)?.code,
+          })
+        })()
       }
 
       return { memberId, account }
@@ -472,15 +761,18 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       if (!prospect.firstName.trim() || !prospect.lastName.trim()) {
         return { ok: false as const, error: 'Prospect needs a name.' }
       }
-      if (email && roster.some((m) => m.email.trim().toLowerCase() === email)) {
+      const memberId = uid('m')
+      const resolvedEmail =
+        email ||
+        `${prospect.firstName.trim().toLowerCase()}.${memberId.slice(-6)}@chapter.local`
+      if (roster.some((m) => m.email.trim().toLowerCase() === resolvedEmail)) {
         return { ok: false as const, error: 'Already on roster.' }
       }
-      const memberId = uid('m')
       const newMember: Member = {
         id: memberId,
         firstName: prospect.firstName.trim(),
         lastName: prospect.lastName.trim(),
-        email: prospect.email?.trim() || `${prospect.firstName.toLowerCase()}@chapter.local`,
+        email: resolvedEmail,
         phone: prospect.phone?.trim() || '',
         major: prospect.major?.trim() || 'Undeclared',
         graduationYear: prospect.graduationYear ?? new Date().getFullYear() + 1,
@@ -599,6 +891,11 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     },
     [roster, persistRoster]
   )
+
+  useEffect(() => {
+    if (!chapterLock || !canSyncToCloud()) return
+    void publishInviteCodesToCloud()
+  }, [chapterLock])
 
   const value = useMemo<MembersContextValue>(
     () => ({

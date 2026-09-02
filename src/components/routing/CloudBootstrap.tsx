@@ -4,6 +4,9 @@ import {
   cloudSyncEnabled,
   hydrateFromCloud,
 } from '../../lib/chapterCloud'
+import { publishInviteCodesToCloud } from '../../lib/joinCodes'
+import { readJson } from '../../lib/persist'
+import type { ChapterLock } from '../../types/memberAccount'
 import { isGuestPreviewActive } from '../../lib/guestPreview'
 import {
   initSupabaseSession,
@@ -45,6 +48,14 @@ export function CloudBootstrap({ children }: { children: ReactNode }) {
         if (!result.ok && result.error) {
           setError(result.error)
         }
+
+        if (readJson<ChapterLock | null>('chapter-os-chapter-lock', null)) {
+          const published = await publishInviteCodesToCloud()
+          if (!published.ok && published.error !== 'cloud sync unavailable') {
+            console.warn('[agora] join code cloud publish', published.error)
+          }
+        }
+
         setReady(true)
       } catch (e) {
         if (!cancelled) {
