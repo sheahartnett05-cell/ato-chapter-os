@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { DEMO_EVENTS as seedEvents } from '../data/mockData'
+import { DEMO_EVENTS as seedEvents } from '../data/demoFixtures'
 import {
   SEED_ATTENDANCE,
   SEED_RSVP_EXCUSES,

@@ -1,20 +1,7 @@
-import { isGuestPreviewActive } from '../lib/guestPreview'
-
-function allowDemoData() {
-  return isGuestPreviewActive()
-}
 import type {
-
   Announcement,
-
   ChapterPosition,
-
   ExecSlide,
-
-  LibraryHoursEntry,
-
-  RsvpExcuse,
-
 } from '../types/features'
 
 const DEMO_ANNOUNCEMENTS: Announcement[] = [
@@ -257,84 +244,5 @@ const DEMO_CHAPTER_POSITIONS: ChapterPosition[] = [
   { id: 'p7', title: 'Social Chair', assignedMemberId: 'm2', isCustom: false },
   { id: 'p8', title: 'Philanthropy Chair', isCustom: false },
 ]
-
-const DEMO_RSVP_EXCUSES: RsvpExcuse[] = [
-  {
-    id: 'ex1',
-    eventId: 'e2',
-    memberId: 'm5',
-    reason: 'Work shift until 8 PM — can send schedule screenshot if needed.',
-    status: 'pending',
-    submittedAt: '2025-08-22T16:00:00',
-  },
-  {
-    id: 'ex2',
-    eventId: 'e1',
-    memberId: 'm6',
-    reason: 'Family emergency out of town.',
-    status: 'approved',
-    submittedAt: '2025-08-18T09:00:00',
-    reviewedBy: 'Marcus Chen',
-    reviewedAt: '2025-08-18T11:00:00',
-  },
-]
-
-const DEMO_LIBRARY_HOURS: LibraryHoursEntry[] = [
-  {
-    id: 'lh1',
-    memberId: 'm5',
-    date: '2025-08-20',
-    hours: 3,
-    location: 'John C. Pace Library',
-    notes: 'Accounting study session',
-    verified: false,
-  },
-  {
-    id: 'lh2',
-    memberId: 'm5',
-    date: '2025-08-18',
-    hours: 2.5,
-    location: 'John C. Pace Library',
-    verified: true,
-  },
-  {
-    id: 'lh3',
-    memberId: 'm6',
-    date: '2025-08-21',
-    hours: 4,
-    location: 'Engineering Building',
-    notes: 'Group project',
-    verified: false,
-  },
-  {
-    id: 'lh4',
-    memberId: 'm2',
-    date: '2025-08-19',
-    hours: 2,
-    location: 'John C. Pace Library',
-    verified: true,
-  },
-]
-
-
-function gateArray<T>(demo: T[]): T[] {
-  return new Proxy([] as T[], {
-    get(_t, prop) {
-      const src = allowDemoData() ? demo : []
-      const v = Reflect.get(src, prop)
-      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(src) : v
-    },
-    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : []),
-    getOwnPropertyDescriptor: (_t, p) =>
-      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : [], p),
-    has: (_t, p) => Reflect.has(allowDemoData() ? demo : [], p),
-  })
-}
-
-export const announcements = gateArray(DEMO_ANNOUNCEMENTS)
-export const execSlides = gateArray(DEMO_EXEC_SLIDES)
-export const chapterPositions = gateArray(DEMO_CHAPTER_POSITIONS)
-export const rsvpExcuses = gateArray(DEMO_RSVP_EXCUSES)
-export const libraryHours = gateArray(DEMO_LIBRARY_HOURS)
 
 export { DEMO_ANNOUNCEMENTS, DEMO_EXEC_SLIDES, DEMO_CHAPTER_POSITIONS }

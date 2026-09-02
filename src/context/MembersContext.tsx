@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { DEMO_MEMBERS as seedMembers } from '../data/mockData'
+import { DEMO_MEMBERS as seedMembers } from '../data/demoFixtures'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import { syncAllMemberDues } from '../lib/duesSync'
 import { syncMemberAttendancePct } from '../lib/attendanceSync'

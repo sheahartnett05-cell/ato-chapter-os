@@ -1,5 +1,5 @@
 import { isGuestPreviewActive, markGuestPreview } from './guestPreview'
-import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/mockData'
+import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/demoFixtures'
 import {
   calendarExtraEvents,
   initialBillHighway,
@@ -17,7 +17,7 @@ import {
   DEMO_HOUSE_TASKS,
 } from '../data/chapterResourcesData'
 import { DEMO_CHAPTER_TABLES } from '../data/chapterTablesData'
-import { DEMO_PROSPECTS, DEMO_PNM_ACTIVITIES } from '../data/mockData'
+import { DEMO_PROSPECTS, DEMO_PNM_ACTIVITIES } from '../data/demoFixtures'
 import { DEMO_ANNOUNCEMENTS as demoPosts, DEMO_CHAPTER_POSITIONS } from '../data/featureData'
 import { SEED_INVITE_CODES } from '../data/inviteData'
 import {

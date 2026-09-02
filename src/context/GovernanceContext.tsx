@@ -74,6 +74,15 @@ function writeChatMessages(next: CommitteeChatMessage[]) {
   writeJson(STORAGE_KEYS.committeeChat, next)
 }
 
+function emptyGovernanceConfig(): GovernanceConfig {
+  return {
+    jBoardChairId: '',
+    jBoardMemberIds: [],
+    casesHiddenFromMembers: false,
+    standardsChairId: '',
+  }
+}
+
 interface GovernanceContextValue {
   viewerId: string
   cases: JBoardCase[]
@@ -130,7 +139,7 @@ export function GovernanceProvider({ children }: { children: ReactNode }) {
     storedGov?.fineSchedule ?? (allowDemoData() ? initialFineSchedule : [])
   )
   const [config, setConfig] = useState<GovernanceConfig>(
-    () => storedGov?.config ?? initialConfig
+    () => storedGov?.config ?? (allowDemoData() ? initialConfig : emptyGovernanceConfig())
   )
 
   const viewerId = CURRENT_EXEC_ID

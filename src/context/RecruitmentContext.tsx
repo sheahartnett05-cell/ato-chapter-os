@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { createContext, useContext } from 'react'
-import { DEMO_PNM_ACTIVITIES, DEMO_PROSPECTS } from '../data/mockData'
+import { DEMO_PNM_ACTIVITIES, DEMO_PROSPECTS } from '../data/demoFixtures'
 import { getRushTemplate, RUSH_FORM_TEMPLATES } from '../data/rushFormTemplates'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import { readJson, writeJson } from '../lib/persist'

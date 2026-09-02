@@ -1,4 +1,4 @@
-import { members } from './mockData'
+import { DEMO_MEMBERS } from './demoFixtures'
 import type {
   Committee,
   CommitteeChatMessage,
@@ -287,7 +287,7 @@ export function isJBoardMember(memberId: string): boolean {
 }
 
 export function isExecMember(memberId: string): boolean {
-  return members.find((m) => m.id === memberId)?.isExec ?? false
+  return DEMO_MEMBERS.find((m) => m.id === memberId)?.isExec ?? false
 }
 
 export function canViewAllCases(viewerId: string): boolean {
