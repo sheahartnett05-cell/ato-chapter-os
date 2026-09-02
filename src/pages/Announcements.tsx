@@ -192,13 +192,13 @@ export default function Announcements() {
         subtitle={`${chapter.nickname} · ${chapter.semester}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex border border-[var(--rule)]">
+            <div className="flex max-w-full overflow-x-auto border border-[var(--rule)]">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                  className={`shrink-0 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                     tab === t.id
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                       : 'text-[var(--muted)]'
@@ -225,7 +225,7 @@ export default function Announcements() {
         }
       />
 
-      <PageShell className="space-y-6">
+      <PageShell className="space-y-6 px-4 sm:px-0">
         {tab === 'templates' && (
           <section>
             <p className="mb-4 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">

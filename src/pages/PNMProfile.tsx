@@ -43,6 +43,14 @@ export default function PNMProfile() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { languagePack } = useChapter()
 
+  const assignableMembers = useMemo(
+    () =>
+      members
+        .filter((m) => m.status === 'Active' || m.status === 'New Member')
+        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+    [members]
+  )
+
   if (!prospect) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -76,14 +84,6 @@ export default function PNMProfile() {
   }
 
   const authorName = `${profile.firstName} ${profile.lastName}`.trim() || 'Officer'
-
-  const assignableMembers = useMemo(
-    () =>
-      members
-        .filter((m) => m.status === 'Active' || m.status === 'New Member')
-        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
-    [members]
-  )
 
   const handleDelete = () => {
     setDeleteOpen(true)

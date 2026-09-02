@@ -287,7 +287,7 @@ export default function ChapterTables() {
                 aria-label="Search table"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-56 rounded-sm border border-black/5 bg-neutral-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-accent/40"
+                className="w-full min-w-0 rounded-sm border border-black/5 bg-neutral-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-accent/40 sm:w-56"
               />
             </div>
             {hasRsvpColumn && (
