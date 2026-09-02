@@ -284,6 +284,7 @@ export default function ChapterTables() {
               <input
                 type="search"
                 placeholder="Search table…"
+                aria-label="Search table"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-56 rounded-sm border border-black/5 bg-neutral-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-accent/40"

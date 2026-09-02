@@ -3,6 +3,7 @@ import { BarChart3, ClipboardList, FileText, Megaphone, Pin, Plus, Pencil, Trash
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PollCard } from '../components/communications/PollCard'
 import { SignupCard } from '../components/communications/SignupCard'
 import { useAuth, usePermissions } from '../context/AuthContext'
@@ -54,6 +55,7 @@ export default function Announcements() {
   const [signupSlots, setSignupSlots] = useState(['', ''])
   const [pinNew, setPinNew] = useState(false)
   const [composerError, setComposerError] = useState('')
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
 
   const canPublish = useMemo(() => {
@@ -307,9 +309,7 @@ export default function Announcements() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (window.confirm('Delete this post permanently?')) deletePost(a.id)
-                            }}
+                            onClick={() => setDeletePostId(a.id)}
                             className="btn-ghost p-1.5 text-red-600"
                             aria-label="Delete"
                           >
@@ -502,6 +502,18 @@ export default function Announcements() {
           </button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletePostId}
+        title="Delete post"
+        message="Delete this post permanently?"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deletePostId) deletePost(deletePostId)
+        }}
+        onCancel={() => setDeletePostId(null)}
+      />
     </>
   )
 }

@@ -17,6 +17,7 @@ export default function BylawsPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [pasteName, setPasteName] = useState('')
   const [pasteContent, setPasteContent] = useState('')
+  const [uploadError, setUploadError] = useState('')
 
   const active = bylaws.find((b) => b.id === activeId) ?? bylaws[0]
 
@@ -44,9 +45,10 @@ export default function BylawsPage() {
   }
 
   const onFile = async (file: File) => {
+    setUploadError('')
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (ext && !['txt', 'md', 'text'].includes(ext)) {
-      alert('Upload .txt or .md files, or paste content below.')
+      setUploadError('Upload .txt or .md files, or paste content below.')
       return
     }
     const text = await file.text()
@@ -155,6 +157,7 @@ export default function BylawsPage() {
                   <input
                     className="input-editorial pl-9 font-mono text-sm"
                     placeholder="Search bylaws…"
+                    aria-label="Search bylaws"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
@@ -181,6 +184,7 @@ export default function BylawsPage() {
 
       <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Import bylaws" size="lg">
         <div className="space-y-3">
+          {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
           <input
             className="input-editorial"
             placeholder="Document name (e.g. Chapter Bylaws 2025)"

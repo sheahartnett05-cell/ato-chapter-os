@@ -17,6 +17,7 @@ import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Modal } from '../components/ui/Modal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useRecruitment } from '../context/RecruitmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
@@ -39,6 +40,7 @@ export default function PNMProfile() {
   const prospect = id ? getProspect(id) : undefined
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [newNote, setNewNote] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const { languagePack } = useChapter()
 
   if (!prospect) {
@@ -84,9 +86,10 @@ export default function PNMProfile() {
   )
 
   const handleDelete = () => {
-    if (!window.confirm(`Remove ${prospect.firstName} ${prospect.lastName} from the pipeline?`)) {
-      return
-    }
+    setDeleteOpen(true)
+  }
+
+  const confirmDelete = () => {
     deleteProspect(prospect.id)
     navigate('/recruitment/pipeline')
   }
@@ -355,6 +358,16 @@ export default function PNMProfile() {
           Save Note
         </button>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Remove prospect"
+        message={`Remove ${prospect.firstName} ${prospect.lastName} from the pipeline?`}
+        confirmLabel="Remove"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </>
   )
 }

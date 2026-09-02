@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { Check, Pencil, Plus, Trash2, Settings2, Users, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterFeatures } from '../context/ChapterFeaturesContext'
@@ -41,6 +42,7 @@ export default function ChapterSetup() {
     university: chapter.university,
   })
   const [metaSaved, setMetaSaved] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
 
   const activeMembers = useMemo(
     () =>
@@ -119,9 +121,14 @@ export default function ChapterSetup() {
   }
 
   const deletePosition = (id: string, title: string) => {
-    if (!window.confirm(`Remove “${title}” from officer positions?`)) return
-    removePosition(id)
-    if (editingId === id) cancelEdit()
+    setDeleteConfirm({ id, title })
+  }
+
+  const confirmDeletePosition = () => {
+    if (!deleteConfirm) return
+    removePosition(deleteConfirm.id)
+    if (editingId === deleteConfirm.id) cancelEdit()
+    setDeleteConfirm(null)
   }
 
   const roleForMember = (id: string): UserRole => {
@@ -492,6 +499,20 @@ export default function ChapterSetup() {
           </p>
         </Section>
       </PageShell>
+
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        title="Remove officer position"
+        message={
+          deleteConfirm
+            ? `Remove “${deleteConfirm.title}” from officer positions?`
+            : ''
+        }
+        confirmLabel="Remove"
+        destructive
+        onConfirm={confirmDeletePosition}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   )
 }

@@ -20,6 +20,7 @@ import { parseJoinCodeFromSearch } from '../lib/joinLinks'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
 import { AgoraMark } from '../components/layout/Logo'
 import { OrgCrest } from '../components/ui/OrgCrest'
+import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../lib/brandCopy'
 
 const ORG_MOTTOS: Record<string, string> = {
   ato: 'Established 1865 · Friendship · Truth',
@@ -30,80 +31,79 @@ const ORG_MOTTOS: Record<string, string> = {
   aka: 'By Culture and By Merit',
 }
 
+const AGORA_PILLARS = ['Roster & recruitment', 'Events & standards', 'Dues & budgets']
+
 function BrandPanel({ org }: { org: NationalOrg | null }) {
   const primary = org?.primaryColor ?? '#1a1a1a'
   const accent = org?.accentColor ?? '#c4a35a'
-  const secondary = org?.secondaryColor ?? '#333'
   const fg = contrastText(primary)
-  const motto = org
+  const subtitle = org
     ? (ORG_MOTTOS[org.id] ?? `${org.orgType} · National Organization`)
-    : 'Built for every chapter'
+    : AGORA_TAGLINE
 
   return (
     <aside
-      className="relative hidden min-h-screen overflow-hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-between"
+      className="relative hidden min-h-screen overflow-hidden lg:flex lg:w-1/2 lg:flex-col"
       style={{ backgroundColor: primary, color: fg }}
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage: `linear-gradient(145deg, ${accent} 0%, transparent 42%), linear-gradient(220deg, ${secondary} 0%, transparent 55%)`,
-        }}
-      />
+      <div className="h-[3px] shrink-0" style={{ backgroundColor: accent }} aria-hidden />
 
-      {/* Centered letter watermark */}
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        aria-hidden
-      >
-        <span
-          className="select-none text-center font-serif font-semibold leading-none tracking-tight opacity-[0.1]"
-          style={{
-            fontSize: 'clamp(6rem, 22vw, 14rem)',
-            transform: 'translateY(0.03em)',
-          }}
-        >
-          {org?.letters ?? 'AG'}
-        </span>
-      </div>
-
-      <div className="relative z-10 p-10 xl:p-14">
-        <div className="flex items-center gap-3">
-          {org ? (
-            <OrgCrest org={org} size={44} />
-          ) : (
-            <AgoraMark size={44} onDark={fg === '#ffffff'} />
-          )}
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-70">Agora</p>
-            {org && (
-              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] opacity-50">
-                {org.letters}
-              </p>
-            )}
-          </div>
+      <div className="relative flex flex-1 flex-col justify-between p-10 xl:p-14">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.04]" aria-hidden>
+          <div
+            className="absolute -right-16 top-1/4 h-64 w-64 rounded-full blur-3xl"
+            style={{ backgroundColor: accent }}
+          />
         </div>
-        <h1 className="mt-10 max-w-sm font-serif text-4xl tracking-tight xl:text-5xl">
-          {org ? org.orgName : 'One home for every chapter.'}
-        </h1>
-        <p className="mt-4 max-w-xs text-sm leading-relaxed opacity-70">{motto}</p>
-      </div>
 
-      <div className="relative z-10 space-y-4 p-10 xl:p-14">
-        {org && (
-          <div className="flex gap-1.5">
-            {[primary, accent, secondary].map((c) => (
-              <span
-                key={c}
-                className="h-1.5 flex-1 rounded-sm border border-white/15"
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-        )}
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-55">
-          {org ? `${org.nickname} · ${org.orgType}` : 'Live brand preview'}
-        </p>
+        <div className="relative z-10">
+          {org ? (
+            <OrgCrest org={org} size={48} />
+          ) : (
+            <AgoraMark size={48} onDark={fg === '#ffffff'} />
+          )}
+        </div>
+
+        <div className="relative z-10 max-w-md">
+          <h1 className="font-serif text-[2.75rem] leading-[1.08] tracking-tight xl:text-5xl">
+            {org ? org.orgName : AGORA_PRODUCT_NAME}
+          </h1>
+          <p className="mt-5 max-w-sm text-base leading-relaxed opacity-80">{subtitle}</p>
+        </div>
+
+        <div className="relative z-10 border-t pt-8" style={{ borderColor: `${fg}18` }}>
+          {org ? (
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <p className="font-serif text-lg tracking-tight">{org.nickname}</p>
+                <p className="mt-1 text-sm opacity-65">{org.orgType}</p>
+              </div>
+              <div className="flex gap-2">
+                {[org.primaryColor, org.accentColor, org.secondaryColor].map((c) => (
+                  <span
+                    key={c}
+                    className="h-8 w-8 rounded-sm border border-white/10"
+                    style={{ backgroundColor: c }}
+                    aria-hidden
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-3">
+              {AGORA_PILLARS.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm leading-snug opacity-75">
+                  <span
+                    className="mt-1.5 h-1 w-1 shrink-0 rounded-full"
+                    style={{ backgroundColor: accent }}
+                    aria-hidden
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </aside>
   )
@@ -415,8 +415,9 @@ export default function Onboarding() {
             {stepKey === 'Start' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="font-serif text-3xl tracking-tight">Welcome to Agora</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                  <h2 className="font-serif text-3xl tracking-tight">{AGORA_PRODUCT_NAME}</h2>
+                  <p className="mt-2 text-sm font-medium text-[var(--ink)]">{AGORA_TAGLINE}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
                     Join with an invite from your chapter, or create a profile to get started.
                   </p>
                 </div>
@@ -836,6 +837,7 @@ export default function Onboarding() {
                     value={orgQuery}
                     onChange={(e) => setOrgQuery(e.target.value)}
                     placeholder="Search by name or letters…"
+                    aria-label="Search organizations by name or letters"
                     className="input-editorial pl-10"
                     autoComplete="off"
                   />

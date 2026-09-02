@@ -104,6 +104,7 @@ export default function MemberManagement() {
             <input
               type="search"
               placeholder="Search members…"
+              aria-label="Search members"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-64 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"

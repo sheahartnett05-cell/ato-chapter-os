@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { ExternalLink, Users } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
+import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
 import { Modal } from '../components/ui/Modal'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
@@ -183,6 +184,7 @@ export default function LibraryHoursPage() {
       />
 
       <PageShell className="space-y-8">
+        <PersistErrorNotice />
         <div className="ledger-bar grid-cols-2 lg:grid-cols-4">
           <div className="ledger-cell">
             <p className="font-serif text-3xl tracking-tight">

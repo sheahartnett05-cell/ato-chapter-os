@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { InviteCodesPanel } from '../components/settings/InviteCodesPanel'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { useGovernance } from '../context/GovernanceContext'
@@ -306,6 +307,7 @@ function AdminPanel() {
   const { resetOnboarding } = useAuth()
   const { chapter } = useChapter()
   const [wiping, setWiping] = useState(false)
+  const [wipeConfirmOpen, setWipeConfirmOpen] = useState(false)
 
   const rerunOnboarding = () => {
     resetOnboarding()
@@ -314,13 +316,6 @@ function AdminPanel() {
   }
 
   const wipeEverything = async () => {
-    if (
-      !window.confirm(
-        'Wipe this browser’s chapter data and leave cloud test memberships? You will start onboarding again.'
-      )
-    ) {
-      return
-    }
     setWiping(true)
     try {
       const { wipeLocalAndLeaveCloudChapters } = await import('../lib/chapterCloud')
@@ -329,6 +324,7 @@ function AdminPanel() {
       window.location.assign('/onboarding')
     } finally {
       setWiping(false)
+      setWipeConfirmOpen(false)
     }
   }
 
@@ -371,7 +367,7 @@ function AdminPanel() {
           <button
             type="button"
             disabled={wiping}
-            onClick={() => void wipeEverything()}
+            onClick={() => setWipeConfirmOpen(true)}
             className="rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800"
           >
             {wiping ? 'Wiping…' : 'Wipe test chapter data'}
@@ -402,6 +398,16 @@ function AdminPanel() {
           Brand colors follow the national org selected at onboarding
         </p>
       </div>
+
+      <ConfirmDialog
+        open={wipeConfirmOpen}
+        title="Wipe chapter data"
+        message="Wipe this browser's chapter data and leave cloud test memberships? You will start onboarding again."
+        confirmLabel="Wipe data"
+        destructive
+        onConfirm={() => void wipeEverything()}
+        onCancel={() => setWipeConfirmOpen(false)}
+      />
     </div>
   )
 }

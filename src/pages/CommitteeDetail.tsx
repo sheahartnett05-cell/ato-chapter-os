@@ -347,6 +347,7 @@ export default function CommitteeDetail() {
             value={memberSearch}
             onChange={(e) => setMemberSearch(e.target.value)}
             placeholder="Search roster…"
+            aria-label="Search roster"
             className="w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
           />
           <select

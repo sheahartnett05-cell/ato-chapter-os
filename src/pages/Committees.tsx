@@ -350,11 +350,15 @@ export default function Committees() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-neutral-500">Members</label>
+            <label htmlFor="committee-member-search" className="text-xs font-medium text-neutral-500">
+              Members
+            </label>
             <input
+              id="committee-member-search"
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
               placeholder="Search members…"
+              aria-label="Search members"
               className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
             />
             <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-sm border border-black/5 bg-white p-2">

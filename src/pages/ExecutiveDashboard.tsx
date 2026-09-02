@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Megaphone, BookOpen, Settings, ClipboardCheck } from 'lucide-react'
 import { PageShell } from '../components/ui/Section'
+import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
 import { useChapter } from '../context/ChapterContext'
 import { useAuth } from '../context/AuthContext'
 import { useCommunications } from '../context/CommunicationsContext'
@@ -71,6 +72,7 @@ export default function ExecutiveDashboard() {
 
   return (
     <PageShell className="space-y-0 py-8">
+      <PersistErrorNotice />
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule)] pb-6">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
