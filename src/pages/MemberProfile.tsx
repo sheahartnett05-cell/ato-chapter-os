@@ -135,7 +135,7 @@ export default function MemberProfile() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center sm:gap-6">
+            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-3 sm:gap-6">
               <div>
                 <p className="text-2xl font-bold text-navy">{member.attendancePct}%</p>
                 <p className="text-xs text-slate-500">Attendance</p>
@@ -224,6 +224,7 @@ export default function MemberProfile() {
                 No attendance recorded yet.
               </p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
@@ -252,6 +253,7 @@ export default function MemberProfile() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
         )}
@@ -335,6 +337,7 @@ export default function MemberProfile() {
             {attendanceRows.filter((r) => r.pts > 0).length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-slate-500">No points earned yet.</p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase text-slate-500">
@@ -357,6 +360,7 @@ export default function MemberProfile() {
                     ))}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
         )}

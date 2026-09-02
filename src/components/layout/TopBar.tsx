@@ -45,7 +45,7 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
           </div>
           <button
             type="button"
-            className="relative border border-[var(--rule)] p-2 text-[var(--ink)] transition hover:bg-black/[0.03]"
+            className="relative min-h-11 min-w-11 border border-[var(--rule)] p-2.5 text-[var(--ink)] transition hover:bg-black/[0.03]"
             aria-label="Notifications"
           >
             <Bell size={16} strokeWidth={1.5} />

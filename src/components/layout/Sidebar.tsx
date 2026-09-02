@@ -1,4 +1,5 @@
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -18,6 +19,7 @@ import {
   Home,
   ScrollText,
   DollarSign,
+  X,
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { MemberAvatar } from '../ui/MemberAvatar'
@@ -142,13 +144,24 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function Sidebar() {
+export function Sidebar({
+  mobileOpen = false,
+  onMobileClose,
+}: {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}) {
   const { chapter, languagePack } = useChapter()
   const { profile, role } = useAuth()
   const permissions = usePermissions()
   const features = useChapterFeaturesOptional()
   const isFeatureEnabled = features?.isFeatureEnabled ?? (() => true)
   const { moduleName } = useStandardsModuleConfig()
+  const location = useLocation()
+
+  useEffect(() => {
+    onMobileClose?.()
+  }, [location.pathname, onMobileClose])
 
   const featureOk = (feature?: ChapterFeatureId) => !feature || isFeatureEnabled(feature)
   const visibleMain = mainNav.filter(
@@ -164,12 +177,24 @@ export function Sidebar() {
   const showRecruitment = permissions.canManageRecruitment && isFeatureEnabled('recruitment')
   const displayName = `${profile.firstName} ${profile.lastName}`.trim() || 'Member'
 
-  return (
-    <aside className="theme-sidebar flex h-full w-56 shrink-0 flex-col">
+  const navBody = (
+    <>
       <div className="theme-stripe shrink-0" />
 
       <div className="border-b border-white/10 px-4 py-5">
-        <Logo onDark />
+        <div className="flex items-start justify-between gap-2">
+          <Logo onDark />
+          {onMobileClose && (
+            <button
+              type="button"
+              onClick={onMobileClose}
+              className="-mr-1 rounded-sm p-2.5 text-white/60 hover:bg-white/10 hover:text-white md:hidden"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
         <div className="mt-4 flex gap-px">
           {[chapter.primaryColor, chapter.accentColor, chapter.secondaryColor].map((c) => (
             <span key={c} className="h-0.5 flex-1" style={{ backgroundColor: c }} />
@@ -268,6 +293,26 @@ export function Sidebar() {
           </div>
         </Link>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <aside className="theme-sidebar hidden h-full w-56 shrink-0 flex-col md:flex">{navBody}</aside>
+
+      {mobileOpen && onMobileClose && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={onMobileClose}
+            aria-label="Close menu backdrop"
+          />
+          <aside className="theme-sidebar fixed inset-y-0 left-0 z-50 flex w-56 max-w-[85vw] flex-col md:hidden">
+            {navBody}
+          </aside>
+        </>
+      )}
+    </>
   )
 }

@@ -22,7 +22,8 @@ import { GripVertical, Plus, Star } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { AddProspectModal } from '../components/recruitment/AddProspectModal'
-import { PIPELINE_STAGES } from '../data/mockData'
+import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
+import { PIPELINE_STAGES } from '../data/pipelineStages'
 import { useRecruitment } from '../context/RecruitmentContext'
 import type { PipelineStage, Prospect } from '../types'
 import { useChapter } from '../context/ChapterContext'
@@ -51,7 +52,8 @@ function ProspectCard({ prospect, isOverlay }: { prospect: Prospect; isOverlay?:
           type="button"
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab text-neutral-300 hover:text-neutral-500 active:cursor-grabbing"
+          className="-ml-1 mt-0.5 flex min-h-11 min-w-11 shrink-0 cursor-grab items-center justify-center text-neutral-300 hover:text-neutral-500 active:cursor-grabbing"
+          aria-label={`Drag ${prospect.firstName} ${prospect.lastName}`}
         >
           <GripVertical size={14} />
         </button>
@@ -100,7 +102,7 @@ function PipelineColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-neutral-50/60 transition ${
+      className={`flex w-full shrink-0 flex-col rounded-xl border bg-neutral-50/60 transition md:w-72 ${
         isOver ? 'border-accent bg-accent/5' : 'border-black/5'
       }`}
     >
@@ -136,6 +138,7 @@ export default function RecruitmentPipeline() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [promoteError, setPromoteError] = useState('')
+  const [mobileStage, setMobileStage] = useState<PipelineStage>(PIPELINE_STAGES[0])
 
   const activeProspects = useMemo(() => prospects.filter((p) => !p.archived), [prospects])
 
@@ -218,7 +221,8 @@ export default function RecruitmentPipeline() {
         }
       />
 
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-8">
+        <PersistErrorNotice />
         {promoteError && (
           <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             Could not add to roster: {promoteError}
@@ -240,7 +244,29 @@ export default function RecruitmentPipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="md:hidden">
+            <label htmlFor="pipeline-stage" className="mb-2 block text-xs font-medium text-neutral-600">
+              Stage
+            </label>
+            <select
+              id="pipeline-stage"
+              value={mobileStage}
+              onChange={(e) => setMobileStage(e.target.value as PipelineStage)}
+              className="input-editorial mb-4 w-full"
+            >
+              {PIPELINE_STAGES.map((stage) => {
+                const count = activeProspects.filter((p) => p.status === stage).length
+                return (
+                  <option key={stage} value={stage}>
+                    {stage} ({count})
+                  </option>
+                )
+              })}
+            </select>
+            <PipelineColumn stage={mobileStage} prospects={activeProspects} />
+          </div>
+
+          <div className="hidden gap-4 overflow-x-auto pb-4 md:flex">
             {PIPELINE_STAGES.map((stage) => (
               <PipelineColumn key={stage} stage={stage} prospects={activeProspects} />
             ))}

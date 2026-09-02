@@ -35,13 +35,13 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
           <button
             type="button"
             onClick={onClose}
-            className="rounded-sm p-1.5 text-[var(--muted)] transition hover:bg-black/[0.04] hover:text-[var(--ink)]"
+            className="-m-1 rounded-sm p-2.5 text-[var(--muted)] transition hover:bg-black/[0.04] hover:text-[var(--ink)]"
             aria-label="Close"
           >
             <X size={18} />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="max-h-[85vh] overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   )

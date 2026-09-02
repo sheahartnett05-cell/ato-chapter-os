@@ -14,6 +14,7 @@ import {
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
 import {
@@ -214,7 +215,9 @@ export default function CalendarPage() {
 
   const todayIso = localTodayIso()
   const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(localTodayIso())))
-  const [view, setView] = useState<ViewMode>('month')
+  const [view, setView] = useState<ViewMode>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'agenda' : 'month'
+  )
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
   const [eventModalId, setEventModalId] = useState<string | null>(null)
@@ -415,6 +418,7 @@ export default function CalendarPage() {
       />
 
       <PageShell className="space-y-6">
+        <PersistErrorNotice />
         <ColorLegend />
 
         {view === 'month' ? (
@@ -422,17 +426,19 @@ export default function CalendarPage() {
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <button
                 type="button"
-                className="btn-ghost px-2 py-1"
+                className="btn-ghost min-h-11 min-w-11 px-2 py-1"
+                aria-label="Previous month"
                 onClick={() =>
                   setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
                 }
               >
                 <ChevronLeft size={16} />
               </button>
-              <h2 className="font-serif text-2xl tracking-tight">{monthLabel(cursor)}</h2>
+              <h2 className="font-serif text-xl tracking-tight sm:text-2xl">{monthLabel(cursor)}</h2>
               <button
                 type="button"
-                className="btn-ghost px-2 py-1"
+                className="btn-ghost min-h-11 min-w-11 px-2 py-1"
+                aria-label="Next month"
                 onClick={() =>
                   setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
                 }
@@ -467,7 +473,7 @@ export default function CalendarPage() {
                         pickDate(cell.iso)
                       }
                     }}
-                    className={`min-h-[88px] border-b border-r border-[var(--rule)] p-1.5 text-left align-top transition ${
+                    className={`min-h-[52px] border-b border-r border-[var(--rule)] p-1 text-left align-top transition sm:min-h-[88px] sm:p-1.5 ${
                       !cell.date
                         ? 'bg-black/[0.02]'
                         : isSelected
@@ -486,7 +492,7 @@ export default function CalendarPage() {
                         >
                           {cell.date.getDate()}
                         </span>
-                        <ul className="mt-1 space-y-0.5">
+                        <ul className="mt-1 hidden space-y-0.5 sm:block">
                           {dayEvents.slice(0, 3).map((e) => {
                             const color = eventTypeColor(e.type)
                             const active = eventModalId === e.id
@@ -512,6 +518,23 @@ export default function CalendarPage() {
                             </li>
                           )}
                         </ul>
+                        {dayEvents.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
+                            {dayEvents.slice(0, 4).map((e) => (
+                              <span
+                                key={e.id}
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: eventTypeColor(e.type) }}
+                                title={e.name}
+                              />
+                            ))}
+                            {dayEvents.length > 4 && (
+                              <span className="font-mono text-[8px] text-[var(--muted)]">
+                                +{dayEvents.length - 4}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

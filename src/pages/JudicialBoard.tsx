@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Scale, DollarSign, Calendar, Plus, Settings2 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
+import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
 import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { usePermissions } from '../context/AuthContext'
@@ -133,6 +134,7 @@ export default function JudicialBoard() {
       />
 
       <PageShell className="space-y-4">
+        <PersistErrorNotice />
         {canConfigure && !configured && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--rule)] bg-neutral-50 px-4 py-3">
             <p className="text-sm text-[var(--ink)]">
@@ -165,7 +167,7 @@ export default function JudicialBoard() {
 
         {tab === 'overview' && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
               <div className="flex items-center gap-2">
                 <Scale size={14} className="text-[var(--accent)]" />
                 <div>
