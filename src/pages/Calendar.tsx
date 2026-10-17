@@ -1,5 +1,5 @@
-import { useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,6 +21,7 @@ import {
   EVENT_TYPE_COLORS,
   eventTypeColor,
 } from '../lib/eventColors'
+import { stashNewEventForFormCreate } from '../lib/formCreateDraft'
 import type { Event } from '../types'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -211,6 +212,9 @@ export default function CalendarPage() {
   const { events, updateEventPoints, addEvent } = useChapterOps()
   const permissions = usePermissions()
   const canEditPoints = permissions.canEditEventPoints
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fromFormCreate = searchParams.get('from') === 'form-create'
 
   const todayIso = DEMO_TODAY
   const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(DEMO_TODAY)))
@@ -221,6 +225,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [pointsDraft, setPointsDraft] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
+  const [returnToFormsAfterCreate, setReturnToFormsAfterCreate] = useState(false)
   const [newEvent, setNewEvent] = useState({
     name: '',
     type: 'Chapter',
@@ -232,6 +237,21 @@ export default function CalendarPage() {
     required: false,
     rsvpRequired: true,
   })
+
+  useEffect(() => {
+    const focusId = searchParams.get('event')
+    if (focusId) {
+      navigate(`/events/${focusId}`, { replace: true })
+    }
+  }, [navigate, searchParams])
+
+  useEffect(() => {
+    if (!fromFormCreate) return
+    setReturnToFormsAfterCreate(true)
+    setCreateOpen(true)
+    setNewEvent((prev) => ({ ...prev, date: prev.date || todayIso }))
+    setSearchParams({}, { replace: true })
+  }, [fromFormCreate, setSearchParams, todayIso])
 
   const sortedEvents = useMemo(
     () =>
@@ -333,6 +353,23 @@ export default function CalendarPage() {
       guestAllowed: false,
     })
     setCreateOpen(false)
+    if (returnToFormsAfterCreate) {
+      setReturnToFormsAfterCreate(false)
+      stashNewEventForFormCreate(id)
+      navigate('/tables')
+      setNewEvent({
+        name: '',
+        type: 'Chapter',
+        date: '',
+        time: '7:00 PM',
+        location: '',
+        description: '',
+        points: 5,
+        required: false,
+        rsvpRequired: true,
+      })
+      return
+    }
     setSelectedDate(newEvent.date)
     setEventModalId(id)
     setDayModalDate(null)

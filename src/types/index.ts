@@ -157,7 +157,8 @@ export interface ChapterTableForm {
   id: string
   name: string
   description: string
-  eventId: string
+  /** Omitted when the form is not tied to a calendar event */
+  eventId?: string
   templateId: string
   formKind: FormKind
   columns: TableColumn[]

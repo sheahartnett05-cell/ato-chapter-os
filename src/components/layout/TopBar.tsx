@@ -1,5 +1,7 @@
-import { Bell, Search } from 'lucide-react'
+import { Bell, ChevronLeft, Search } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { usePermissions } from '../../context/AuthContext'
 import { Logo } from './Logo'
 
 interface TopBarProps {
@@ -12,11 +14,21 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
   const [search, setSearch] = useState('')
+  const { isMemberView } = usePermissions()
 
   return (
     <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
       <div className="flex items-center justify-between gap-4 px-6 py-5 lg:px-10">
         <div className="flex min-w-0 items-center gap-3">
+          {isMemberView && (
+            <Link
+              to="/my-dashboard"
+              className="mr-1 flex shrink-0 items-center gap-1 rounded-full border border-[var(--rule)] bg-[var(--surface-tint)] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition hover:border-[var(--ink)] hover:text-[var(--ink)]"
+            >
+              <ChevronLeft size={14} />
+              Chapter Room
+            </Link>
+          )}
           {showBrand && (
             <div className="hidden sm:block">
               <Logo compact onDark={false} />

@@ -34,7 +34,6 @@ const mainNav = [
     to: '/announcements',
     label: 'Announcements',
     icon: Megaphone,
-    perm: 'canPostAnnouncements' as const,
     feature: 'announcements' as const,
   },
   {

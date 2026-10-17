@@ -11,6 +11,7 @@ import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import { writeJson } from '../lib/persist'
 import type { ChapterPosition } from '../types/features'
 import type { UserRole } from '../types/permissions'
+import { inferFunctionFromTitle } from '../lib/officerFunctions'
 
 const STORAGE_KEY = STORAGE_KEYS.positions
 
@@ -48,20 +49,25 @@ export const DEFAULT_POSITIONS: ChapterPosition[] = [
   { id: 'pos-philanthropy', title: 'Philanthropy Chair', isCustom: false },
 ]
 
+function withFunction(p: ChapterPosition): ChapterPosition {
+  if (p.function) return p
+  return { ...p, function: inferFunctionFromTitle(p.title) }
+}
+
 function readPositions(): ChapterPosition[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as ChapterPosition[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(withFunction)
     }
   } catch {
     /* ignore */
   }
   if (allowDemoData()) {
-    return DEMO_CHAPTER_POSITIONS.map((p) => ({ ...p }))
+    return DEMO_CHAPTER_POSITIONS.map((p) => withFunction({ ...p }))
   }
-  return DEFAULT_POSITIONS.map((p) => ({ ...p }))
+  return DEFAULT_POSITIONS.map((p) => withFunction({ ...p }))
 }
 
 function writePositions(positions: ChapterPosition[]) {
@@ -101,6 +107,7 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
           title: trimmed,
           description,
           isCustom: true,
+          function: inferFunctionFromTitle(trimmed),
         },
       ])
     },

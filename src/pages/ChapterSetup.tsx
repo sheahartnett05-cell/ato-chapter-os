@@ -10,6 +10,8 @@ import {
   roleFromPositionTitle,
   useChapterPositions,
 } from '../context/ChapterPositionsContext'
+import { OFFICER_FUNCTIONS, officerFunctionLabel, type OfficerFunction } from '../types/officerFunction'
+import { inferFunctionFromTitle } from '../lib/officerFunctions'
 import { useMembers } from '../context/MembersContext'
 import { ONBOARDING_ROLES, roleLabel, type UserRole } from '../types/permissions'
 import type { EditorCapabilityId } from '../types/chapterFeatures'
@@ -25,6 +27,8 @@ export default function ChapterSetup() {
     setFeatureEnabled,
     getEditors,
     toggleEditor,
+    announcementsOfficersOnly,
+    setAnnouncementsOfficersOnly,
   } = useChapterFeatures()
   const { members, accounts, assignMemberRole } = useMembers()
   const { memberId, updateRole, role } = useAuth()
@@ -273,6 +277,26 @@ export default function ChapterSetup() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {!isEditing && (
+                        <>
+                        <select
+                          value={
+                            pos.function ??
+                            inferFunctionFromTitle(pos.title, chapter.id)
+                          }
+                          onChange={(e) =>
+                            updatePosition(pos.id, {
+                              function: e.target.value as OfficerFunction,
+                            })
+                          }
+                          className="min-w-[140px] rounded-sm border border-black/5 bg-white px-2 py-2 font-mono text-[10px] uppercase tracking-wide outline-none focus:border-accent/40"
+                          aria-label={`Function for ${pos.title}`}
+                        >
+                          {OFFICER_FUNCTIONS.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {officerFunctionLabel(fn)}
+                            </option>
+                          ))}
+                        </select>
                         <select
                           value={pos.assignedMemberId ?? ''}
                           onChange={(e) => onAssignSeat(pos.id, pos.title, e.target.value)}
@@ -285,6 +309,7 @@ export default function ChapterSetup() {
                             </option>
                           ))}
                         </select>
+                        </>
                       )}
                       {isEditing ? (
                         <>
@@ -368,6 +393,39 @@ export default function ChapterSetup() {
                 </li>
               )
             })}
+          </ul>
+        </Section>
+
+        <Section
+          title="Chapter policies"
+          subtitle="Optional restrictions — defaults keep tools open to all members"
+        >
+          <ul className="divide-y divide-black/5 rounded-2xl border border-black/5">
+            <li className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="font-semibold text-neutral-900">Officers-only announcements</p>
+                <p className="text-xs text-neutral-500">
+                  When on, only officers and assigned announcement editors can post. When off, any
+                  member can create posts, polls, and sign-ups.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={announcementsOfficersOnly}
+                disabled={!isFeatureEnabled('announcements')}
+                onClick={() => setAnnouncementsOfficersOnly(!announcementsOfficersOnly)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40 ${
+                  announcementsOfficersOnly ? 'bg-accent' : 'bg-neutral-200'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+                    announcementsOfficersOnly ? 'left-5' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </li>
           </ul>
         </Section>
 

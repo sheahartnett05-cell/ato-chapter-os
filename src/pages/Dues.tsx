@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ExternalLink, Plus } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
@@ -9,6 +10,8 @@ import { useMembers } from '../context/MembersContext'
 import { parsePositiveAmount } from '../lib/formUtils'
 
 export default function DuesPage() {
+  const [searchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status')
   const {
     duesCharges,
     duesPayments,
@@ -34,17 +37,18 @@ export default function DuesPage() {
     semester: 'Fall 2025',
   })
 
-  const roster = useMemo(
-    () =>
-      members
-        .filter((m) => m.status === 'Active' || m.status === 'New Member')
-        .map((m) => ({
-          member: m,
-          balance: memberDuesBalance(m.id),
-        }))
-        .sort((a, b) => b.balance - a.balance),
-    [memberDuesBalance, members]
-  )
+  const roster = useMemo(() => {
+    let list = members
+      .filter((m) => m.status === 'Active' || m.status === 'New Member')
+      .map((m) => ({
+        member: m,
+        balance: memberDuesBalance(m.id),
+      }))
+    if (statusFilter === 'unpaid') {
+      list = list.filter((r) => r.balance > 0)
+    }
+    return list.sort((a, b) => b.balance - a.balance)
+  }, [memberDuesBalance, members, statusFilter])
 
   const totals = useMemo(() => {
     const billed = duesCharges.reduce((s, c) => s + c.amount * (c.assignedMemberIds.length || roster.length), 0)

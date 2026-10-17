@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useEffect } from 'react'
-import { ArrowRight, Eye, Shield, Smartphone } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, Eye, Shield, Smartphone, ChevronLeft } from 'lucide-react'
 import { AgoraMark } from '../components/layout/Logo'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
@@ -8,11 +8,14 @@ import { getOrCreateUserId } from '../context/MembersContext'
 import {
   GUEST_CHAPTER,
   GUEST_PRESETS,
+  GUEST_EXEC_FUNCTION_PRESETS,
   isGuestPreviewActive,
   markGuestPreview,
+  type GuestExecFunctionPreset,
   type GuestPreviewMode,
 } from '../lib/guestPreview'
 import { clearDemoData, seedGuestDemo, backupRealSession } from '../lib/demoSeed'
+import { writeActiveDashboardFunction } from '../lib/dashboard/resolveDashboard'
 import { contrastText } from '../lib/themeUtils'
 import { defaultHomePath } from '../lib/onboardingStorage'
 
@@ -23,6 +26,7 @@ import { defaultHomePath } from '../lib/onboardingStorage'
 export default function GuestLogin() {
   const { completeOnboarding, isOnboarded, onboarding } = useAuth()
   const { setSelectedOrg, setChapterMeta } = useChapter()
+  const [execPickerOpen, setExecPickerOpen] = useState(false)
 
   useEffect(() => {
     setSelectedOrg('agora')
@@ -32,14 +36,16 @@ export default function GuestLogin() {
   const inGuestSession = isOnboarded && (onboarding?.isGuest === true || isGuestPreviewActive())
   const inRealSession = isOnboarded && !inGuestSession
 
-  const enter = (mode: GuestPreviewMode) => {
+  const finishGuestSession = (
+    mode: GuestPreviewMode,
+    memberId: string,
+    role: (typeof GUEST_PRESETS)['exec']['role'],
+    profile: (typeof GUEST_PRESETS)['exec']['profile']
+  ) => {
     const preset = GUEST_PRESETS[mode]
     const userId = getOrCreateUserId()
     const { orgId, chapterDesignation, university } = GUEST_CHAPTER
-    // Demo roster identities (not a fresh empty register)
-    const memberId = mode === 'exec' ? 'm1' : 'm5'
 
-    // Preserve real chapter data before seeding demo
     backupRealSession()
     clearDemoData()
     markGuestPreview(true)
@@ -51,17 +57,16 @@ export default function GuestLogin() {
       /* storage unavailable */
     }
 
-    // Link this browser user to a seeded demo member without wiping the roster
     try {
       const accountsKey = 'chapter-os-member-accounts'
       const lockKey = 'chapter-os-chapter-lock'
       const accounts = [
         {
-          id: `acct-guest-${mode}`,
+          id: `acct-guest-${mode}-${memberId}`,
           userId,
           memberId,
-          profile: preset.profile,
-          role: preset.role,
+          profile,
+          role,
           email: `guest.${mode}@agora.preview`,
           inviteCodeId: `guest-${mode}`,
           joinedAt: new Date().toISOString(),
@@ -87,19 +92,34 @@ export default function GuestLogin() {
     setSelectedOrg(orgId)
     setChapterMeta({ chapterDesignation, university })
     completeOnboarding({
-      profile: preset.profile,
+      profile,
       orgId,
       chapterDesignation,
       university,
-      role: preset.role,
+      role,
       memberId,
       userId,
       inviteCodeId: `guest-${mode}`,
       isGuest: true,
     })
 
-    // Full reload so providers remount with guest flag + seeded storage
     window.location.assign(preset.home)
+  }
+
+  const enterMember = () => {
+    const preset = GUEST_PRESETS.member
+    finishGuestSession('member', 'm5', preset.role, preset.profile)
+  }
+
+  const enterExec = (execPreset: GuestExecFunctionPreset) => {
+    writeActiveDashboardFunction(execPreset.function)
+    const base = GUEST_PRESETS.exec
+    finishGuestSession('exec', execPreset.memberId, execPreset.role, {
+      ...base.profile,
+      firstName: 'Guest',
+      lastName: execPreset.label.split(' ')[0] ?? 'Officer',
+      avatar: execPreset.label.slice(0, 2).toUpperCase(),
+    })
   }
 
   const primary = '#1a1a1a'
@@ -155,10 +175,12 @@ export default function GuestLogin() {
           Guest login
         </p>
         <h2 className="mt-3 font-serif text-3xl tracking-tight text-[var(--ink)]">
-          Choose a preview
+          {execPickerOpen ? 'Officer dashboard preview' : 'Choose a preview'}
         </h2>
         <p className="mt-2 max-w-md text-sm text-[var(--muted)]">
-          Instant access for demos. Pick your national org and chapter during full onboarding.
+          {execPickerOpen
+            ? 'Each role shows a different Home dashboard — tiles are driven by officer function, not title.'
+            : 'Instant access for demos. Pick your national org and chapter during full onboarding.'}
         </p>
 
         {inRealSession && (
@@ -168,7 +190,7 @@ export default function GuestLogin() {
           </p>
         )}
 
-        {inGuestSession && (
+        {inGuestSession && !execPickerOpen && (
           <p className="mt-4 max-w-md text-sm text-[var(--muted)]">
             Already in guest preview.{' '}
             <Link to={defaultHomePath()} className="text-[var(--accent)] underline-offset-2 hover:underline">
@@ -179,39 +201,68 @@ export default function GuestLogin() {
         )}
 
         <div className="mt-8 space-y-3">
-          <button
-            type="button"
-            onClick={() => enter('exec')}
-            className="flex w-full items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-5 text-left transition hover:border-[var(--ink)]"
-          >
-            <Shield size={20} className="mt-0.5 shrink-0 text-[var(--primary)]" strokeWidth={1.5} />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[var(--ink)]">Exec / officer preview</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                President tools — roster, calendar, announcements, invites, settings
-              </p>
-            </div>
-            <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
-          </button>
+          {execPickerOpen ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setExecPickerOpen(false)}
+                className="mb-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+              >
+                <ChevronLeft size={14} /> Back
+              </button>
+              {GUEST_EXEC_FUNCTION_PRESETS.map((preset) => (
+                <button
+                  key={preset.function}
+                  type="button"
+                  onClick={() => enterExec(preset)}
+                  className="flex w-full items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-4 text-left transition hover:border-[var(--ink)]"
+                >
+                  <Shield size={18} className="mt-0.5 shrink-0 text-[var(--primary)]" strokeWidth={1.5} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-[var(--ink)]">{preset.label}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">{preset.hint}</p>
+                  </div>
+                  <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setExecPickerOpen(true)}
+                className="flex w-full items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-5 text-left transition hover:border-[var(--ink)]"
+              >
+                <Shield size={20} className="mt-0.5 shrink-0 text-[var(--primary)]" strokeWidth={1.5} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-[var(--ink)]">Exec / officer preview</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Choose function — President, Treasurer, Recruitment, Scholarship, and more
+                  </p>
+                </div>
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
+              </button>
 
-          <button
-            type="button"
-            onClick={() => enter('member')}
-            className="flex w-full items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-5 text-left transition hover:border-[var(--ink)]"
-          >
-            <Smartphone
-              size={20}
-              className="mt-0.5 shrink-0 text-[var(--primary)]"
-              strokeWidth={1.5}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[var(--ink)]">Member preview</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Chapter Room — RSVPs, buzz, polls, dues, study hours
-              </p>
-            </div>
-            <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
-          </button>
+              <button
+                type="button"
+                onClick={enterMember}
+                className="flex w-full items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-5 text-left transition hover:border-[var(--ink)]"
+              >
+                <Smartphone
+                  size={20}
+                  className="mt-0.5 shrink-0 text-[var(--primary)]"
+                  strokeWidth={1.5}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-[var(--ink)]">Member preview</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Chapter Room — RSVPs, buzz, polls, dues, study hours
+                  </p>
+                </div>
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
+              </button>
+            </>
+          )}
         </div>
 
         <div className="mt-10 border-t border-[var(--rule)] pt-6">

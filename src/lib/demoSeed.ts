@@ -1,5 +1,18 @@
 import { isGuestPreviewActive, markGuestPreview } from './guestPreview'
 import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/mockData'
+import { expandDemoRoster } from '../data/demoRosterExpansion'
+import { DEMO_BUDGETS } from '../data/budgetData'
+import { SEED_RSVPS, SEED_RSVP_EXCUSES } from '../data/eventParticipationData'
+import { buildAttendanceForMeeting } from '../data/demoAttendanceSeed'
+import { buildDashboardStubSeed } from '../data/dashboardStubSeed'
+import { inferFunctionFromTitle } from './officerFunctions'
+import {
+  buildRelativeDemoEvents,
+  shiftDuesChargesRelative,
+  shiftExcusesRelative,
+  shiftPostsRelative,
+  shiftStudyLogsRelative,
+} from './demoRelativeDates'
 import {
   calendarExtraEvents,
   initialBillHighway,
@@ -64,6 +77,7 @@ export const STORAGE_KEYS = {
   committees: 'chapter-os-committees',
   committeeChat: 'chapter-os-committee-chat',
   demoSeeded: 'chapter-os-demo-seeded',
+  dashboardStubs: 'chapter-os-dashboard-stubs',
 } as const
 
 function write(key: string, value: unknown) {
@@ -90,22 +104,60 @@ export function demoEventList() {
 
 /** Persist full demo chapter — call when entering guest preview. */
 export function seedGuestDemo() {
-  write(STORAGE_KEYS.roster, demoMembers)
+  const roster = expandDemoRoster([...demoMembers])
+  const events = buildRelativeDemoEvents(demoEventList())
+  const upcomingIds = events.filter((e) => e.date >= new Date().toISOString().slice(0, 10)).map((e) => e.id)
+
+  const positions = [
+    ...DEMO_CHAPTER_POSITIONS.map((p) => ({
+      ...p,
+      function: inferFunctionFromTitle(p.title),
+      assignedMemberId:
+        p.id === 'p6' ? 'm5' : p.id === 'p5' ? 'm9' : p.id === 'p6b' ? 'm7' : p.assignedMemberId,
+    })),
+    {
+      id: 'p-house',
+      title: 'House Manager',
+      assignedMemberId: 'm2',
+      isCustom: false,
+      function: 'house' as const,
+    },
+    {
+      id: 'p-nme',
+      title: 'New Member Educator',
+      assignedMemberId: 'm10',
+      isCustom: false,
+      function: 'new_member_educator' as const,
+    },
+  ]
+
+  write(STORAGE_KEYS.roster, roster)
   write(STORAGE_KEYS.invites, SEED_INVITE_CODES)
-  write(STORAGE_KEYS.events, demoEventList())
-  write(STORAGE_KEYS.posts, demoPosts)
+  write(STORAGE_KEYS.events, events)
+  write(STORAGE_KEYS.posts, shiftPostsRelative([...demoPosts]))
+  write(STORAGE_KEYS.rsvps, SEED_RSVPS)
+  write(STORAGE_KEYS.attendance, {
+    e1: buildAttendanceForMeeting(roster, 0.86),
+    e2: buildAttendanceForMeeting(roster, 0.79),
+  })
+  write(STORAGE_KEYS.rsvpExcuses, shiftExcusesRelative([...SEED_RSVP_EXCUSES]))
+  write(STORAGE_KEYS.studyLogs, shiftStudyLogsRelative(initialStudyLogs))
+  write(STORAGE_KEYS.duesCharges, shiftDuesChargesRelative(initialDuesCharges))
+  write('chapter-os-budgets', DEMO_BUDGETS)
+  write(
+    STORAGE_KEYS.dashboardStubs,
+    buildDashboardStubSeed({ pastMeetingId: 'e1', upcomingIds: upcomingIds.slice(0, 3) })
+  )
+  write(STORAGE_KEYS.positions, positions)
   write(STORAGE_KEYS.execSlides, DEMO_EXEC_SLIDES)
   write(STORAGE_KEYS.bylaws, DEMO_BYLAWS)
   write(STORAGE_KEYS.houseTasks, DEMO_HOUSE_TASKS)
   write(STORAGE_KEYS.tableForms, DEMO_CHAPTER_TABLES)
   write(STORAGE_KEYS.prospects, DEMO_PROSPECTS)
   write(STORAGE_KEYS.pnmActivities, DEMO_PNM_ACTIVITIES)
-  write(STORAGE_KEYS.positions, DEMO_CHAPTER_POSITIONS)
   write(STORAGE_KEYS.studyLocations, initialStudyLocations)
-  write(STORAGE_KEYS.studyLogs, initialStudyLogs)
   write(STORAGE_KEYS.studyRequired, SEMESTER_STUDY_HOURS_REQUIRED)
   write(STORAGE_KEYS.studyHoursRequirements, DEFAULT_STUDY_HOURS_REQUIREMENTS)
-  write(STORAGE_KEYS.duesCharges, initialDuesCharges)
   write(STORAGE_KEYS.duesPayments, initialDuesPayments)
   write(STORAGE_KEYS.billHighway, initialBillHighway)
   write(STORAGE_KEYS.studyHoursReset, DEFAULT_STUDY_HOURS_RESET)

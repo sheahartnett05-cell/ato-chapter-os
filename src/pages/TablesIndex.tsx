@@ -1,12 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Table2, CalendarDays, Users, Grid3x3, PenLine } from 'lucide-react'
+import { Plus, Table2, CalendarDays, Users, Grid3x3, PenLine, ExternalLink } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { templatesForKind } from '../data/tableFormTemplates'
+import {
+  clearFormCreateDraft,
+  consumeNewEventForFormCreate,
+  readFormCreateDraft,
+  writeFormCreateDraft,
+} from '../lib/formCreateDraft'
 import type { FormKind } from '../types'
 
 export default function TablesIndex() {
@@ -20,19 +26,49 @@ export default function TablesIndex() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('spreadsheet-empty')
   const [formName, setFormName] = useState('')
 
+  useEffect(() => {
+    const draft = readFormCreateDraft()
+    const newEventId = consumeNewEventForFormCreate()
+    if (draft) {
+      setFormKind(draft.formKind)
+      setSelectedEventId(newEventId ?? draft.selectedEventId)
+      setSelectedTemplateId(draft.selectedTemplateId)
+      setFormName(draft.formName)
+      if (draft.createOpen || newEventId) setCreateOpen(true)
+    } else if (newEventId) {
+      setSelectedEventId(newEventId)
+      setCreateOpen(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!createOpen) return
+    writeFormCreateDraft({
+      formKind,
+      selectedEventId,
+      selectedTemplateId,
+      formName,
+      createOpen: true,
+    })
+  }, [createOpen, formKind, selectedEventId, selectedTemplateId, formName])
+
+  const linkedTables = useMemo(() => tables.filter((t) => t.eventId), [tables])
+  const unlinkedTables = useMemo(() => tables.filter((t) => !t.eventId), [tables])
+
   const eventsWithTables = useMemo(() => {
     const byEvent = new Map<string, typeof tables>()
-    for (const table of tables) {
-      const list = byEvent.get(table.eventId) ?? []
+    for (const table of linkedTables) {
+      const eventId = table.eventId!
+      const list = byEvent.get(eventId) ?? []
       list.push(table)
-      byEvent.set(table.eventId, list)
+      byEvent.set(eventId, list)
     }
     return [...byEvent.entries()].sort(([a], [b]) => {
       const ea = events.find((e) => e.id === a)
       const eb = events.find((e) => e.id === b)
       return (ea?.date ?? '').localeCompare(eb?.date ?? '')
     })
-  }, [tables, events])
+  }, [linkedTables, events])
 
   const eventName = (id: string) => events.find((e) => e.id === id)?.name ?? 'Unknown event'
   const eventDate = (id: string) => events.find((e) => e.id === id)?.date ?? ''
@@ -64,13 +100,24 @@ export default function TablesIndex() {
     setSelectedTemplateId(next[0]?.id ?? '')
   }
 
+  const goCreateCalendarEvent = () => {
+    writeFormCreateDraft({
+      formKind,
+      selectedEventId,
+      selectedTemplateId,
+      formName,
+      createOpen: true,
+    })
+    navigate('/calendar?from=form-create')
+  }
+
   const handleCreate = () => {
-    if (!selectedEventId) return
     const table = createTable({
-      eventId: selectedEventId,
+      eventId: selectedEventId || undefined,
       templateId: selectedTemplateId,
       name: formName.trim() || undefined,
     })
+    clearFormCreateDraft()
     setCreateOpen(false)
     setFormName('')
     setSelectedEventId('')
@@ -79,10 +126,60 @@ export default function TablesIndex() {
     navigate(`/tables/${table.id}`)
   }
 
+  const closeCreateModal = () => {
+    setCreateOpen(false)
+    writeFormCreateDraft({
+      formKind,
+      selectedEventId,
+      selectedTemplateId,
+      formName,
+      createOpen: false,
+    })
+  }
+
   const formKindLabel = (kind: FormKind) =>
     kind === 'spreadsheet' ? 'Spreadsheet' : 'Signature'
 
   const selectedTemplate = kindTemplates.find((t) => t.id === selectedTemplateId)
+
+  const renderFormCards = (eventTables: typeof tables) => (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {eventTables.map((table) => {
+        const template = templates.find((t) => t.id === table.templateId)
+        return (
+          <Link
+            key={table.id}
+            to={`/tables/${table.id}`}
+            className="group rounded-2xl border border-black/5 bg-neutral-50/60 p-5 transition hover:border-accent/30 hover:bg-white"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-neutral-900 group-hover:text-accent">
+                  {table.name}
+                </p>
+                <p className="mt-1 text-xs text-neutral-500">
+                  {formKindLabel(table.formKind ?? template?.formKind ?? 'spreadsheet')}
+                  {template ? ` · ${template.name}` : ''}
+                </p>
+              </div>
+              <Table2 size={18} className="shrink-0 text-neutral-300 group-hover:text-accent" />
+            </div>
+            <p className="mt-3 line-clamp-2 text-sm text-neutral-600">{table.description}</p>
+            <div className="mt-4 flex items-center gap-4 text-xs text-neutral-500">
+              <span className="flex items-center gap-1">
+                <Users size={12} />
+                {table.rows.length} rows
+              </span>
+              <span className="flex items-center gap-1">
+                <CalendarDays size={12} />
+                {table.columns.length} columns
+              </span>
+            </div>
+          </Link>
+        )
+      })}
+    </div>
+  )
 
   return (
     <>
@@ -120,58 +217,39 @@ export default function TablesIndex() {
             </div>
           </Section>
         ) : (
-          eventsWithTables.map(([eventId, eventTables]) => (
-            <Section
-              key={eventId}
-              title={eventName(eventId)}
-              subtitle={eventDate(eventId) ? new Date(eventDate(eventId) + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
-              action={
-                <Link
-                  to={`/events/${eventId}`}
-                  className="text-sm font-semibold text-accent hover:underline"
-                >
-                  View event →
-                </Link>
-              }
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {eventTables.map((table) => {
-                  const template = templates.find((t) => t.id === table.templateId)
-                  return (
-                    <Link
-                      key={table.id}
-                      to={`/tables/${table.id}`}
-                      className="group rounded-2xl border border-black/5 bg-neutral-50/60 p-5 transition hover:border-accent/30 hover:bg-white"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-neutral-900 group-hover:text-accent">
-                            {table.name}
-                          </p>
-                          <p className="mt-1 text-xs text-neutral-500">
-                            {formKindLabel(table.formKind ?? template?.formKind ?? 'spreadsheet')}
-                            {template ? ` · ${template.name}` : ''}
-                          </p>
-                        </div>
-                        <Table2 size={18} className="shrink-0 text-neutral-300 group-hover:text-accent" />
-                      </div>
-                      <p className="mt-3 line-clamp-2 text-sm text-neutral-600">{table.description}</p>
-                      <div className="mt-4 flex items-center gap-4 text-xs text-neutral-500">
-                        <span className="flex items-center gap-1">
-                          <Users size={12} />
-                          {table.rows.length} rows
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <CalendarDays size={12} />
-                          {table.columns.length} columns
-                        </span>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </Section>
-          ))
+          <>
+            {unlinkedTables.length > 0 && (
+              <Section title="General forms" subtitle="Not linked to a calendar event">
+                {renderFormCards(unlinkedTables)}
+              </Section>
+            )}
+            {eventsWithTables.map(([eventId, eventTables]) => (
+              <Section
+                key={eventId}
+                title={eventName(eventId)}
+                subtitle={
+                  eventDate(eventId)
+                    ? new Date(eventDate(eventId) + 'T12:00:00').toLocaleDateString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : undefined
+                }
+                action={
+                  <Link
+                    to={`/events/${eventId}`}
+                    className="text-sm font-semibold text-accent hover:underline"
+                  >
+                    View event →
+                  </Link>
+                }
+              >
+                {renderFormCards(eventTables)}
+              </Section>
+            ))}
+          </>
         )}
 
         <Section
@@ -196,7 +274,7 @@ export default function TablesIndex() {
         </Section>
       </PageShell>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New event form">
+      <Modal open={createOpen} onClose={closeCreateModal} title="New event form">
         <div className="space-y-4">
           <div>
             <label className="text-xs font-medium text-neutral-500">Form type</label>
@@ -241,13 +319,24 @@ export default function TablesIndex() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-neutral-500">Linked event</label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="text-xs font-medium text-neutral-500">Linked event (optional)</label>
+              <button
+                type="button"
+                onClick={goCreateCalendarEvent}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+              >
+                <Plus size={12} />
+                Add new event
+                <ExternalLink size={11} className="opacity-70" />
+              </button>
+            </div>
             <select
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
               className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
             >
-              <option value="">Select event…</option>
+              <option value="">No linked event</option>
               {linkableEvents.map((e) => (
                 <option key={e.id} value={e.id}>
                   {formatEventOption(e)}
@@ -256,11 +345,9 @@ export default function TablesIndex() {
             </select>
             {linkableEvents.length === 0 && (
               <p className="mt-2 text-xs text-neutral-500">
-                No upcoming calendar events yet.{' '}
-                <Link to="/calendar" className="font-semibold text-accent hover:underline">
-                  Create one on the Calendar
-                </Link>
-                .
+                No upcoming events on the calendar yet. Use{' '}
+                <span className="font-semibold">Add new event</span> above, or choose{' '}
+                <span className="font-semibold">No linked event</span> to create the form anyway.
               </p>
             )}
           </div>
@@ -305,7 +392,7 @@ export default function TablesIndex() {
           <button
             type="button"
             onClick={handleCreate}
-            disabled={!selectedEventId}
+            disabled={!selectedTemplateId}
             className="btn-primary w-full py-3 text-sm font-bold shadow-sm disabled:opacity-50"
           >
             Create form

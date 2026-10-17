@@ -232,13 +232,20 @@ export function usePermissions(): PermissionFlags {
   const or = (flag: boolean, capability: EditorCapabilityId, featureOk = true) =>
     flag || (featureOk && canMemberEdit(capability, memberId))
 
+  const announcementsFeatureOn = isFeatureEnabled('announcements')
+  const officersOnlyAnnouncements = features.features.policies.announcementsOfficersOnly
+  const execOrEditorAnnouncements = or(
+    permissions.canPostAnnouncements,
+    'editAnnouncements',
+    announcementsFeatureOn
+  )
+  const canPostAnnouncements =
+    announcementsFeatureOn &&
+    (officersOnlyAnnouncements ? execOrEditorAnnouncements : true)
+
   const merged: PermissionFlags = {
     ...permissions,
-    canPostAnnouncements: or(
-      permissions.canPostAnnouncements,
-      'editAnnouncements',
-      isFeatureEnabled('announcements')
-    ),
+    canPostAnnouncements,
     canManageRoster: or(permissions.canManageRoster, 'editRoster', isFeatureEnabled('roster')),
     canManageRecruitment: or(
       permissions.canManageRecruitment,

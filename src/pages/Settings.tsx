@@ -5,6 +5,7 @@ import { PageShell } from '../components/ui/Section'
 import { InviteCodesPanel } from '../components/settings/InviteCodesPanel'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
+import { useChapterFeatures } from '../context/ChapterFeaturesContext'
 import { useGovernance } from '../context/GovernanceContext'
 import { useMembers } from '../context/MembersContext'
 import { ONBOARDING_ROLES, roleLabel, type UserProfile } from '../types/permissions'
@@ -301,6 +302,48 @@ function JBoardPanel() {
   )
 }
 
+function ChapterPoliciesPanel() {
+  const {
+    isFeatureEnabled,
+    announcementsOfficersOnly,
+    setAnnouncementsOfficersOnly,
+  } = useChapterFeatures()
+
+  return (
+    <section className="rounded-xl border border-black/5 bg-neutral-50 px-4 py-4">
+      <p className="text-[10px] font-semibold uppercase text-neutral-400">Chapter policies</p>
+      <div className="mt-3 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">Officers-only announcements</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Restrict posting to officers and assigned editors. Members can still read the feed when
+            this is off.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={announcementsOfficersOnly}
+          disabled={!isFeatureEnabled('announcements')}
+          onClick={() => setAnnouncementsOfficersOnly(!announcementsOfficersOnly)}
+          className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40 ${
+            announcementsOfficersOnly ? 'bg-accent' : 'bg-neutral-200'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+              announcementsOfficersOnly ? 'left-5' : 'left-0.5'
+            }`}
+          />
+        </button>
+      </div>
+      <Link to="/chapter-setup" className="mt-3 inline-block text-xs font-semibold text-[var(--accent)]">
+        More chapter setup →
+      </Link>
+    </section>
+  )
+}
+
 function AdminPanel() {
   const navigate = useNavigate()
   const { resetOnboarding } = useAuth()
@@ -466,9 +509,12 @@ function PositionDashboard() {
       )}
 
       {permissions.canAccessAdminSettings && (
-        <section>
-          <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Admin</p>
-          <AdminPanel />
+        <section className="space-y-4">
+          <ChapterPoliciesPanel />
+          <div>
+            <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Admin</p>
+            <AdminPanel />
+          </div>
         </section>
       )}
     </div>

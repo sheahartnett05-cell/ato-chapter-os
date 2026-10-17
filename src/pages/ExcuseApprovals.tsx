@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, ListRow } from '../components/ui/Section'
@@ -10,6 +12,8 @@ import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 import type { RsvpExcuse } from '../types/features'
 
 export default function ExcuseApprovals() {
+  const [searchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status')
   const { excuses, events, updateExcuseStatus, setAttendanceEntry } = useChapterOps()
   const { getMemberById } = useMembers()
   const { profile } = useAuth()
@@ -53,9 +57,13 @@ export default function ExcuseApprovals() {
   }
 
   const pending = excuses.filter((e) => e.status === 'pending')
-  const sorted = [...excuses].sort(
-    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-  )
+  const visible = useMemo(() => {
+    const base =
+      statusFilter === 'pending' ? excuses.filter((e) => e.status === 'pending') : excuses
+    return [...base].sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    )
+  }, [excuses, statusFilter])
 
   return (
     <>
@@ -65,10 +73,10 @@ export default function ExcuseApprovals() {
       />
       <PageShell>
         <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
-          {sorted.length === 0 ? (
+          {visible.length === 0 ? (
             <p className="p-8 text-center text-sm text-neutral-500">No excuses submitted.</p>
           ) : (
-            sorted.map((excuse) => {
+            visible.map((excuse) => {
               const member = getMemberById(excuse.memberId)
               const event = events.find((e) => e.id === excuse.eventId)
               return (

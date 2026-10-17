@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CalendarDays,
@@ -28,7 +28,7 @@ import {
   normalizeFormRsvp,
   type FormRsvpOption,
 } from '../lib/formRsvps'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { useMemberGovernance } from '../context/GovernanceContext'
@@ -68,11 +68,71 @@ function formatEventDay(iso: string) {
 
 }
 
+type RoomSectionTone = 'default' | 'soft' | 'accent'
+
+function ChapterRoomSection({
+  id,
+  eyebrow,
+  title,
+  action,
+  tone = 'default',
+  pad = true,
+  className = '',
+  children,
+}: {
+  id?: string
+  eyebrow?: string
+  title?: ReactNode
+  action?: ReactNode
+  tone?: RoomSectionTone
+  pad?: boolean
+  className?: string
+  children: ReactNode
+}) {
+  const toneClass =
+    tone === 'accent'
+      ? 'border-amber-200/70 bg-[color-mix(in_srgb,var(--surface-card)_88%,#fef3c7_12%)]'
+      : tone === 'soft'
+        ? 'border-black/[0.05] bg-neutral-50/80'
+        : 'border-black/[0.06] bg-[var(--surface-card)]'
+
+  const hasHeader = Boolean(eyebrow || title || action)
+
+  return (
+    <section
+      id={id}
+      className={`overflow-hidden rounded-2xl border shadow-[0_1px_0_rgba(0,0,0,0.04)] ${toneClass} ${className}`}
+    >
+      {hasHeader && (
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)]/55 bg-black/[0.015] px-4 py-2.5">
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                {eyebrow}
+              </p>
+            )}
+            {title && (
+              <h2
+                className={`font-serif text-lg tracking-tight text-[var(--ink)] ${eyebrow ? 'mt-0.5' : ''}`}
+              >
+                {title}
+              </h2>
+            )}
+          </div>
+          {action}
+        </div>
+      )}
+      <div className={pad ? (hasHeader ? 'p-4 pt-3' : 'p-4') : undefined}>{children}</div>
+    </section>
+  )
+}
+
 export default function MemberDashboard() {
 
   const { chapter } = useChapter()
 
   const { memberId, profile, role } = useAuth()
+  const permissions = usePermissions()
 
   const { getMemberById } = useMembers()
   const TODAY = localTodayIso()
@@ -308,11 +368,10 @@ export default function MemberDashboard() {
 
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-6 space-y-8 md:max-w-2xl">
+      <main className="mx-auto max-w-lg space-y-3 px-4 py-5 md:max-w-2xl">
 
-        {/* Member ledger — MCR stats, editorial treatment */}
-
-        <div className="ledger-bar grid-cols-2 border border-[var(--rule)] bg-[var(--surface-card)] md:grid-cols-4">
+        <ChapterRoomSection eyebrow="Your semester" tone="soft" pad={false}>
+        <div className="ledger-bar grid-cols-2 border-0 bg-transparent md:grid-cols-4">
 
           {[
 
@@ -347,26 +406,22 @@ export default function MemberDashboard() {
           ))}
 
         </div>
+        </ChapterRoomSection>
 
         {/* Action queue */}
 
         {needsAction > 0 && (
-
-          <section>
-
-            <div className="mb-2 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-
-              <h2 className="font-serif text-lg tracking-tight">Needs you</h2>
-
+          <ChapterRoomSection
+            tone="accent"
+            eyebrow="Action queue"
+            title="Needs you"
+            action={
               <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-
                 {needsAction} item{needsAction === 1 ? '' : 's'}
-
               </span>
-
-            </div>
-
-            <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+            }
+          >
+            <ul className="divide-y divide-[var(--rule)] overflow-hidden rounded-xl border border-[var(--rule)]/80 bg-[var(--surface-card)]">
 
               {duesBalance > 0 && (
 
@@ -515,151 +570,95 @@ export default function MemberDashboard() {
               ))}
 
             </ul>
-
-          </section>
-
+          </ChapterRoomSection>
         )}
 
-        {/* Quick access — one tap hub like MCR, cleaner grid */}
-
-        <section>
-
-          <div className="mb-3 border-b border-[var(--rule)] pb-2">
-
-            <h2 className="font-serif text-lg tracking-tight">Quick access</h2>
-
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-
+        <ChapterRoomSection eyebrow="Navigate" title="Quick access" tone="soft">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {[
-
               { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-
-              { to: '/committees', label: 'Committees', icon: UsersRound, sub: `${myCommittees.length}` },
-
+              {
+                to: '/announcements',
+                label: 'Buzz',
+                icon: Megaphone,
+                badge: permissions.canPostAnnouncements ? 'Post' : undefined,
+              },
+              {
+                to: '/committees',
+                label: 'Groups',
+                icon: UsersRound,
+                badge: myCommittees.length > 0 ? String(myCommittees.length) : undefined,
+              },
               {
                 to: '#study-hours',
-                label: 'Study hrs',
+                label: 'Study',
                 icon: BookOpen,
-                sub: studyHoursTarget === null ? 'Exempt' : `${studyPct}%`,
+                badge: studyHoursTarget === null ? '—' : `${studyPct}%`,
+                anchor: true,
               },
-
               {
-
                 to: billHighway.enabled ? billHighway.payUrl : '/dues',
-
                 label: 'Dues',
-
                 icon: DollarSign,
-
                 external: billHighway.enabled,
-
               },
-
               { to: '/profile', label: 'Profile', icon: User },
+              { to: '/settings', label: 'Settings', icon: Settings },
+            ].map(({ to, label, icon: Icon, badge, external, anchor }) => {
+              const chipClass =
+                'flex w-full items-center justify-between gap-2 border border-[var(--rule)] bg-[var(--surface-card)] px-3 py-2.5 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]/40 hover:bg-white sm:justify-start'
 
-            ].map(({ to, label, icon: Icon, sub, external }) =>
-
-              external ? (
-
-                <a
-
-                  key={label}
-
-                  href={to}
-
-                  target="_blank"
-
-                  rel="noreferrer"
-
-                  className="flex flex-col gap-2 border border-[var(--rule)] bg-[var(--surface-card)] p-3 transition hover:border-[var(--ink)]"
-
-                >
-
-                  <Icon size={16} className="text-[var(--primary)]" strokeWidth={1.5} />
-
-                  <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
-
-                  <ExternalLink size={10} className="text-[var(--muted)]" />
-
-                </a>
-
-              ) : to.startsWith('#') ? (
-
-                <a
-
-                  key={label}
-
-                  href={to}
-
-                  className="flex flex-col gap-2 border border-[var(--rule)] bg-[var(--surface-card)] p-3 transition hover:border-[var(--ink)]"
-
-                >
-
-                  <Icon size={16} className="text-[var(--primary)]" strokeWidth={1.5} />
-
-                  <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
-
-                  {sub && (
-
-                    <span className="font-mono text-[10px] text-[var(--muted)]">{sub}</span>
-
+              const inner = (
+                <>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Icon size={16} className="shrink-0 text-[var(--primary)]" strokeWidth={1.75} />
+                    <span>{label}</span>
+                  </span>
+                  {(badge || external) && (
+                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">
+                      {badge}
+                      {external && <ExternalLink size={12} className="text-[var(--muted)]" />}
+                    </span>
                   )}
-
-                </a>
-
-              ) : (
-
-                <Link
-
-                  key={label}
-
-                  to={to}
-
-                  className="flex flex-col gap-2 border border-[var(--rule)] bg-[var(--surface-card)] p-3 transition hover:border-[var(--ink)]"
-
-                >
-
-                  <Icon size={16} className="text-[var(--primary)]" strokeWidth={1.5} />
-
-                  <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
-
-                  {sub && (
-
-                    <span className="font-mono text-[10px] text-[var(--muted)]">{sub}</span>
-
-                  )}
-
-                </Link>
-
+                </>
               )
 
-            )}
-
+              if (external) {
+                return (
+                  <a key={label} href={to} target="_blank" rel="noreferrer" className={chipClass}>
+                    {inner}
+                  </a>
+                )
+              }
+              if (anchor) {
+                return (
+                  <a key={label} href={to} className={chipClass}>
+                    {inner}
+                  </a>
+                )
+              }
+              return (
+                <Link key={label} to={to} className={chipClass}>
+                  {inner}
+                </Link>
+              )
+            })}
           </div>
-
-        </section>
+        </ChapterRoomSection>
 
         {/* Today */}
 
         {todayEvents.length > 0 && (
-
-          <section>
-
-            <div className="mb-2 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-
-              <h2 className="font-serif text-lg tracking-tight">Today</h2>
-
+          <ChapterRoomSection
+            eyebrow="Schedule"
+            title="Today"
+            action={
               <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--primary)]">
-
                 {formatEventDay(TODAY)}
-
               </span>
-
-            </div>
-
-            <ul className="list-editorial border border-[var(--rule)]">
+            }
+          >
+            <ul className="list-editorial overflow-hidden rounded-xl border border-[var(--rule)]/80">
 
               {todayEvents.map((event) => (
 
@@ -694,26 +693,18 @@ export default function MemberDashboard() {
               ))}
 
             </ul>
-
-          </section>
-
+          </ChapterRoomSection>
         )}
 
-        {/* Chapter announcements feed */}
-
-        <section>
-
-          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-
-            <h2 className="font-serif text-lg tracking-tight flex items-center gap-2">
-
+        <ChapterRoomSection
+          eyebrow="Chapter buzz"
+          title={
+            <span className="flex items-center gap-2">
               <Megaphone size={16} className="text-[var(--primary)]" />
-
-              Chapter Announcements
-
-            </h2>
-
-          </div>
+              Announcements
+            </span>
+          }
+        >
 
           {pinned && (
 
@@ -768,61 +759,57 @@ export default function MemberDashboard() {
           >
             All announcements & tools →
           </Link>
-        </section>
+        </ChapterRoomSection>
 
         {activePolls.map((a) => (
-          <section key={a.id}>
-            <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-              <h2 className="font-serif text-lg tracking-tight">{a.title}</h2>
+          <ChapterRoomSection
+            key={a.id}
+            eyebrow="Poll"
+            title={a.title}
+            action={
               <Link
                 to="/announcements"
                 className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]"
               >
-                Polls
+                All polls
               </Link>
-            </div>
+            }
+          >
             <PollCard post={a} memberId={resolvedMemberId} compact />
-          </section>
+          </ChapterRoomSection>
         ))}
 
         {activeSignups.map((a) => (
-          <section key={a.id}>
-            <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-              <h2 className="font-serif text-lg tracking-tight">{a.title}</h2>
+          <ChapterRoomSection
+            key={a.id}
+            eyebrow="Sign-up"
+            title={a.title}
+            action={
               <Link
                 to="/announcements"
                 className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]"
               >
-                Sign-ups
+                All sign-ups
               </Link>
-            </div>
+            }
+          >
             <SignupCard post={a} memberId={resolvedMemberId} compact />
-          </section>
+          </ChapterRoomSection>
         ))}
 
-        {/* RSVP queue — core MCR calendar + excuse flow, cleaner */}
-
-        <section>
-
-          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
-
-            <h2 className="font-serif text-lg tracking-tight">Respond to events</h2>
-
+        <ChapterRoomSection
+          eyebrow="Calendar"
+          title="Respond to events"
+          action={
             <Link
-
               to="/calendar"
-
               className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
-
             >
-
               Full calendar
-
             </Link>
-
-          </div>
-
-          <ul className="space-y-0 divide-y divide-[var(--rule)] border border-[var(--rule)]">
+          }
+        >
+          <ul className="space-y-0 divide-y divide-[var(--rule)] overflow-hidden rounded-xl border border-[var(--rule)]/80">
 
             {upcomingRsvp.map((event) => {
 
@@ -912,12 +899,11 @@ export default function MemberDashboard() {
             })}
 
           </ul>
+        </ChapterRoomSection>
 
-        </section>
-
-        {/* Study hours progress */}
-
-        <MemberStudyHoursPanel memberId={resolvedMemberId} />
+        <ChapterRoomSection eyebrow="Academics" title="Study hours" id="study-hours-wrap">
+          <MemberStudyHoursPanel memberId={resolvedMemberId} embedded />
+        </ChapterRoomSection>
 
       </main>
 

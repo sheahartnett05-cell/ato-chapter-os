@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { ExternalLink, Users } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
@@ -33,6 +33,8 @@ function buildAssignmentDraft(
 }
 
 export default function LibraryHoursPage() {
+  const [searchParams] = useSearchParams()
+  const rosterFilter = searchParams.get('filter')
   const {
     studyLocations,
     studyLogs,
@@ -74,29 +76,34 @@ export default function LibraryHoursPage() {
   )
 
   const roster = useMemo(() => {
-    return eligibleMembers
-      .map((member) => {
-        const verified = getMemberVerifiedHours(member.id)
-        const required = getMemberStudyHoursRequired(member.id)
-        const pct =
-          required === null
-            ? 0
-            : Math.min(100, Math.round((verified / Math.max(required, 1)) * 100))
-        const pending = studyLogs.filter(
-          (log) =>
-            log.memberId === member.id &&
-            !log.verified &&
-            logInCurrentPeriod(log, studyHoursReset)
-        ).length
-        return { member, verified, required, pct, pending }
-      })
-      .sort((a, b) => b.verified - a.verified)
+    let rows = eligibleMembers.map((member) => {
+      const verified = getMemberVerifiedHours(member.id)
+      const required = getMemberStudyHoursRequired(member.id)
+      const pct =
+        required === null
+          ? 0
+          : Math.min(100, Math.round((verified / Math.max(required, 1)) * 100))
+      const pending = studyLogs.filter(
+        (log) =>
+          log.memberId === member.id &&
+          !log.verified &&
+          logInCurrentPeriod(log, studyHoursReset)
+      ).length
+      return { member, verified, required, pct, pending }
+    })
+    if (rosterFilter === 'below') {
+      rows = rows.filter(
+        (r) => r.required !== null && r.verified < (r.required as number)
+      )
+    }
+    return rows.sort((a, b) => b.verified - a.verified)
   }, [
     eligibleMembers,
     getMemberVerifiedHours,
     getMemberStudyHoursRequired,
     studyLogs,
     studyHoursReset,
+    rosterFilter,
   ])
 
   const membersWithRequirement = roster.filter((r) => r.required !== null)
