@@ -13,7 +13,8 @@ import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { BudgetProvider } from './context/BudgetContext'
 import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
-import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
+import { ExecShell, MemberShell, SharedShell } from './components/routing/AppShells'
+import { ChapterViewModeProvider } from './context/ChapterViewModeContext'
 import { FeatureRoute } from './components/routing/FeatureRoute'
 import { DuesSyncBridge } from './components/routing/DuesSyncBridge'
 import { AttendanceSyncBridge } from './components/routing/AttendanceSyncBridge'
@@ -53,6 +54,7 @@ export default function App() {
           <ChapterPositionsProvider>
             <ChapterFeaturesProvider>
               <AuthProvider>
+                <ChapterViewModeProvider>
                 <GovernanceProvider>
                   <CommunicationsProvider>
                     <ChapterResourcesProvider>
@@ -80,11 +82,11 @@ export default function App() {
                                   <Route
                                     path="/announcements"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="announcements">
                                           <Announcements />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -108,21 +110,21 @@ export default function App() {
                                   <Route
                                     path="/calendar"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="calendar">
                                           <CalendarPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/events/:id"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="calendar">
                                           <EventPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -138,21 +140,21 @@ export default function App() {
                                   <Route
                                     path="/library-hours"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="studyHours">
                                           <LibraryHours />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/dues"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="dues">
                                           <DuesPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -256,21 +258,21 @@ export default function App() {
                                   <Route
                                     path="/committees"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="committees">
                                           <Committees />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/committees/:id"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="committees">
                                           <CommitteeDetail />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -294,21 +296,21 @@ export default function App() {
                                   <Route
                                     path="/bylaws"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="bylaws">
                                           <BylawsPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/house"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="house">
                                           <HouseMaintenancePage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
 
@@ -331,9 +333,9 @@ export default function App() {
                                   <Route
                                     path="/settings"
                                     element={
-                                      <SettingsShellPage>
+                                      <SharedShell>
                                         <Settings />
-                                      </SettingsShellPage>
+                                      </SharedShell>
                                     }
                                   />
 
@@ -359,6 +361,7 @@ export default function App() {
                     </ChapterResourcesProvider>
                   </CommunicationsProvider>
                 </GovernanceProvider>
+                </ChapterViewModeProvider>
               </AuthProvider>
             </ChapterFeaturesProvider>
           </ChapterPositionsProvider>

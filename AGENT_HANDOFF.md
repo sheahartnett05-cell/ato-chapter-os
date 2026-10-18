@@ -32,6 +32,32 @@ Shared running notes for **async work** on this repo. Both collaborators (and th
 
 *(Newest entries at the top.)*
 
+### 2026-10-18 — Agent (app shell, calendar, view mode)
+
+**Summary:** Shared routes use member vs exec shell from persisted **Chapter Room / Operations** view mode (not permission boost alone); calendar uses real today and relative demo dates; Settings toggle for exec-capable users.
+
+**Changes:**
+- **View mode:** `chapterViewMode.ts`, `ChapterViewModeContext.tsx`, `useShellKind.ts`, `can.ts` — `chapter-room` vs `operations`, guest preview defaults in `GuestLogin.tsx`.
+- **Shells:** `AppShells.tsx` — `SharedShell`, `MemberShell` + `MemberBottomNav`, `ExecShell` mobile drawer; `App.tsx` wraps shared routes with `SharedShell`.
+- **Layout:** `Sidebar.tsx` drawer on narrow; `TopBar.tsx` back link via `useIsMemberShell()`; member dashboard no duplicate bottom nav.
+- **Calendar:** `Calendar.tsx` — `localTodayIso()`, hide exec-only events in member shell, RSVP on list items; `Event.audience` on seed.
+- **Demo dates:** `demoRelativeDates.ts`, `demoSeed.ts`, `ChapterContext.tsx` semester from meta.
+- **Copy:** `Committees.tsx`, `CommitteeDetail.tsx` — “Groups” in member shell.
+- **Settings:** `AppViewModeCard` on Account tab for exec-capable users.
+- **Fixes:** `MemberBottomNav.tsx` TS for optional `end`; `MyProfile.tsx` back target from shell kind.
+
+**Verify:**
+- `/preview` → Member → Calendar / Groups: bottom nav stays, no exec sidebar.
+- Exec-capable guest → Settings → toggle Chapter Room vs Operations; sidebar vs bottom nav.
+- Calendar opens on current month with visible upcoming events after re-seed / switch preview.
+- `npm run build` passes.
+
+**Follow-ups / known gaps:**
+- Exec calendar: RSVP counts / attendance tooling not built out.
+- Re-enter guest preview if stale localStorage still has old view mode or fixed demo dates.
+
+---
+
 ### 2026-10-16 — Sheah + agent (Home dashboard & Chapter Room)
 
 **Summary:** Officer Home is function-based with actionable stat tiles, Action Ledger tasks, guest preview by officer function; member Chapter Room quick access and several chapter-feature fixes; async handoff via this file.

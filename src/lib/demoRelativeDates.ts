@@ -13,6 +13,14 @@ export function addDays(isoDate: string, delta: number): string {
   return `${y}-${m}-${day}`
 }
 
+/** e.g. "Fall 2026" from today's date */
+export function currentTermLabel(reference = new Date()): string {
+  const month = reference.getMonth()
+  const year = reference.getFullYear()
+  const season = month >= 7 || month <= 0 ? 'Fall' : month <= 4 ? 'Spring' : 'Summer'
+  return `${season} ${year}`
+}
+
 export function localTodayIso(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -49,10 +57,22 @@ export function buildRelativeDemoEvents(templates: Event[]): Event[] {
 }
 
 export function shiftPostsRelative(posts: Announcement[], today = localTodayIso()): Announcement[] {
-  return posts.map((p, i) => ({
-    ...p,
-    createdAt: new Date(`${addDays(today, -2 - i)}T14:00:00`).toISOString(),
-  }))
+  return posts.map((p, i) => {
+    const createdAt = new Date(`${addDays(today, -2 - i)}T14:00:00`).toISOString()
+    const poll = p.poll
+      ? {
+          ...p.poll,
+          closesAt: addDays(today, 7 + i),
+        }
+      : undefined
+    const signup = p.signup?.closesAt
+      ? {
+          ...p.signup,
+          closesAt: new Date(`${addDays(today, 10 + i)}T23:59:00`).toISOString(),
+        }
+      : p.signup
+    return { ...p, createdAt, poll, signup }
+  })
 }
 
 export function shiftExcusesRelative(

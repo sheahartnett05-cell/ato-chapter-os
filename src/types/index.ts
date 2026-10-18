@@ -87,6 +87,8 @@ export interface Event {
   dressCode: string
   rsvpRequired: boolean
   guestAllowed: boolean
+  /** When `exec`, hidden from chapter-room calendar unless user is in operations mode. */
+  audience?: 'all' | 'exec'
 }
 
 export interface RsvpEntry {

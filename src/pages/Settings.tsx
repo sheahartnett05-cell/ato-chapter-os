@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { InviteCodesPanel } from '../components/settings/InviteCodesPanel'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, usePermissions } from '../context/AuthContext'
+import { useChapterViewMode } from '../context/ChapterViewModeContext'
+import { userIsExecCapable } from '../lib/access/can'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterFeatures } from '../context/ChapterFeaturesContext'
 import { useGovernance } from '../context/GovernanceContext'
@@ -60,6 +62,42 @@ function TabPills({
   )
 }
 
+function AppViewModeCard() {
+  const { role } = useAuth()
+  const permissions = usePermissions()
+  const { viewMode, setViewMode } = useChapterViewMode()
+  if (!userIsExecCapable(role, permissions)) return null
+
+  return (
+    <section className="rounded-xl border border-black/5 bg-neutral-50 px-4 py-4">
+      <p className="text-[10px] font-semibold uppercase text-neutral-400">App experience</p>
+      <p className="mt-1 text-sm text-neutral-600">
+        Chapter Room uses the member layout and bottom nav. Operations uses the officer sidebar.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setViewMode('chapter-room')}
+          className={`rounded-sm px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${
+            viewMode === 'chapter-room' ? 'theme-pill-active' : 'theme-pill-muted'
+          }`}
+        >
+          Chapter Room
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('operations')}
+          className={`rounded-sm px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${
+            viewMode === 'operations' ? 'theme-pill-active' : 'theme-pill-muted'
+          }`}
+        >
+          Operations
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function AccountSettings({
   profile,
   onSave,
@@ -79,6 +117,7 @@ function AccountSettings({
 
   return (
     <div className="mx-auto max-w-xl space-y-10">
+      <AppViewModeCard />
       <div>
         <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Profile

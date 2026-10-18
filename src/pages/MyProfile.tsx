@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Mail, Phone, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
@@ -16,6 +17,7 @@ import {
 
 export default function MyProfile() {
   const { profile, role, onboarding, updateProfile, permissions } = useAuth()
+  const isMemberShell = useIsMemberShell()
   const { getMemberById, updateMemberProfile } = useMembers()
   const { chapter } = useChapter()
   const member = onboarding?.memberId ? getMemberById(onboarding.memberId) : undefined
@@ -39,7 +41,7 @@ export default function MyProfile() {
       <header className="theme-sidebar px-5 pb-6 pt-4">
         <div className="flex items-center justify-between">
           <Link
-            to={permissions.isMemberView ? '/my-dashboard' : '/home'}
+            to={isMemberShell ? '/my-dashboard' : '/home'}
             className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-white/60 hover:text-white"
           >
             <ArrowLeft size={12} /> Back

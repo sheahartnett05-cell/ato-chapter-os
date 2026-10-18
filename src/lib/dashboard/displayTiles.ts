@@ -15,7 +15,7 @@ export function filterDisplayableTiles(tiles: StatTileViewModel[]): StatTileView
 export function statGridClassName(count: number): string {
   if (count <= 0) return 'grid-cols-1'
   if (count === 1) return 'grid-cols-1'
-  if (count === 2) return 'grid-cols-1 min-[480px]:grid-cols-2'
-  if (count === 3) return 'grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3'
-  return 'grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4'
+  if (count === 2) return 'grid-cols-2 max-[380px]:grid-cols-1'
+  if (count === 3) return 'grid-cols-2 max-[380px]:grid-cols-1 lg:grid-cols-3'
+  return 'grid-cols-2 max-[380px]:grid-cols-1 lg:grid-cols-4'
 }

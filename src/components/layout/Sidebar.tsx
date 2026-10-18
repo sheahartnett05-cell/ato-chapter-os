@@ -22,6 +22,7 @@ import {
 import { Logo } from './Logo'
 import { MemberAvatar } from '../ui/MemberAvatar'
 import { useAuth, usePermissions } from '../../context/AuthContext'
+import { useChapterViewMode } from '../../context/ChapterViewModeContext'
 import { useChapter } from '../../context/ChapterContext'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
 import { useStandardsModuleConfig } from '../../hooks/useStandardsModuleConfig'
@@ -105,16 +106,19 @@ function NavItem({
   label,
   icon: Icon,
   end,
+  onNavigate,
 }: {
   to: string
   label: string
   icon: typeof LayoutDashboard
   end?: boolean
+  onNavigate?: () => void
 }) {
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={onNavigate}
       className={({ isActive }) =>
         `flex items-center gap-3 border-l-2 px-3 py-2 text-sm transition ${
           isActive
@@ -141,10 +145,16 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function Sidebar() {
+type SidebarProps = {
+  mobileOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const { chapter, languagePack } = useChapter()
   const { profile, role } = useAuth()
   const permissions = usePermissions()
+  const { setViewMode } = useChapterViewMode()
   const features = useChapterFeaturesOptional()
   const isFeatureEnabled = features?.isFeatureEnabled ?? (() => true)
   const { moduleName } = useStandardsModuleConfig()
@@ -162,9 +172,14 @@ export function Sidebar() {
     )
   const showRecruitment = permissions.canManageRecruitment && isFeatureEnabled('recruitment')
   const displayName = `${profile.firstName} ${profile.lastName}`.trim() || 'Member'
+  const closeMobile = onClose
 
   return (
-    <aside className="theme-sidebar flex h-full w-56 shrink-0 flex-col">
+    <aside
+      className={`theme-sidebar flex h-full w-56 shrink-0 flex-col max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-xl max-md:transition-transform max-md:duration-200 ${
+        mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
+      } md:relative md:translate-x-0`}
+    >
       <div className="theme-stripe shrink-0" />
 
       <div className="border-b border-white/10 px-4 py-5">
@@ -182,7 +197,7 @@ export function Sidebar() {
           <ul>
             {visibleMain.map((item) => (
               <li key={item.to}>
-                <NavItem {...item} />
+                <NavItem {...item} onNavigate={closeMobile} />
               </li>
             ))}
           </ul>
@@ -194,7 +209,7 @@ export function Sidebar() {
             <ul>
               {recruitmentNav.map((item) => (
                 <li key={item.to}>
-                  <NavItem {...item} />
+                  <NavItem {...item} onNavigate={closeMobile} />
                 </li>
               ))}
             </ul>
@@ -207,7 +222,7 @@ export function Sidebar() {
             <ul>
               {visibleAdmin.map((item) => (
                 <li key={item.to}>
-                  <NavItem {...item} />
+                  <NavItem {...item} onNavigate={closeMobile} />
                 </li>
               ))}
             </ul>
@@ -218,11 +233,15 @@ export function Sidebar() {
           <SectionLabel>Account</SectionLabel>
           <ul>
             <li>
-              <NavItem to="/settings" label="Settings" icon={Settings} />
+              <NavItem to="/settings" label="Settings" icon={Settings} onNavigate={closeMobile} />
             </li>
             <li>
               <NavLink
                 to="/my-dashboard"
+                onClick={() => {
+                  setViewMode('chapter-room')
+                  closeMobile?.()
+                }}
                 className={({ isActive }) =>
                   `flex items-center gap-3 border-l-2 px-3 py-2 text-sm transition ${
                     isActive

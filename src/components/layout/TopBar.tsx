@@ -1,7 +1,7 @@
 import { Bell, ChevronLeft, Search } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { usePermissions } from '../../context/AuthContext'
+import { useIsMemberShell } from '../../hooks/useShellKind'
 import { Logo } from './Logo'
 
 interface TopBarProps {
@@ -14,13 +14,13 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
   const [search, setSearch] = useState('')
-  const { isMemberView } = usePermissions()
+  const isMemberShell = useIsMemberShell()
 
   return (
     <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
-      <div className="flex items-center justify-between gap-4 px-6 py-5 lg:px-10">
-        <div className="flex min-w-0 items-center gap-3">
-          {isMemberView && (
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center">
+          {isMemberShell && (
             <Link
               to="/my-dashboard"
               className="mr-1 flex shrink-0 items-center gap-1 rounded-full border border-[var(--rule)] bg-[var(--surface-tint)] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition hover:border-[var(--ink)] hover:text-[var(--ink)]"
@@ -34,17 +34,23 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
               <Logo compact onDark={false} />
             </div>
           )}
-          <div className="min-w-0">
-            <h1 className="truncate font-serif text-2xl tracking-tight text-[var(--ink)]">{title}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-serif text-2xl leading-tight tracking-tight text-[var(--ink)]">{title}</h1>
             {subtitle && (
-              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 {subtitle}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        {actions && (
+          <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0 lg:justify-end">
+            {actions}
+          </div>
+        )}
+
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
           <div className="relative hidden lg:block">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
             <input
@@ -66,7 +72,6 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
               style={{ background: 'var(--accent)' }}
             />
           </button>
-          {actions}
         </div>
       </div>
     </header>

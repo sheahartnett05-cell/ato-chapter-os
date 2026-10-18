@@ -350,6 +350,7 @@ const DEMO_EVENTS: Event[] = [
     dressCode: 'Business Casual',
     rsvpRequired: false,
     guestAllowed: false,
+    audience: 'exec',
   },
 ]
 

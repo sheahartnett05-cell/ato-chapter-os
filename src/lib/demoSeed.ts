@@ -1,4 +1,4 @@
-import { isGuestPreviewActive, markGuestPreview } from './guestPreview'
+import { GUEST_CHAPTER, isGuestPreviewActive, markGuestPreview } from './guestPreview'
 import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/mockData'
 import { expandDemoRoster } from '../data/demoRosterExpansion'
 import { DEMO_BUDGETS } from '../data/budgetData'
@@ -8,6 +8,7 @@ import { buildDashboardStubSeed } from '../data/dashboardStubSeed'
 import { inferFunctionFromTitle } from './officerFunctions'
 import {
   buildRelativeDemoEvents,
+  currentTermLabel,
   shiftDuesChargesRelative,
   shiftExcusesRelative,
   shiftPostsRelative,
@@ -149,6 +150,11 @@ export function seedGuestDemo() {
     buildDashboardStubSeed({ pastMeetingId: 'e1', upcomingIds: upcomingIds.slice(0, 3) })
   )
   write(STORAGE_KEYS.positions, positions)
+  write(STORAGE_KEYS.chapterMeta, {
+    chapterDesignation: GUEST_CHAPTER.chapterDesignation,
+    university: GUEST_CHAPTER.university,
+    semester: currentTermLabel(),
+  })
   write(STORAGE_KEYS.execSlides, DEMO_EXEC_SLIDES)
   write(STORAGE_KEYS.bylaws, DEMO_BYLAWS)
   write(STORAGE_KEYS.houseTasks, DEMO_HOUSE_TASKS)

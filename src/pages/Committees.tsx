@@ -6,6 +6,7 @@ import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
 import { useMembers } from '../context/MembersContext'
 
 type Tab = 'groups' | 'chats'
@@ -18,6 +19,8 @@ export default function Committees() {
   const { members, getMemberById } = useMembers()
   const resolvedMemberId = memberId ?? members[0]?.id ?? ''
   const canManageAll = permissions.canAccessExecTools
+  const memberShell = useIsMemberShell()
+  const pageTitle = memberShell ? 'Groups' : 'Committees'
 
   const [tab, setTab] = useState<Tab>('groups')
   const [createOpen, setCreateOpen] = useState(false)
@@ -146,7 +149,7 @@ export default function Committees() {
   return (
     <>
       <TopBar
-        title="Committees"
+        title={pageTitle}
         subtitle="Groups, subgroups, and committee chat"
         actions={
           canManageAll ? (

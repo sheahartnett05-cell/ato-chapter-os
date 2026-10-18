@@ -17,6 +17,7 @@ import {
   readOnboardingChapterMeta,
   readOnboardingOrgId,
 } from '../lib/onboardingStorage'
+import { currentTermLabel } from '../lib/demoRelativeDates'
 import { writeJson } from '../lib/persist'
 import {
   contrastText,
@@ -33,6 +34,7 @@ const ONBOARDING_KEY = 'chapter-os-onboarding'
 interface ChapterMeta {
   chapterDesignation: string
   university: string
+  semester?: string
 }
 
 interface ChapterContextValue {
@@ -88,7 +90,7 @@ function readInitialChapterMeta(): ChapterMeta {
     const raw = localStorage.getItem('chapter-os-chapter-meta')
     if (raw) {
       const parsed = JSON.parse(raw) as ChapterMeta
-      if (parsed.chapterDesignation || parsed.university) return parsed
+      if (parsed.chapterDesignation || parsed.university || parsed.semester) return parsed
     }
   } catch {
     /* ignore */
@@ -150,7 +152,8 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
   const chapter = buildOrganizationChapter(
     nationalOrg,
     chapterMeta.chapterDesignation || 'Chapter',
-    chapterMeta.university || 'Your University'
+    chapterMeta.university || 'Your University',
+    chapterMeta.semester ?? currentTermLabel()
   )
 
   const setSelectedOrg = useCallback((id: string) => {

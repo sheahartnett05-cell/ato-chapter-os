@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
 
 type DetailTab = 'chat' | 'members' | 'feed'
 
@@ -27,6 +28,8 @@ export default function CommitteeDetail() {
   const { memberId } = useAuth()
   const permissions = usePermissions()
   const { members, getMemberById } = useMembers()
+  const memberShell = useIsMemberShell()
+  const listLabel = memberShell ? 'Groups' : 'Committees'
 
   const committee = id ? getCommittee(id) : undefined
   const resolvedMemberId = memberId ?? members[0]?.id ?? ''
@@ -73,7 +76,7 @@ export default function CommitteeDetail() {
       <div className="flex h-screen flex-col items-center justify-center gap-3">
         <p className="text-sm text-neutral-500">Committee not found</p>
         <Link to="/committees" className="text-sm font-semibold text-accent hover:underline">
-          ← Back to committees
+          ← Back to {listLabel.toLowerCase()}
         </Link>
       </div>
     )
@@ -84,7 +87,7 @@ export default function CommitteeDetail() {
       <div className="flex h-screen flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-sm text-neutral-600">This is a private committee you are not part of.</p>
         <Link to="/committees" className="text-sm font-semibold text-accent hover:underline">
-          ← Back to committees
+          ← Back to {listLabel.toLowerCase()}
         </Link>
       </div>
     )
@@ -116,7 +119,7 @@ export default function CommitteeDetail() {
             to="/committees"
             className="flex items-center gap-1 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
           >
-            <ArrowLeft size={14} /> All groups
+            <ArrowLeft size={14} /> All {listLabel.toLowerCase()}
           </Link>
         }
       />

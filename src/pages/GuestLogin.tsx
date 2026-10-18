@@ -16,6 +16,7 @@ import {
 } from '../lib/guestPreview'
 import { clearDemoData, seedGuestDemo, backupRealSession } from '../lib/demoSeed'
 import { writeActiveDashboardFunction } from '../lib/dashboard/resolveDashboard'
+import { writeStoredViewMode } from '../lib/chapterViewMode'
 import { contrastText } from '../lib/themeUtils'
 import { defaultHomePath } from '../lib/onboardingStorage'
 
@@ -108,10 +109,14 @@ export default function GuestLogin() {
 
   const enterMember = () => {
     const preset = GUEST_PRESETS.member
+    const userId = getOrCreateUserId()
+    writeStoredViewMode(userId, 'chapter-room')
     finishGuestSession('member', 'm5', preset.role, preset.profile)
   }
 
   const enterExec = (execPreset: GuestExecFunctionPreset) => {
+    const userId = getOrCreateUserId()
+    writeStoredViewMode(userId, 'operations')
     writeActiveDashboardFunction(execPreset.function)
     const base = GUEST_PRESETS.exec
     finishGuestSession('exec', execPreset.memberId, execPreset.role, {

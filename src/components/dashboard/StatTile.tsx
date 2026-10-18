@@ -49,7 +49,7 @@ export function StatTile({ tile, className = '' }: Props) {
         </div>
 
         <div className="mt-3 flex items-start justify-between gap-2">
-          <p className="min-w-0 truncate font-serif text-3xl tracking-tight text-[var(--ink)]">
+          <p className="min-w-0 whitespace-nowrap font-serif text-[clamp(1.35rem,4.5vw,1.875rem)] leading-none tracking-tight text-[var(--ink)]">
             {tile.value}
           </p>
           {tile.trend && (

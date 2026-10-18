@@ -284,7 +284,7 @@ export default function MemberDashboard() {
 
   return (
 
-    <div className="min-h-screen pb-24" style={{ background: 'var(--surface-tint)' }}>
+    <div className="min-h-screen pb-6" style={{ background: 'var(--surface-tint)' }}>
 
       <div className="theme-stripe" />
 
@@ -906,64 +906,6 @@ export default function MemberDashboard() {
         </ChapterRoomSection>
 
       </main>
-
-      {/* Bottom nav */}
-
-      <nav
-
-        className="fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-xl"
-
-        style={{
-
-          backgroundColor: 'color-mix(in srgb, var(--surface-card) 96%, transparent)',
-
-          borderColor: 'var(--rule)',
-
-        }}
-
-      >
-
-        <div className="mx-auto flex max-w-lg justify-around py-2.5 md:max-w-2xl">
-
-          {[
-
-            { to: '/my-dashboard', label: 'Room', icon: Megaphone, active: true },
-
-            { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-
-            { to: '/committees', label: 'Groups', icon: UsersRound },
-
-            { to: '/profile', label: 'Profile', icon: User },
-
-            { to: '/settings', label: 'Settings', icon: Settings },
-
-          ].map(({ to, label, icon: Icon, active }) => (
-
-            <Link
-
-              key={to}
-
-              to={to}
-
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 font-mono text-[9px] uppercase tracking-wider ${
-
-                active ? 'text-[var(--primary)]' : 'text-[var(--muted)]'
-
-              }`}
-
-            >
-
-              <Icon size={18} strokeWidth={1.5} />
-
-              {label}
-
-            </Link>
-
-          ))}
-
-        </div>
-
-      </nav>
 
       <Modal
 

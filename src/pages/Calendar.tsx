@@ -15,7 +15,9 @@ import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { useChapterOps } from '../context/ChapterOpsContext'
-import { usePermissions } from '../context/AuthContext'
+import { useAuth, usePermissions } from '../context/AuthContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
+import { localTodayIso } from '../lib/demoRelativeDates'
 import {
   CALENDAR_EVENT_TYPES,
   EVENT_TYPE_COLORS,
@@ -25,9 +27,16 @@ import { stashNewEventForFormCreate } from '../lib/formCreateDraft'
 import type { Event } from '../types'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DEMO_TODAY = '2025-08-23'
 
 type ViewMode = 'month' | 'agenda'
+
+function initialCalendarView(preferAgenda: boolean): ViewMode {
+  if (preferAgenda) return 'agenda'
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+    return 'agenda'
+  }
+  return 'month'
+}
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
@@ -77,10 +86,18 @@ function EventListItem({
   event,
   selected,
   onSelect,
+  memberShell,
+  rsvpStatus,
+  onRsvpGoing,
+  onRsvpDecline,
 }: {
   event: Event
   selected: boolean
   onSelect: () => void
+  memberShell?: boolean
+  rsvpStatus?: 'Going' | 'Not Going' | null
+  onRsvpGoing?: () => void
+  onRsvpDecline?: () => void
 }) {
   const color = eventTypeColor(event.type)
   return (
@@ -108,8 +125,37 @@ function EventListItem({
             <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
               {event.time}
             </span>
+            {memberShell && rsvpStatus && (
+              <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--primary)]">
+                RSVP · {rsvpStatus === 'Going' ? 'Going' : 'Declined'}
+              </span>
+            )}
           </div>
         </div>
+        {memberShell && event.rsvpRequired && onRsvpGoing && onRsvpDecline && (
+          <div className="flex shrink-0 flex-col gap-1 pr-2">
+            <button
+              type="button"
+              className="font-mono text-[9px] uppercase tracking-wider text-[var(--ink)]"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRsvpGoing()
+              }}
+            >
+              Going
+            </button>
+            <button
+              type="button"
+              className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRsvpDecline()
+              }}
+            >
+              No
+            </button>
+          </div>
+        )}
       </button>
     </li>
   )
@@ -209,16 +255,24 @@ function ColorLegend() {
 }
 
 export default function CalendarPage() {
-  const { events, updateEventPoints, addEvent } = useChapterOps()
+  const {
+    events,
+    updateEventPoints,
+    addEvent,
+    getMemberRsvp,
+    setRsvp,
+  } = useChapterOps()
+  const { memberId } = useAuth()
   const permissions = usePermissions()
   const canEditPoints = permissions.canEditEventPoints
+  const memberShell = useIsMemberShell()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const fromFormCreate = searchParams.get('from') === 'form-create'
 
-  const todayIso = DEMO_TODAY
-  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(DEMO_TODAY)))
-  const [view, setView] = useState<ViewMode>('month')
+  const todayIso = localTodayIso()
+  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(todayIso)))
+  const [view, setView] = useState<ViewMode>(() => initialCalendarView(memberShell))
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
   const [eventModalId, setEventModalId] = useState<string | null>(null)
@@ -246,6 +300,30 @@ export default function CalendarPage() {
   }, [navigate, searchParams])
 
   useEffect(() => {
+    if (memberShell) setView('agenda')
+  }, [memberShell])
+
+  const visibleEvents = useMemo(() => {
+    if (!memberShell) return events
+    return events.filter((e) => e.audience !== 'exec')
+  }, [events, memberShell])
+
+  const listItemProps = (event: Event) => {
+    const mid = memberId ?? ''
+    const entry = mid ? getMemberRsvp(event.id, mid) : undefined
+    return {
+      memberShell,
+      rsvpStatus: entry?.status ?? null,
+      onRsvpGoing: mid
+        ? () => setRsvp(event.id, mid, 'Going')
+        : undefined,
+      onRsvpDecline: mid
+        ? () => setRsvp(event.id, mid, 'Not Going')
+        : undefined,
+    }
+  }
+
+  useEffect(() => {
     if (!fromFormCreate) return
     setReturnToFormsAfterCreate(true)
     setCreateOpen(true)
@@ -255,12 +333,12 @@ export default function CalendarPage() {
 
   const sortedEvents = useMemo(
     () =>
-      [...events].sort((a, b) => {
+      [...visibleEvents].sort((a, b) => {
         const d = a.date.localeCompare(b.date)
         if (d !== 0) return d
         return a.time.localeCompare(b.time)
       }),
-    [events]
+    [visibleEvents]
   )
 
   const byDate = useMemo(() => {
@@ -400,7 +478,7 @@ export default function CalendarPage() {
     <>
       <TopBar
         title="Calendar"
-        subtitle={`${events.length} events · semester schedule`}
+        subtitle={`${visibleEvents.length} events · semester schedule`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex border border-[var(--rule)]">
@@ -575,6 +653,7 @@ export default function CalendarPage() {
                     event={event}
                     selected={eventModalId === event.id}
                     onSelect={() => openEventModal(event.id, event.date)}
+                    {...listItemProps(event)}
                   />
                 ))}
               </ul>
@@ -621,6 +700,7 @@ export default function CalendarPage() {
                     setDayModalDate(null)
                     openEventModal(event.id, event.date)
                   }}
+                  {...listItemProps(event)}
                 />
               ))}
             </ul>
