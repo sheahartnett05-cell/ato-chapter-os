@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { CalendarDays, Megaphone, Settings, User, UsersRound } from 'lucide-react'
+import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
+import type { ChapterFeatureId } from '../../types/chapterFeatures'
 
 const NAV = [
   { to: '/my-dashboard', label: 'Room', icon: Megaphone, end: true },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/committees', label: 'Groups', icon: UsersRound },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
+  { to: '/committees', label: 'Groups', icon: UsersRound, feature: 'committees' as const },
   { to: '/profile', label: 'Profile', icon: User },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const
@@ -16,6 +18,11 @@ function isActive(pathname: string, to: string, end?: boolean) {
 
 export function MemberBottomNav() {
   const { pathname } = useLocation()
+  const features = useChapterFeaturesOptional()
+  const featureOk = (id?: ChapterFeatureId) =>
+    !id || features?.isFeatureEnabled(id) !== false
+
+  const visibleNav = NAV.filter((item) => featureOk('feature' in item ? item.feature : undefined))
 
   return (
     <nav
@@ -27,7 +34,7 @@ export function MemberBottomNav() {
       aria-label="Chapter Room"
     >
       <div className="mx-auto flex max-w-lg justify-around py-2.5 md:max-w-2xl">
-        {NAV.map((item) => {
+        {visibleNav.map((item) => {
           const { to, label, icon: Icon } = item
           const end = 'end' in item ? item.end : undefined
           const active = isActive(pathname, to, end)

@@ -30,14 +30,6 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 type ViewMode = 'month' | 'agenda'
 
-function initialCalendarView(preferAgenda: boolean): ViewMode {
-  if (preferAgenda) return 'agenda'
-  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-    return 'agenda'
-  }
-  return 'month'
-}
-
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
 }
@@ -272,7 +264,7 @@ export default function CalendarPage() {
 
   const todayIso = localTodayIso()
   const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(todayIso)))
-  const [view, setView] = useState<ViewMode>(() => initialCalendarView(memberShell))
+  const [view, setView] = useState<ViewMode>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
   const [eventModalId, setEventModalId] = useState<string | null>(null)
@@ -298,10 +290,6 @@ export default function CalendarPage() {
       navigate(`/events/${focusId}`, { replace: true })
     }
   }, [navigate, searchParams])
-
-  useEffect(() => {
-    if (memberShell) setView('agenda')
-  }, [memberShell])
 
   const visibleEvents = useMemo(() => {
     if (!memberShell) return events

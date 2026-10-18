@@ -1,11 +1,12 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Menu } from 'lucide-react'
 import { useAuth, usePermissions } from '../../context/AuthContext'
 import { isOnboardingCompleteInStorage } from '../../lib/onboardingStorage'
 import { isGuestPreviewActive } from '../../lib/guestPreview'
 import { Sidebar } from '../layout/Sidebar'
 import { MemberBottomNav } from '../layout/MemberBottomNav'
+import { MemberShellOperationsStrip } from '../layout/ChapterModeNav'
 import { GuestPreviewBanner } from './GuestPreviewBanner'
 import { useShellKind } from '../../hooks/useShellKind'
 import { userIsExecCapable } from '../../lib/access/can'
@@ -21,9 +22,18 @@ function useShowGuestBanner(): boolean {
 
 const MEMBER_NAV_PAD = 'pb-[4.25rem]'
 
+function useScrollContainerReset(ref: RefObject<HTMLElement | null>, pathname: string) {
+  useEffect(() => {
+    ref.current?.scrollTo({ top: 0, left: 0 })
+  }, [pathname, ref])
+}
+
 /** Chapter Room chrome: scrollable content + bottom nav */
 function MemberChrome({ children }: { children: ReactNode }) {
   const showGuest = useShowGuestBanner()
+  const { pathname } = useLocation()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useScrollContainerReset(scrollRef, pathname)
 
   return (
     <div
@@ -31,7 +41,13 @@ function MemberChrome({ children }: { children: ReactNode }) {
       style={{ background: 'var(--surface-tint)' }}
     >
       {showGuest && <GuestPreviewBanner />}
-      <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${MEMBER_NAV_PAD}`}>{children}</div>
+      <MemberShellOperationsStrip />
+      <div
+        ref={scrollRef}
+        className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${MEMBER_NAV_PAD}`}
+      >
+        {children}
+      </div>
       <MemberBottomNav />
     </div>
   )
@@ -42,10 +58,13 @@ function ExecChrome({ children }: { children: ReactNode }) {
   const showGuest = useShowGuestBanner()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const mainScrollRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     setDrawerOpen(false)
   }, [location.pathname])
+
+  useScrollContainerReset(mainScrollRef, location.pathname)
 
   return (
     <div
@@ -75,7 +94,7 @@ function ExecChrome({ children }: { children: ReactNode }) {
             </button>
             <p className="font-serif text-lg tracking-tight text-[var(--ink)]">Operations</p>
           </div>
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <main ref={mainScrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <div className="theme-stripe hidden md:block" />
             <div className="min-h-full" style={{ background: 'var(--surface-card)' }}>
               {children}

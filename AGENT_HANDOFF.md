@@ -32,6 +32,28 @@ Shared running notes for **async work** on this repo. Both collaborators (and th
 
 *(Newest entries at the top.)*
 
+### 2026-10-18 — Agent (Chapter Room nav, calendar UX, feature gates)
+
+**Summary:** Officers can leave Chapter Room via **Back to Home**; disabled features show an explanation instead of silent redirect; member-shell scroll resets on route change; calendar defaults to month view.
+
+**Changes:**
+- **Exec exit:** `ChapterModeNav.tsx` — `useGoToOperations()`, strip + TopBar **Back to Home** → `/home` + `operations` view mode; hero button on `MemberDashboard.tsx`.
+- **Navigation UX:** `AppShells.tsx` — scroll container resets to top on pathname change (member + exec main).
+- **Feature gates:** `FeatureRoute.tsx` — disabled-feature page with Chapter Setup link; `MemberBottomNav.tsx` hides Calendar/Groups when off.
+- **Calendar:** `Calendar.tsx` — default view `month` (removed member/mobile agenda forcing).
+
+**Verify:**
+- Guest exec-capable member (e.g. Scholarship preview): **Back to Home** from Room → sidebar + `/home`.
+- Disable Calendar in Chapter Setup → bottom nav omits Calendar; visiting `/calendar` shows “Not available” (not bounce to Room).
+- Scroll Room, open Profile → page starts at top.
+- Calendar opens on month grid.
+
+**Follow-ups / known gaps:**
+- Settings toggle labels still say “Operations”; could align with “Officer Home” if desired.
+- Prior commit `a3fb86d` (shell/view mode) lands with this push if not yet on remote.
+
+---
+
 ### 2026-10-18 — Agent (app shell, calendar, view mode)
 
 **Summary:** Shared routes use member vs exec shell from persisted **Chapter Room / Operations** view mode (not permission boost alone); calendar uses real today and relative demo dates; Settings toggle for exec-capable users.

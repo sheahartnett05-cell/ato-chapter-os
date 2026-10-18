@@ -1,7 +1,6 @@
-import { Bell, ChevronLeft, Search } from 'lucide-react'
+import { Bell, Search } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useIsMemberShell } from '../../hooks/useShellKind'
+import { TopBarChapterModeLinks } from './ChapterModeNav'
 import { Logo } from './Logo'
 
 interface TopBarProps {
@@ -14,21 +13,12 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
   const [search, setSearch] = useState('')
-  const isMemberShell = useIsMemberShell()
 
   return (
     <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
         <div className="flex min-w-0 items-start gap-3 sm:items-center">
-          {isMemberShell && (
-            <Link
-              to="/my-dashboard"
-              className="mr-1 flex shrink-0 items-center gap-1 rounded-full border border-[var(--rule)] bg-[var(--surface-tint)] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition hover:border-[var(--ink)] hover:text-[var(--ink)]"
-            >
-              <ChevronLeft size={14} />
-              Chapter Room
-            </Link>
-          )}
+          <TopBarChapterModeLinks />
           {showBrand && (
             <div className="hidden sm:block">
               <Logo compact onDark={false} />

@@ -29,6 +29,9 @@ import {
   type FormRsvpOption,
 } from '../lib/formRsvps'
 import { useAuth, usePermissions } from '../context/AuthContext'
+import { useChapterViewMode } from '../context/ChapterViewModeContext'
+import { useGoToOperations } from '../components/layout/ChapterModeNav'
+import { userIsExecCapable } from '../lib/access/can'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { useMemberGovernance } from '../context/GovernanceContext'
@@ -133,6 +136,10 @@ export default function MemberDashboard() {
 
   const { memberId, profile, role } = useAuth()
   const permissions = usePermissions()
+  const { viewMode } = useChapterViewMode()
+  const goToOperations = useGoToOperations()
+  const showOperationsExit =
+    userIsExecCapable(role, permissions) && viewMode === 'chapter-room'
 
   const { getMemberById } = useMembers()
   const TODAY = localTodayIso()
@@ -308,19 +315,30 @@ export default function MemberDashboard() {
 
           <Logo compact />
 
-          <Link
+          <div className="flex shrink-0 items-center gap-2">
+            {showOperationsExit && (
+              <button
+                type="button"
+                onClick={goToOperations}
+                className="hidden border border-white/25 bg-white/10 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wider text-white transition hover:bg-white/20 sm:inline-flex"
+              >
+                Back to Home
+              </button>
+            )}
+            <Link
 
-            to="/profile"
+              to="/profile"
 
-            className="flex h-9 w-9 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20"
+              className="flex h-9 w-9 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20"
 
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
 
-          >
+            >
 
-            {initials}
+              {initials}
 
-          </Link>
+            </Link>
+          </div>
 
         </div>
 
