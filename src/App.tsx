@@ -33,7 +33,7 @@ import Announcements from './pages/Announcements'
 import ExcuseApprovals from './pages/ExcuseApprovals'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
-import ExecSlides from './pages/ExecSlides'
+import ChapterMeetingPage from './pages/ChapterMeeting'
 import BylawsPage from './pages/Bylaws'
 import HouseMaintenancePage from './pages/HouseMaintenance'
 import JudicialBoard from './pages/JudicialBoard'
@@ -55,7 +55,7 @@ export default function App() {
             <ChapterFeaturesProvider>
               <AuthProvider>
                 <ChapterViewModeProvider>
-                <GovernanceProvider>
+                  <GovernanceProvider>
                   <CommunicationsProvider>
                     <ChapterResourcesProvider>
                       <ChapterTablesProvider>
@@ -284,14 +284,18 @@ export default function App() {
                                     }
                                   />
                                   <Route
-                                    path="/exec-slides"
+                                    path="/chapter-meeting"
                                     element={
                                       <ExecShell>
                                         <FeatureRoute feature="execSlides">
-                                          <ExecSlides />
+                                          <ChapterMeetingPage />
                                         </FeatureRoute>
                                       </ExecShell>
                                     }
+                                  />
+                                  <Route
+                                    path="/exec-slides"
+                                    element={<Navigate to="/chapter-meeting" replace />}
                                   />
                                   <Route
                                     path="/bylaws"
@@ -360,7 +364,7 @@ export default function App() {
                       </ChapterTablesProvider>
                     </ChapterResourcesProvider>
                   </CommunicationsProvider>
-                </GovernanceProvider>
+                  </GovernanceProvider>
                 </ChapterViewModeProvider>
               </AuthProvider>
             </ChapterFeaturesProvider>

@@ -4,6 +4,7 @@ import { Plus, Users, ChevronRight, MessageSquare } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { SearchField } from '../components/ui/SearchField'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useIsMemberShell } from '../hooks/useShellKind'
@@ -354,11 +355,12 @@ export default function Committees() {
 
           <div>
             <label className="text-xs font-medium text-neutral-500">Members</label>
-            <input
+            <SearchField
               value={memberSearch}
-              onChange={(e) => setMemberSearch(e.target.value)}
+              onChange={setMemberSearch}
               placeholder="Search members…"
-              className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
+              className="mt-1 sm:max-w-none"
+              aria-label="Search members"
             />
             <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-sm border border-black/5 bg-white p-2">
               {filteredMembers.map((m) => (

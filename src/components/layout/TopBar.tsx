@@ -1,5 +1,4 @@
-import { Bell, Search } from 'lucide-react'
-import { useState } from 'react'
+import { Bell } from 'lucide-react'
 import { TopBarChapterModeLinks } from './ChapterModeNav'
 import { Logo } from './Logo'
 
@@ -12,8 +11,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
-  const [search, setSearch] = useState('')
-
   return (
     <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
@@ -41,16 +38,6 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
         )}
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <div className="relative hidden lg:block">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
-            <input
-              type="search"
-              placeholder="Search…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-editorial w-44 py-2 pl-9 pr-3"
-            />
-          </div>
           <button
             type="button"
             className="relative border border-[var(--rule)] p-2 text-[var(--ink)] transition hover:bg-black/[0.03]"

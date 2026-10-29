@@ -62,6 +62,41 @@ function TabPills({
   )
 }
 
+function OfficerPositionsEntry() {
+  const permissions = usePermissions()
+  if (permissions.isMemberView && !permissions.canAccessAdminSettings) return null
+
+  return (
+    <details className="group rounded-xl border border-[var(--rule)] bg-[var(--surface-card)]">
+      <summary className="cursor-pointer list-none px-4 py-3 font-serif text-lg tracking-tight text-[var(--ink)] marker:content-none [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center justify-between gap-2">
+          Officer positions
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] group-open:hidden">
+            Show
+          </span>
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-[var(--rule)] px-4 py-3">
+        <p className="text-sm leading-relaxed text-[var(--muted)]">
+          Assign seats, edit titles, and map officers to dashboard functions.
+        </p>
+        {permissions.canAccessAdminSettings ? (
+          <Link
+            to="/chapter-setup#officer-positions"
+            className="btn-primary inline-block text-xs"
+          >
+            Manage officer positions
+          </Link>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Contact your chapter president to update officer seats.
+          </p>
+        )}
+      </div>
+    </details>
+  )
+}
+
 function AppViewModeCard() {
   const { role } = useAuth()
   const permissions = usePermissions()
@@ -118,6 +153,7 @@ function AccountSettings({
   return (
     <div className="mx-auto max-w-xl space-y-10">
       <AppViewModeCard />
+      <OfficerPositionsEntry />
       <div>
         <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Profile
@@ -579,7 +615,7 @@ export default function Settings() {
       ? 'invites'
       : 'account'
   const [tab, setTab] = useState<SettingsTab>(initialTab)
-  const hasPositionTab = !permissions.isMemberView
+  const hasPositionTab = false
   const hasInvitesTab = permissions.canManageInvites
 
   const saveProfile = (patch: Partial<UserProfile>) => {

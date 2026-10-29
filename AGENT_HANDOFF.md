@@ -32,6 +32,33 @@ Shared running notes for **async work** on this repo. Both collaborators (and th
 
 *(Newest entries at the top.)*
 
+### 2026-10-29 — Agent (Chapter Room UX, meeting page, search, settings)
+
+**Summary:** Chapter Room polish (announcements/upcoming, collapsible quick access), Exec Slides replaced by Chapter meeting, sidebar Forms/Members order, shared SearchField, Settings officer positions entry, view-mode hook fallbacks.
+
+**Changes:**
+- **Chapter Room:** `MemberDashboard.tsx` — no harsh line-clamps on announcements/upcoming; `CollapsibleSection.tsx` for quick access.
+- **Chapter meeting:** `ChapterMeeting.tsx`, `App.tsx` routes `/chapter-meeting`, redirect `/exec-slides`; `ChapterResourcesContext.tsx` + `chapterResources.ts` for agenda, minutes, attachments; sidebar label **Chapter meeting**; feature label in `chapterFeatures.ts`.
+- **Navigation:** `Sidebar.tsx` — Forms after Announcements, Members before Committees.
+- **Forms:** `ChapterTables.tsx` — cleaner toolbar, row search via `SearchField`.
+- **Search:** `SearchField.tsx` (icon, border, clear, full-width mobile); wired in Members, Forms, Bylaws, Committees modals; `index.css` normalizes `type=search`; `TopBar.tsx` removed non-functional search.
+- **Settings:** `Settings.tsx` — collapsible **Officer positions** → `/chapter-setup#officer-positions`; Position tab hidden; `ChapterSetup.tsx` + `Section.tsx` `id="officer-positions"`.
+- **Stability:** `ChapterViewModeContext.tsx` — `useChapterViewModeOptional`, `useResolvedChapterViewMode`, `useSetChapterViewMode` so components outside provider do not crash; `useShellKind.ts`, `ChapterModeNav.tsx` updated.
+
+**Verify:**
+- `/my-dashboard` (Chapter Room): announcements/upcoming text not clipped; quick access expands/collapses.
+- Sidebar: Forms above Members; **Chapter meeting** opens agenda/minutes/uploads.
+- `/members` and a form detail: search field visible, full width on mobile, clear button when typing.
+- Settings → Officer positions → Chapter Setup anchor scrolls to seats.
+- `npm run build` passes.
+
+**Follow-ups / known gaps:**
+- `ExecSlides.tsx` may remain unused; safe to delete if no other imports.
+- Onboarding roster search still uses raw `input-editorial` (not `SearchField`).
+- Settings toggle copy still “Operations” vs “Officer Home” (optional rename).
+
+---
+
 ### 2026-10-18 — Agent (Chapter Room nav, calendar UX, feature gates)
 
 **Summary:** Officers can leave Chapter Room via **Back to Home**; disabled features show an explanation instead of silent redirect; member-shell scroll resets on route change; calendar defaults to month view.

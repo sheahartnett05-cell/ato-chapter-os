@@ -26,3 +26,16 @@ export interface HouseTask {
 }
 
 export type { ExecSlide }
+
+export interface MeetingAttachment {
+  id: string
+  label: string
+  fileName: string
+  uploadedAt: string
+}
+
+export interface ChapterMeetingNotes {
+  agenda: string
+  minutes: string
+  attachments: MeetingAttachment[]
+}

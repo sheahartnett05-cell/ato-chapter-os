@@ -13,9 +13,18 @@ import {
 } from '../data/chapterResourcesData'
 import { allowDemoData } from '../lib/demoSeed'
 import { readJson, writeJson } from '../lib/persist'
-import type { BylawsDocument, ExecSlide, HouseTask, HouseTaskKind, HouseTaskStatus } from '../types/chapterResources'
+import type {
+  BylawsDocument,
+  ChapterMeetingNotes,
+  ExecSlide,
+  HouseTask,
+  HouseTaskKind,
+  HouseTaskStatus,
+  MeetingAttachment,
+} from '../types/chapterResources'
 
 const SLIDES_KEY = 'chapter-os-exec-slides'
+const MEETING_KEY = 'chapter-os-chapter-meeting'
 const BYLAWS_KEY = 'chapter-os-bylaws'
 const HOUSE_KEY = 'chapter-os-house-tasks'
 
@@ -35,6 +44,20 @@ function readBylaws(): BylawsDocument[] {
   return allowDemoData() ? DEMO_BYLAWS : []
 }
 
+const EMPTY_MEETING: ChapterMeetingNotes = { agenda: '', minutes: '', attachments: [] }
+
+function readMeetingNotes(): ChapterMeetingNotes {
+  const stored = readJson<ChapterMeetingNotes | null>(MEETING_KEY, null)
+  if (stored) {
+    return {
+      agenda: stored.agenda ?? '',
+      minutes: stored.minutes ?? '',
+      attachments: stored.attachments ?? [],
+    }
+  }
+  return { ...EMPTY_MEETING }
+}
+
 function readHouseTasks(): HouseTask[] {
   const stored = readJson<HouseTask[] | null>(HOUSE_KEY, null)
   if (stored && stored.length > 0) return stored
@@ -46,6 +69,11 @@ interface ChapterResourcesContextValue {
   updateSlide: (id: string, patch: Partial<Omit<ExecSlide, 'id'>>) => void
   addSlide: (slide: Omit<ExecSlide, 'id'>) => ExecSlide
   deleteSlide: (id: string) => void
+
+  meetingNotes: ChapterMeetingNotes
+  updateMeetingNotes: (patch: Partial<Pick<ChapterMeetingNotes, 'agenda' | 'minutes'>>) => void
+  addMeetingAttachment: (input: { label: string; fileName: string }) => MeetingAttachment
+  removeMeetingAttachment: (id: string) => void
 
   bylaws: BylawsDocument[]
   importBylaws: (input: { fileName: string; content: string; importedBy: string }) => BylawsDocument
@@ -62,8 +90,14 @@ const ChapterResourcesContext = createContext<ChapterResourcesContextValue | nul
 
 export function ChapterResourcesProvider({ children }: { children: ReactNode }) {
   const [execSlides, setExecSlides] = useState<ExecSlide[]>(readSlides)
+  const [meetingNotes, setMeetingNotes] = useState<ChapterMeetingNotes>(readMeetingNotes)
   const [bylaws, setBylaws] = useState<BylawsDocument[]>(readBylaws)
   const [houseTasks, setHouseTasks] = useState<HouseTask[]>(readHouseTasks)
+
+  const persistMeeting = useCallback((next: ChapterMeetingNotes) => {
+    setMeetingNotes(next)
+    writeJson(MEETING_KEY, next)
+  }, [])
 
   const persistSlides = useCallback((next: ExecSlide[]) => {
     setExecSlides(next)
@@ -101,6 +135,40 @@ export function ChapterResourcesProvider({ children }: { children: ReactNode }) 
       persistSlides(execSlides.filter((s) => s.id !== id))
     },
     [execSlides, persistSlides]
+  )
+
+  const updateMeetingNotes = useCallback(
+    (patch: Partial<Pick<ChapterMeetingNotes, 'agenda' | 'minutes'>>) => {
+      persistMeeting({ ...meetingNotes, ...patch })
+    },
+    [meetingNotes, persistMeeting]
+  )
+
+  const addMeetingAttachment = useCallback(
+    (input: { label: string; fileName: string }) => {
+      const attachment: MeetingAttachment = {
+        id: uid('meet'),
+        label: input.label.trim() || input.fileName,
+        fileName: input.fileName,
+        uploadedAt: new Date().toISOString(),
+      }
+      persistMeeting({
+        ...meetingNotes,
+        attachments: [attachment, ...meetingNotes.attachments],
+      })
+      return attachment
+    },
+    [meetingNotes, persistMeeting]
+  )
+
+  const removeMeetingAttachment = useCallback(
+    (id: string) => {
+      persistMeeting({
+        ...meetingNotes,
+        attachments: meetingNotes.attachments.filter((a) => a.id !== id),
+      })
+    },
+    [meetingNotes, persistMeeting]
   )
 
   const importBylaws = useCallback(
@@ -178,6 +246,10 @@ export function ChapterResourcesProvider({ children }: { children: ReactNode }) 
       updateSlide,
       addSlide,
       deleteSlide,
+      meetingNotes,
+      updateMeetingNotes,
+      addMeetingAttachment,
+      removeMeetingAttachment,
       bylaws,
       importBylaws,
       deleteBylaws,
@@ -192,6 +264,10 @@ export function ChapterResourcesProvider({ children }: { children: ReactNode }) 
       updateSlide,
       addSlide,
       deleteSlide,
+      meetingNotes,
+      updateMeetingNotes,
+      addMeetingAttachment,
+      removeMeetingAttachment,
       bylaws,
       importBylaws,
       deleteBylaws,

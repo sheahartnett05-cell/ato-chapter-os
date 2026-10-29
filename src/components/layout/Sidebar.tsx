@@ -22,7 +22,7 @@ import {
 import { Logo } from './Logo'
 import { MemberAvatar } from '../ui/MemberAvatar'
 import { useAuth, usePermissions } from '../../context/AuthContext'
-import { useChapterViewMode } from '../../context/ChapterViewModeContext'
+import { useSetChapterViewMode } from '../../context/ChapterViewModeContext'
 import { useChapter } from '../../context/ChapterContext'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
 import { useStandardsModuleConfig } from '../../hooks/useStandardsModuleConfig'
@@ -38,11 +38,10 @@ const mainNav = [
     feature: 'announcements' as const,
   },
   {
-    to: '/members',
-    label: 'Members',
-    icon: Users,
-    perm: 'canManageRoster' as const,
-    feature: 'roster' as const,
+    to: '/tables',
+    label: 'Forms',
+    icon: ClipboardList,
+    feature: 'tables' as const,
   },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
   { to: '/excuses', label: 'Excuses', icon: ClipboardCheck, perm: 'canAccessExecTools' as const, feature: 'calendar' as const },
@@ -63,7 +62,13 @@ const mainNav = [
     perm: 'canAccessTreasurerSettings' as const,
   },
   { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
-  { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
+  {
+    to: '/members',
+    label: 'Members',
+    icon: Users,
+    perm: 'canManageRoster' as const,
+    feature: 'roster' as const,
+  },
   {
     to: '/committees',
     label: 'Committees',
@@ -93,8 +98,8 @@ const adminNav = [
     perm: 'canAccessAdminSettings' as const,
   },
   {
-    to: '/exec-slides',
-    label: 'Exec Slides',
+    to: '/chapter-meeting',
+    label: 'Chapter meeting',
     icon: Presentation,
     perm: 'canAccessExecTools' as const,
     feature: 'execSlides' as const,
@@ -154,7 +159,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const { chapter, languagePack } = useChapter()
   const { profile, role } = useAuth()
   const permissions = usePermissions()
-  const { setViewMode } = useChapterViewMode()
+  const setViewMode = useSetChapterViewMode()
   const features = useChapterFeaturesOptional()
   const isFeatureEnabled = features?.isFeatureEnabled ?? (() => true)
   const { moduleName } = useStandardsModuleConfig()

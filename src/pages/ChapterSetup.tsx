@@ -195,6 +195,7 @@ export default function ChapterSetup() {
         </Section>
 
         <Section
+          id="officer-positions"
           title="Officer positions"
           subtitle="Add, edit, or remove seats. Matching titles also update app permissions."
         >

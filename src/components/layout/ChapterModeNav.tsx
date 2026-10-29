@@ -1,13 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, LayoutDashboard } from 'lucide-react'
 import { useAuth, usePermissions } from '../../context/AuthContext'
-import { useChapterViewMode } from '../../context/ChapterViewModeContext'
+import {
+  useResolvedChapterViewMode,
+  useSetChapterViewMode,
+} from '../../context/ChapterViewModeContext'
 import { useIsMemberShell } from '../../hooks/useShellKind'
 import { userIsExecCapable } from '../../lib/access/can'
 
 /** Switch to Operations layout and open officer Home (/home). */
 export function useGoToOperations() {
-  const { setViewMode } = useChapterViewMode()
+  const setViewMode = useSetChapterViewMode()
   const navigate = useNavigate()
   return () => {
     setViewMode('operations')
@@ -19,7 +22,7 @@ export function useGoToOperations() {
 export function MemberShellOperationsStrip() {
   const { role } = useAuth()
   const permissions = usePermissions()
-  const { viewMode } = useChapterViewMode()
+  const viewMode = useResolvedChapterViewMode()
   const goToOperations = useGoToOperations()
 
   if (!userIsExecCapable(role, permissions) || viewMode !== 'chapter-room') return null
@@ -47,7 +50,7 @@ export function TopBarChapterModeLinks() {
   const { role } = useAuth()
   const permissions = usePermissions()
   const isMemberShell = useIsMemberShell()
-  const { viewMode } = useChapterViewMode()
+  const viewMode = useResolvedChapterViewMode()
   const goToOperations = useGoToOperations()
 
   if (!isMemberShell) return null

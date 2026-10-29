@@ -1,5 +1,5 @@
 import { useAuth, usePermissions } from '../context/AuthContext'
-import { useChapterViewMode } from '../context/ChapterViewModeContext'
+import { useResolvedChapterViewMode } from '../context/ChapterViewModeContext'
 import { userIsExecCapable } from '../lib/access/can'
 
 export type ShellKind = 'member' | 'exec'
@@ -8,7 +8,7 @@ export type ShellKind = 'member' | 'exec'
 export function useShellKind(): ShellKind {
   const { role } = useAuth()
   const permissions = usePermissions()
-  const { viewMode } = useChapterViewMode()
+  const viewMode = useResolvedChapterViewMode()
 
   const execCapable = userIsExecCapable(role, permissions)
   if (!execCapable) return 'member'

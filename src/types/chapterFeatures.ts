@@ -121,7 +121,7 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
   },
   {
     id: 'execSlides',
-    label: 'Exec slides',
+    label: 'Chapter meeting',
     description: 'Officer meeting decks',
     defaultEnabled: true,
   },

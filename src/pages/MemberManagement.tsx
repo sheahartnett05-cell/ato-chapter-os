@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Plus, Filter, ChevronDown } from 'lucide-react'
+import { SearchField } from '../components/ui/SearchField'
 import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { TopBar } from '../components/layout/TopBar'
 import { Card } from '../components/ui/Card'
@@ -101,12 +102,12 @@ export default function MemberManagement() {
         <Card padding={false}>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-4">
-            <input
-              type="search"
-              placeholder="Search members…"
+            <SearchField
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-64 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+              onChange={setSearch}
+              placeholder="Search members…"
+              aria-label="Search members"
+              className="min-w-full flex-[1_1_100%] sm:min-w-0 sm:max-w-xs sm:flex-[1_1_auto]"
             />
             <button
               type="button"

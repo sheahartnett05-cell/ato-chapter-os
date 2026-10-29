@@ -16,12 +16,14 @@ export function PageShell({
 }
 
 export function Section({
+  id,
   title,
   subtitle,
   action,
   children,
   className = '',
 }: {
+  id?: string
   title: string
   subtitle?: string
   action?: ReactNode
@@ -29,7 +31,7 @@ export function Section({
   className?: string
 }) {
   return (
-    <section className={`space-y-4 ${className}`}>
+    <section id={id} className={`space-y-4 ${className}`}>
       <div className="flex items-end justify-between gap-4 border-b border-[var(--rule)] pb-3">
         <div>
           <h2 className="font-serif text-2xl tracking-tight text-[var(--ink)]">{title}</h2>

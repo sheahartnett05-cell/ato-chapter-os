@@ -14,6 +14,7 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { Logo } from '../components/layout/Logo'
+import { CollapsibleSection } from '../components/ui/CollapsibleSection'
 import { Modal } from '../components/ui/Modal'
 import { localTodayIso } from '../lib/liveAlerts'
 import { PollCard } from '../components/communications/PollCard'
@@ -29,7 +30,7 @@ import {
   type FormRsvpOption,
 } from '../lib/formRsvps'
 import { useAuth, usePermissions } from '../context/AuthContext'
-import { useChapterViewMode } from '../context/ChapterViewModeContext'
+import { useResolvedChapterViewMode } from '../context/ChapterViewModeContext'
 import { useGoToOperations } from '../components/layout/ChapterModeNav'
 import { userIsExecCapable } from '../lib/access/can'
 import { useMembers } from '../context/MembersContext'
@@ -116,7 +117,7 @@ function ChapterRoomSection({
             )}
             {title && (
               <h2
-                className={`font-serif text-lg tracking-tight text-[var(--ink)] ${eyebrow ? 'mt-0.5' : ''}`}
+                className={`break-words font-serif text-lg tracking-tight text-[var(--ink)] ${eyebrow ? 'mt-0.5' : ''}`}
               >
                 {title}
               </h2>
@@ -136,7 +137,7 @@ export default function MemberDashboard() {
 
   const { memberId, profile, role } = useAuth()
   const permissions = usePermissions()
-  const { viewMode } = useChapterViewMode()
+  const viewMode = useResolvedChapterViewMode()
   const goToOperations = useGoToOperations()
   const showOperationsExit =
     userIsExecCapable(role, permissions) && viewMode === 'chapter-room'
@@ -591,7 +592,7 @@ export default function MemberDashboard() {
           </ChapterRoomSection>
         )}
 
-        <ChapterRoomSection eyebrow="Navigate" title="Quick access" tone="soft">
+        <CollapsibleSection eyebrow="Navigate" title="Quick access" defaultOpen>
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {[
               { to: '/calendar', label: 'Calendar', icon: CalendarDays },
@@ -662,7 +663,7 @@ export default function MemberDashboard() {
               )
             })}
           </div>
-        </ChapterRoomSection>
+        </CollapsibleSection>
 
         {/* Today */}
 
@@ -740,12 +741,12 @@ export default function MemberDashboard() {
 
               </div>
 
-              <h3 className="font-serif text-lg tracking-tight text-[var(--ink)]">{pinned.title}</h3>
+              <h3 className="break-words font-serif text-lg tracking-tight text-[var(--ink)]">
+                {pinned.title}
+              </h3>
 
-              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
-
+              <p className="mt-2 break-words text-[15px] leading-relaxed text-[var(--muted)]">
                 {pinned.body}
-
               </p>
 
               <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
@@ -761,9 +762,13 @@ export default function MemberDashboard() {
           <ul className="list-editorial">
             {feed.map((a) => (
               <li key={a.id} className="py-3">
-                <Link to="/announcements" className="block hover:opacity-80">
-                  <p className="text-[15px] font-medium text-[var(--ink)]">{a.title}</p>
-                  <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{a.body}</p>
+                <Link to="/announcements" className="block hover:opacity-90">
+                  <p className="break-words text-[15px] font-semibold leading-snug text-[var(--ink)]">
+                    {a.title}
+                  </p>
+                  <p className="mt-1.5 break-words text-sm leading-relaxed text-[var(--muted)]">
+                    {a.body}
+                  </p>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
                     {a.authorRole} · {formatBuzzTime(a.createdAt)}
                   </p>
@@ -817,7 +822,7 @@ export default function MemberDashboard() {
 
         <ChapterRoomSection
           eyebrow="Calendar"
-          title="Respond to events"
+          title="Upcoming events"
           action={
             <Link
               to="/calendar"
@@ -846,15 +851,10 @@ export default function MemberDashboard() {
                       <div className="flex flex-wrap items-center gap-2">
 
                         <Link
-
                           to={`/events/${event.id}`}
-
-                          className="font-medium text-[var(--ink)] hover:underline"
-
+                          className="break-words text-[15px] font-semibold leading-snug text-[var(--ink)] hover:underline"
                         >
-
                           {event.name}
-
                         </Link>
 
                         {isToday && (
@@ -879,10 +879,9 @@ export default function MemberDashboard() {
 
                       </div>
 
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-
+                      <p className="mt-1 break-words text-sm text-[var(--muted)]">
                         {formatEventDay(event.date)} · {event.time}
-
+                        {event.location ? ` · ${event.location}` : ''}
                       </p>
 
                     </div>
@@ -897,7 +896,7 @@ export default function MemberDashboard() {
 
                   </div>
 
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {FORM_RSVP_OPTIONS.map((option) => (
                       <button
                         key={option}

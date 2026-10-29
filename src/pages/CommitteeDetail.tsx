@@ -4,6 +4,7 @@ import { ArrowLeft, Send, UserPlus, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { SearchField } from '../components/ui/SearchField'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
@@ -346,11 +347,12 @@ export default function CommitteeDetail() {
 
       <Modal open={addMemberOpen} onClose={() => setAddMemberOpen(false)} title="Add committee member">
         <div className="space-y-4">
-          <input
+          <SearchField
             value={memberSearch}
-            onChange={(e) => setMemberSearch(e.target.value)}
+            onChange={setMemberSearch}
             placeholder="Search roster…"
-            className="w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
+            className="sm:max-w-none"
+            aria-label="Search roster"
           />
           <select
             value={memberPick}
