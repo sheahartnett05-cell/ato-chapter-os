@@ -80,7 +80,7 @@ interface ChapterTablesContextValue {
   getTable: (id: string) => ChapterTableForm | undefined
   getTableForEvent: (eventId: string) => ChapterTableForm | undefined
   createTable: (input: {
-    eventId: string
+    eventId?: string
     templateId: string
     name?: string
   }) => ChapterTableForm
@@ -120,7 +120,7 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
   )
 
   const createTable = useCallback(
-    (input: { eventId: string; templateId: string; name?: string }) => {
+    (input: { eventId?: string; templateId: string; name?: string }) => {
       const template = getTableTemplate(input.templateId)
       if (!template) throw new Error('Unknown template')
       const now = new Date().toISOString()
@@ -128,7 +128,7 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
         id: uid('tbl'),
         name: input.name ?? template.name,
         description: template.description,
-        eventId: input.eventId,
+        ...(input.eventId ? { eventId: input.eventId } : {}),
         templateId: input.templateId,
         formKind: template.formKind,
         columns: template.columns.map((c) => ({ ...c })),
@@ -237,7 +237,7 @@ export function ChapterTablesProvider({ children }: { children: ReactNode }) {
 
       const template = getTableTemplate(table.templateId)
       const mapping = template?.guestListMapping
-      if (!mapping) return
+      if (!mapping || !table.eventId) return
 
       // Prefer live form RSVPs for this event; else ChapterOps RSVPs from localStorage
       const formRsvps = getFormRsvpsForEvent(tables, table.eventId).filter((r) => r.memberId)

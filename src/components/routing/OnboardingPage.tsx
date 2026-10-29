@@ -5,7 +5,8 @@ import {
   parseJoinCodeFromSearch,
 } from '../../lib/joinLinks'
 import Onboarding from '../../pages/Onboarding'
-import GuestLogin from '../../pages/GuestLogin'
+import Landing from '../../pages/Landing'
+import DemoPreview from '../../pages/DemoPreview'
 
 export function OnboardingPage() {
   if (isOnboardingCompleteInStorage()) {
@@ -32,14 +33,19 @@ export function JoinPage() {
   return <Navigate to={`/onboarding?code=${encodeURIComponent(code)}`} replace />
 }
 
-/** Collaborator / demo entry — no invite required; always reachable even if a real chapter session exists */
+/** Front door. Reachable even when a chapter session already exists. */
 export function PreviewPage() {
-  return <GuestLogin />
+  return <Landing />
+}
+
+/** Demo is its own short path, separate from creating an account. */
+export function DemoPage() {
+  return <DemoPreview />
 }
 
 export function RootRedirect() {
   if (!isOnboardingCompleteInStorage()) {
-    return <Navigate to="/preview" replace />
+    return <Landing />
   }
   return <Navigate to={defaultHomePath()} replace />
 }

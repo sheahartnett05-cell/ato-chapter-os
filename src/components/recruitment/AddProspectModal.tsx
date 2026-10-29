@@ -164,6 +164,10 @@ export function AddProspectModal({
     }
     setSubmitError('')
     const prospect = addProspectFromForm(templateId, values)
+    if (!prospect) {
+      setSubmitError('You do not have permission to add prospects.')
+      return
+    }
     reset()
     onClose()
     onCreated?.(prospect.id)

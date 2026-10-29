@@ -1,5 +1,5 @@
-import { useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,16 +14,18 @@ import {
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
-import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
+import { EmptyState } from '../components/ui/EmptyState'
 import { useChapterOps } from '../context/ChapterOpsContext'
-import { usePermissions } from '../context/AuthContext'
+import { useAuth, usePermissions } from '../context/AuthContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
+import { localTodayIso } from '../lib/demoRelativeDates'
 import {
   CALENDAR_EVENT_TYPES,
   EVENT_TYPE_COLORS,
   eventTypeColor,
 } from '../lib/eventColors'
+import { stashNewEventForFormCreate } from '../lib/formCreateDraft'
 import type { Event } from '../types'
-import { localTodayIso } from '../lib/liveAlerts'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -77,10 +79,18 @@ function EventListItem({
   event,
   selected,
   onSelect,
+  memberShell,
+  rsvpStatus,
+  onRsvpGoing,
+  onRsvpDecline,
 }: {
   event: Event
   selected: boolean
   onSelect: () => void
+  memberShell?: boolean
+  rsvpStatus?: 'Going' | 'Not Going' | null
+  onRsvpGoing?: () => void
+  onRsvpDecline?: () => void
 }) {
   const color = eventTypeColor(event.type)
   return (
@@ -108,8 +118,37 @@ function EventListItem({
             <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
               {event.time}
             </span>
+            {memberShell && rsvpStatus && (
+              <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--primary)]">
+                RSVP · {rsvpStatus === 'Going' ? 'Going' : 'Declined'}
+              </span>
+            )}
           </div>
         </div>
+        {memberShell && event.rsvpRequired && onRsvpGoing && onRsvpDecline && (
+          <div className="flex shrink-0 flex-col gap-1 pr-2">
+            <button
+              type="button"
+              className="font-mono text-[9px] uppercase tracking-wider text-[var(--ink)]"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRsvpGoing()
+              }}
+            >
+              Going
+            </button>
+            <button
+              type="button"
+              className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRsvpDecline()
+              }}
+            >
+              No
+            </button>
+          </div>
+        )}
       </button>
     </li>
   )
@@ -209,21 +248,31 @@ function ColorLegend() {
 }
 
 export default function CalendarPage() {
-  const { events, updateEventPoints, addEvent } = useChapterOps()
+  const {
+    events,
+    updateEventPoints,
+    addEvent,
+    getMemberRsvp,
+    setRsvp,
+  } = useChapterOps()
+  const { memberId } = useAuth()
   const permissions = usePermissions()
   const canEditPoints = permissions.canEditEventPoints
+  const memberShell = useIsMemberShell()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fromFormCreate = searchParams.get('from') === 'form-create'
 
   const todayIso = localTodayIso()
-  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(localTodayIso())))
-  const [view, setView] = useState<ViewMode>(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'agenda' : 'month'
-  )
+  const [cursor, setCursor] = useState(() => startOfMonth(parseEventDate(todayIso)))
+  const [view, setView] = useState<ViewMode>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
   const [eventModalId, setEventModalId] = useState<string | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [pointsDraft, setPointsDraft] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
+  const [returnToFormsAfterCreate, setReturnToFormsAfterCreate] = useState(false)
   const [newEvent, setNewEvent] = useState({
     name: '',
     type: 'Chapter',
@@ -234,17 +283,51 @@ export default function CalendarPage() {
     points: 5,
     required: false,
     rsvpRequired: true,
-    dressCode: 'Casual',
   })
+
+  useEffect(() => {
+    const focusId = searchParams.get('event')
+    if (focusId) {
+      navigate(`/events/${focusId}`, { replace: true })
+    }
+  }, [navigate, searchParams])
+
+  const visibleEvents = useMemo(() => {
+    if (!memberShell) return events
+    return events.filter((e) => e.audience !== 'exec')
+  }, [events, memberShell])
+
+  const listItemProps = (event: Event) => {
+    const mid = memberId ?? ''
+    const entry = mid ? getMemberRsvp(event.id, mid) : undefined
+    return {
+      memberShell,
+      rsvpStatus: entry?.status ?? null,
+      onRsvpGoing: mid
+        ? () => setRsvp(event.id, mid, 'Going')
+        : undefined,
+      onRsvpDecline: mid
+        ? () => setRsvp(event.id, mid, 'Not Going')
+        : undefined,
+    }
+  }
+
+  useEffect(() => {
+    if (!fromFormCreate) return
+    setReturnToFormsAfterCreate(true)
+    setCreateOpen(true)
+    setNewEvent((prev) => ({ ...prev, date: prev.date || todayIso }))
+    setSearchParams({}, { replace: true })
+  }, [fromFormCreate, setSearchParams, todayIso])
 
   const sortedEvents = useMemo(
     () =>
-      [...events].sort((a, b) => {
+      [...visibleEvents].sort((a, b) => {
         const d = a.date.localeCompare(b.date)
         if (d !== 0) return d
         return a.time.localeCompare(b.time)
       }),
-    [events]
+    [visibleEvents]
   )
 
   const byDate = useMemo(() => {
@@ -332,11 +415,28 @@ export default function CalendarPage() {
       description: newEvent.description.trim(),
       required: newEvent.required,
       points: newEvent.points,
-      dressCode: newEvent.dressCode,
+      dressCode: 'Casual',
       rsvpRequired: newEvent.rsvpRequired,
       guestAllowed: false,
     })
     setCreateOpen(false)
+    if (returnToFormsAfterCreate) {
+      setReturnToFormsAfterCreate(false)
+      stashNewEventForFormCreate(id)
+      navigate('/tables')
+      setNewEvent({
+        name: '',
+        type: 'Chapter',
+        date: '',
+        time: '7:00 PM',
+        location: '',
+        description: '',
+        points: 5,
+        required: false,
+        rsvpRequired: true,
+      })
+      return
+    }
     setSelectedDate(newEvent.date)
     setEventModalId(id)
     setDayModalDate(null)
@@ -352,7 +452,6 @@ export default function CalendarPage() {
       points: 5,
       required: false,
       rsvpRequired: true,
-      dressCode: 'Casual',
     })
   }
 
@@ -368,7 +467,7 @@ export default function CalendarPage() {
     <>
       <TopBar
         title="Calendar"
-        subtitle={`${events.length} events · semester schedule`}
+        subtitle={`${visibleEvents.length} events · semester schedule`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex border border-[var(--rule)]">
@@ -418,7 +517,6 @@ export default function CalendarPage() {
       />
 
       <PageShell className="space-y-6">
-        <PersistErrorNotice />
         <ColorLegend />
 
         {view === 'month' ? (
@@ -426,19 +524,17 @@ export default function CalendarPage() {
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <button
                 type="button"
-                className="btn-ghost min-h-11 min-w-11 px-2 py-1"
-                aria-label="Previous month"
+                className="btn-ghost px-2 py-1"
                 onClick={() =>
                   setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
                 }
               >
                 <ChevronLeft size={16} />
               </button>
-              <h2 className="font-serif text-xl tracking-tight sm:text-2xl">{monthLabel(cursor)}</h2>
+              <h2 className="font-serif text-2xl tracking-tight">{monthLabel(cursor)}</h2>
               <button
                 type="button"
-                className="btn-ghost min-h-11 min-w-11 px-2 py-1"
-                aria-label="Next month"
+                className="btn-ghost px-2 py-1"
                 onClick={() =>
                   setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
                 }
@@ -473,7 +569,7 @@ export default function CalendarPage() {
                         pickDate(cell.iso)
                       }
                     }}
-                    className={`min-h-[52px] border-b border-r border-[var(--rule)] p-1 text-left align-top transition sm:min-h-[88px] sm:p-1.5 ${
+                    className={`min-h-[88px] border-b border-r border-[var(--rule)] p-1.5 text-left align-top transition ${
                       !cell.date
                         ? 'bg-black/[0.02]'
                         : isSelected
@@ -492,7 +588,7 @@ export default function CalendarPage() {
                         >
                           {cell.date.getDate()}
                         </span>
-                        <ul className="mt-1 hidden space-y-0.5 sm:block">
+                        <ul className="mt-1 space-y-0.5">
                           {dayEvents.slice(0, 3).map((e) => {
                             const color = eventTypeColor(e.type)
                             const active = eventModalId === e.id
@@ -518,23 +614,6 @@ export default function CalendarPage() {
                             </li>
                           )}
                         </ul>
-                        {dayEvents.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
-                            {dayEvents.slice(0, 4).map((e) => (
-                              <span
-                                key={e.id}
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: eventTypeColor(e.type) }}
-                                title={e.name}
-                              />
-                            ))}
-                            {dayEvents.length > 4 && (
-                              <span className="font-mono text-[8px] text-[var(--muted)]">
-                                +{dayEvents.length - 4}
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
@@ -552,9 +631,22 @@ export default function CalendarPage() {
             </div>
 
             {upcomingAgenda.length === 0 ? (
-              <p className="border border-[var(--rule)] py-8 text-center font-mono text-xs text-[var(--muted)]">
-                No upcoming events.
-              </p>
+              <EmptyState
+                compact
+                title="No upcoming events"
+                description="Add an event to fill the agenda."
+                action={
+                  canEditPoints ? (
+                    <button
+                      type="button"
+                      className="btn-primary text-xs"
+                      onClick={() => setCreateOpen(true)}
+                    >
+                      Create event
+                    </button>
+                  ) : undefined
+                }
+              />
             ) : (
               <ul className="list-editorial border border-[var(--rule)]">
                 {upcomingAgenda.map((event) => (
@@ -563,6 +655,7 @@ export default function CalendarPage() {
                     event={event}
                     selected={eventModalId === event.id}
                     onSelect={() => openEventModal(event.id, event.date)}
+                    {...listItemProps(event)}
                   />
                 ))}
               </ul>
@@ -609,6 +702,7 @@ export default function CalendarPage() {
                     setDayModalDate(null)
                     openEventModal(event.id, event.date)
                   }}
+                  {...listItemProps(event)}
                 />
               ))}
             </ul>
@@ -718,19 +812,6 @@ export default function CalendarPage() {
             value={newEvent.location}
             onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
           />
-          <select
-            className="input-editorial"
-            value={newEvent.dressCode}
-            onChange={(e) => setNewEvent({ ...newEvent, dressCode: e.target.value })}
-          >
-            {['Casual', 'Business Casual', 'Cocktail', 'Formal', 'Themed', 'No dress code'].map(
-              (d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              )
-            )}
-          </select>
           <textarea
             className="input-editorial min-h-[72px] resize-none"
             placeholder="Description (optional)"

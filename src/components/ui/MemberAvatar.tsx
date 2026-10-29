@@ -29,7 +29,7 @@ export function MemberAvatar({
 
   return (
     <div className={base} style={{ backgroundColor: accentColor }}>
-      {initials}
+      {initials.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase()}
     </div>
   )
 }

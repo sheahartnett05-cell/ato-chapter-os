@@ -105,8 +105,8 @@ export function Logo({
             {title}
           </span>
           <span
-            className={`mt-0.5 block truncate font-mono text-[9px] uppercase tracking-[0.16em] ${
-              onDark ? 'text-white/45' : 'text-[var(--muted)]'
+            className={`mt-0.5 block font-mono text-[11px] uppercase leading-snug tracking-[0.08em] ${
+              onDark ? 'text-white/80' : 'text-[var(--muted)]'
             }`}
           >
             {subtitle}

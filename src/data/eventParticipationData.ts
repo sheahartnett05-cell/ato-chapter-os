@@ -25,17 +25,25 @@ export const SEED_RSVPS: Record<string, RsvpEntry[]> = {
   ],
 }
 
+/** Fallback demo attendance (e1 worth 5 pts). m6 matches approved excuse ex2. */
 export const SEED_ATTENDANCE: Record<string, AttendanceEntry[]> = {
   e1: [
-    { memberId: 'm1', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm2', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm3', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm4', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm5', status: 'Excused', pointsEarned: 0 },
-    { memberId: 'm6', status: 'Absent', pointsEarned: 0 },
-    { memberId: 'm7', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm8', status: 'Absent', pointsEarned: 0 },
-    { memberId: 'm9', status: 'Present', pointsEarned: 5 },
+    { memberId: 'm1', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm2', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm3', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm4', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm5', status: 'Excused', pointsEarned: 0, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    {
+      memberId: 'm6',
+      status: 'Excused',
+      pointsEarned: 0,
+      recordedAt: '2025-08-18T11:00:00',
+      source: 'excuse',
+      rollCallStatus: 'Absent',
+    },
+    { memberId: 'm7', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm8', status: 'Absent', pointsEarned: 0, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
+    { memberId: 'm9', status: 'Present', pointsEarned: 5, recordedAt: '2025-08-25T19:05:00', source: 'roll_call' },
   ],
 }
 

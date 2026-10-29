@@ -70,7 +70,7 @@ export const DEMO_BYLAWS: BylawsDocument[] = [
     id: 'bylaws-1',
     fileName: 'Chapter-Bylaws-2024.txt',
     content: `ARTICLE I — NAME AND PURPOSE
-The name of this organization shall be the Sample Chapter of [National Organization].
+The name of this organization shall be the Sample Chapter. (Template — replace with your chapter's legal name.)
 
 ARTICLE II — MEMBERSHIP
 Section 1. Active membership requires good standing with dues, attendance, and academic standards.
@@ -85,7 +85,7 @@ Weekly chapter meetings are mandatory unless excused by the President or Standar
 ARTICLE V — FINANCES
 All expenditures over $250 require President and Treasurer approval.`,
     importedAt: '2025-08-01T12:00:00.000Z',
-    importedBy: 'Marcus Chen',
+    importedBy: 'm1',
   },
 ]
 

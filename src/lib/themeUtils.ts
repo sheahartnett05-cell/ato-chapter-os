@@ -65,6 +65,27 @@ export function darkenHex(hex: string, amount: number): string {
     .join('')}`
 }
 
+/** WCAG contrast ratio between two hex colors. */
+export function contrastRatio(fgHex: string, bgHex: string): number {
+  const a = hexLuminance(fgHex)
+  const b = hexLuminance(bgHex)
+  const [lighter, darker] = a > b ? [a, b] : [b, a]
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+/**
+ * Darken accent until text on a light surface (#faf9f7) meets AA (≥ 4.5:1).
+ * Use for links/text on light canvases; keep `--accent` for fills/borders/sidebar.
+ */
+export function accentInkForLightSurface(accentHex: string, bgHex = '#faf9f7'): string {
+  let hex = accentHex.startsWith('#') ? accentHex : `#${accentHex}`
+  for (let i = 0; i < 24; i++) {
+    if (contrastRatio(hex, bgHex) >= 4.5) return hex
+    hex = darkenHex(hex, 0.1)
+  }
+  return darkenHex(hex, 0.4)
+}
+
 /** When accent is white/light, use secondary for interactive elements */
 export function effectiveAccent(_primary: string, secondary: string, accent: string): string {
   return isLightColor(accent) ? secondary : accent

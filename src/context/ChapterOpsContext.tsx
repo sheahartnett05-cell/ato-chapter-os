@@ -23,6 +23,12 @@ import {
   initialStudyLocations,
   initialStudyLogs,
 } from '../data/chapterOpsData'
+import {
+  attendancePatchForExcuseDecision,
+  buildRollCallEntry,
+  normalizeAttendanceEntries,
+  normalizePoints,
+} from '../lib/attendance/attendanceMath'
 import { memberVerifiedHours, memberStudyHoursRequired } from '../lib/studyHours'
 import { allowDemoData, EMPTY_BILL_HIGHWAY, STORAGE_KEYS } from '../lib/demoSeed'
 import { readJson, writeJson } from '../lib/persist'
@@ -61,7 +67,13 @@ export interface ChapterOpsContextValue {
     eventId: string,
     memberId: string,
     status: AttendanceEntry['status'],
-    pointsEarned?: number
+    pointsEarned?: number,
+    opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
+  ) => void
+  clearAttendanceEntry: (eventId: string, memberId: string) => void
+  applyExcuseAttendanceDecision: (
+    excuseId: string,
+    decision: 'approved' | 'denied' | 'reopened'
   ) => void
   submitExcuse: (input: {
     eventId: string
@@ -281,7 +293,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   )
 
   const getEventAttendance = useCallback(
-    (eventId: string) => attendance[eventId] ?? [],
+    (eventId: string) => normalizeAttendanceEntries(attendance[eventId] ?? []),
     [attendance]
   )
 
@@ -290,19 +302,74 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       eventId: string,
       memberId: string,
       status: AttendanceEntry['status'],
-      pointsEarned = 0
+      pointsEarned = 0,
+      opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
     ) => {
+      const recordedAt = opts?.recordedAt ?? new Date().toISOString()
+      const source = opts?.source ?? 'roll_call'
       persistAttendance((prev) => {
-        const list = prev[eventId] ?? []
-        const existing = list.find((a) => a.memberId === memberId)
-        const entry: AttendanceEntry = { memberId, status, pointsEarned }
-        const nextList = existing
-          ? list.map((a) => (a.memberId === memberId ? entry : a))
-          : [...list, entry]
+        const list = normalizeAttendanceEntries(prev[eventId] ?? [])
+        const entry =
+          source === 'roll_call'
+            ? buildRollCallEntry(memberId, status, pointsEarned, recordedAt)
+            : {
+                memberId,
+                status,
+                pointsEarned: status === 'Present' ? normalizePoints(pointsEarned) : 0,
+                recordedAt,
+                source,
+              }
+        // Corrections replace: drop prior rows for this member, append authoritative row
+        const nextList = [...list.filter((a) => a.memberId !== memberId), entry]
         return { ...prev, [eventId]: nextList }
       })
     },
     [persistAttendance]
+  )
+
+  const clearAttendanceEntry = useCallback(
+    (eventId: string, memberId: string) => {
+      persistAttendance((prev) => {
+        const list = normalizeAttendanceEntries(prev[eventId] ?? [])
+        const nextList = list.filter((a) => a.memberId !== memberId)
+        if (nextList.length === list.length) return prev
+        return { ...prev, [eventId]: nextList }
+      })
+    },
+    [persistAttendance]
+  )
+
+  const applyExcuseAttendanceDecision = useCallback(
+    (excuseId: string, decision: 'approved' | 'denied' | 'reopened') => {
+      const excuse = excuses.find((e) => e.id === excuseId)
+      if (!excuse) return
+      const recordedAt = new Date().toISOString()
+      persistAttendance((prev) => {
+        const list = normalizeAttendanceEntries(prev[excuse.eventId] ?? [])
+        const existing = list.find((a) => a.memberId === excuse.memberId)
+        const patch = attendancePatchForExcuseDecision(
+          decision,
+          excuse.memberId,
+          existing,
+          recordedAt
+        )
+        if (patch.kind === 'noop') return prev
+        if (patch.kind === 'remove') {
+          return {
+            ...prev,
+            [excuse.eventId]: list.filter((a) => a.memberId !== excuse.memberId),
+          }
+        }
+        return {
+          ...prev,
+          [excuse.eventId]: [
+            ...list.filter((a) => a.memberId !== excuse.memberId),
+            patch.entry,
+          ],
+        }
+      })
+    },
+    [excuses, persistAttendance]
   )
 
   const submitExcuse = useCallback(
@@ -592,6 +659,8 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       setRsvp,
       getEventAttendance,
       setAttendanceEntry,
+      clearAttendanceEntry,
+      applyExcuseAttendanceDecision,
       submitExcuse,
       updateExcuseStatus,
       getEventExcuses,
@@ -638,6 +707,8 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       setRsvp,
       getEventAttendance,
       setAttendanceEntry,
+      clearAttendanceEntry,
+      applyExcuseAttendanceDecision,
       submitExcuse,
       updateExcuseStatus,
       getEventExcuses,

@@ -66,7 +66,8 @@ export interface Member {
   duesStatus: DuesStatus
   duesPaid: number
   duesExpected: number
-  attendancePct: number
+  /** null when no recorded events (display as "—", never a fake 0%) */
+  attendancePct: number | null
   points: number
   committee?: string
   avatar: string
@@ -87,6 +88,8 @@ export interface Event {
   dressCode: string
   rsvpRequired: boolean
   guestAllowed: boolean
+  /** When `exec`, hidden from chapter-room calendar unless user is in operations mode. */
+  audience?: 'all' | 'exec'
 }
 
 export interface RsvpEntry {
@@ -96,10 +99,27 @@ export interface RsvpEntry {
   excuseId?: string
 }
 
+export type AttendanceStatus = 'Present' | 'Excused' | 'Absent'
+
 export interface AttendanceEntry {
   memberId: string
-  status: 'Present' | 'Excused' | 'Absent'
+  status: AttendanceStatus
   pointsEarned: number
+  /** ISO timestamp; corrections replace the prior row for member×event */
+  recordedAt?: string
+  /** Last writer; used for excuse approve/reject revert rules */
+  source?: 'roll_call' | 'excuse'
+  /** Roll-call status preserved when an approved excuse overwrote it */
+  rollCallStatus?: AttendanceStatus
+}
+
+export type ProspectBidResponse = 'pending' | 'accepted' | 'declined'
+
+export interface ProspectBid {
+  extendedAt: string
+  deadline?: string
+  response: ProspectBidResponse
+  respondedAt?: string
 }
 
 export interface Prospect {
@@ -126,6 +146,17 @@ export interface Prospect {
   customFields?: Record<string, string | boolean | number>
   /** Hidden from pipeline board; data retained */
   archived?: boolean
+  /** Rush cycle this PNM belongs to */
+  cycleId?: string
+  /** Linked roster member after Accepted / New Member promotion */
+  rosterMemberId?: string
+  /** Legacy / legacy relation — reserved for bid voting (Agent 3) */
+  legacy?: boolean
+  legacyRelation?: string
+  /** Members who must recuse from a bid vote */
+  conflictMemberIds?: string[]
+  /** Bid extension + acceptance tracker */
+  bid?: ProspectBid
 }
 
 export interface ActivityItem {
@@ -159,7 +190,8 @@ export interface ChapterTableForm {
   id: string
   name: string
   description: string
-  eventId: string
+  /** Omitted when the form is not tied to a calendar event */
+  eventId?: string
   templateId: string
   formKind: FormKind
   columns: TableColumn[]

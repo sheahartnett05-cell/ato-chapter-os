@@ -337,6 +337,7 @@ const DEMO_EVENTS: Event[] = [
     dressCode: 'Business Casual',
     rsvpRequired: false,
     guestAllowed: false,
+    audience: 'exec',
   },
 ]
 
@@ -361,6 +362,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     notes:
       'Referred by Tyler Brooks. Strong leadership background — was HS class president. Very engaged at IFC open house.',
     avatar: 'JW',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p2',
@@ -381,6 +383,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Hackathons', 'Gaming', 'Weightlifting'],
     notes: 'Met at orientation week tabling. Quiet but thoughtful — asked great questions about philanthropy.',
     avatar: 'CM',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p3',
@@ -400,7 +403,8 @@ const DEMO_PROSPECTS: Prospect[] = [
     nextFollowUp: '2025-08-24',
     interests: ['Surfing', 'Photography', 'Entrepreneurship'],
     notes: 'DM\'d chapter Instagram. Scheduled coffee meetup for next week.',
-    avatar: 'MCa',
+    avatar: 'MC',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p4',
@@ -421,6 +425,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Robotics', 'Fishing', 'Intramural soccer'],
     notes: 'New lead from IFC roster. Needs initial outreach call.',
     avatar: 'HR',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p5',
@@ -441,6 +446,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Debate team', 'Volunteer law clinic', 'Running'],
     notes: 'Top prospect this cycle. Invited to cookout and 1-on-1 with President. Parents supportive.',
     avatar: 'NC',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p6',
@@ -461,6 +467,12 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['CPA track', 'Golf', 'Community service'],
     notes: 'Bid extended at exec meeting 8/22. Awaiting response by Friday.',
     avatar: 'GS',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-22',
+      deadline: '2025-08-24',
+      response: 'pending',
+    },
   },
   {
     id: 'p7',
@@ -481,6 +493,13 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Student government', 'Real estate', 'Fitness'],
     notes: 'Accepted bid! Starting new member education September 1.',
     avatar: 'CB',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-14',
+      deadline: '2025-08-18',
+      response: 'accepted',
+      respondedAt: '2025-08-15',
+    },
   },
   {
     id: 'p8',
@@ -501,6 +520,40 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Personal training', 'Beach volleyball', 'Nutrition'],
     notes: 'Completed initiation Spring 2025. Now active new member.',
     avatar: 'DA',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-05',
+      deadline: '2025-08-08',
+      response: 'accepted',
+      respondedAt: '2025-08-07',
+    },
+  },
+  {
+    id: 'p9',
+    firstName: 'Blake',
+    lastName: 'Henderson',
+    status: 'Bid',
+    rating: 3,
+    assignedBrother: 'Logan Pierce',
+    major: 'Psychology',
+    graduationYear: 2029,
+    phone: '(850) 555-1209',
+    email: 'bhenderson@students.demo.edu',
+    instagram: '@blake_h',
+    hometown: 'Niceville, FL',
+    source: 'Member Referral',
+    lastContact: '2025-08-20',
+    nextFollowUp: '',
+    interests: ['Intramural flag football', 'Campus ministry'],
+    notes: 'Declined bid — staying open to other chapters.',
+    avatar: 'BH',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-18',
+      deadline: '2025-08-21',
+      response: 'declined',
+      respondedAt: '2025-08-20',
+    },
   },
 ]
 

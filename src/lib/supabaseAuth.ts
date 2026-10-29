@@ -32,13 +32,21 @@ export async function verifyEmailOtp(
   const code = token.trim()
   if (!trimmed || !code) return { ok: false, error: 'Email and code required' }
 
-  const { error } = await sb.auth.verifyOtp({
+  const emailAttempt = await sb.auth.verifyOtp({
     email: trimmed,
     token: code,
     type: 'email',
   })
-  if (error) return { ok: false, error: error.message }
-  return { ok: true }
+  if (!emailAttempt.error) return { ok: true }
+
+  const signupAttempt = await sb.auth.verifyOtp({
+    email: trimmed,
+    token: code,
+    type: 'signup',
+  })
+  if (!signupAttempt.error) return { ok: true }
+
+  return { ok: false, error: signupAttempt.error.message || emailAttempt.error.message }
 }
 
 export async function signOutSupabase(): Promise<void> {
@@ -50,6 +58,18 @@ export async function signOutSupabase(): Promise<void> {
 export async function upsertSupabaseProfile(
   profile: Partial<UserProfile> & { email?: string }
 ): Promise<void> {
+  // Never push guest/demo names onto a real signed-in Supabase profile.
+  try {
+    if (localStorage.getItem('chapter-os-guest-preview') === '1') return
+    const onboardingRaw = localStorage.getItem('chapter-os-onboarding')
+    if (onboardingRaw) {
+      const parsed = JSON.parse(onboardingRaw) as { isGuest?: boolean }
+      if (parsed.isGuest) return
+    }
+  } catch {
+    /* storage unavailable */
+  }
+
   const user = getSupabaseUser()
   const sb = getSupabase()
   if (!user || !sb) return
@@ -84,30 +104,20 @@ export async function fetchUserChapterId(): Promise<string | null> {
   return data?.chapter_id ?? null
 }
 
-export async function linkChapterMembership(input: {
+/**
+ * @deprecated Phase A — membership writes only via create_chapter / join_chapter RPCs.
+ * Kept as a hard failure so call sites cannot silently reintroduce self-upsert.
+ */
+export async function linkChapterMembership(_input: {
   chapterId: string
   appMemberId: string
   role: UserRole
   isFounder?: boolean
 }): Promise<{ ok: boolean; error?: string }> {
-  const user = getSupabaseUser()
-  const sb = getSupabase()
-  if (!user || !sb) return { ok: false, error: 'Not signed in' }
-
-  const { error } = await sb.from('chapter_memberships').upsert(
-    {
-      chapter_id: input.chapterId,
-      user_id: user.id,
-      app_member_id: input.appMemberId,
-      role: input.role,
-      is_founder: input.isFounder ?? false,
-      joined_at: new Date().toISOString(),
-    },
-    { onConflict: 'chapter_id,user_id' }
-  )
-
-  if (error) return { ok: false, error: error.message }
-  return { ok: true }
+  return {
+    ok: false,
+    error: 'Direct membership upsert disabled; use create_chapter or join_chapter',
+  }
 }
 
 export function getAuthUserId(): string | null {

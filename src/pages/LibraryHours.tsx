@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { ExternalLink, Users } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
-import { PersistErrorNotice } from '../components/ui/PersistErrorNotice'
 import { Modal } from '../components/ui/Modal'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
@@ -34,6 +33,8 @@ function buildAssignmentDraft(
 }
 
 export default function LibraryHoursPage() {
+  const [searchParams] = useSearchParams()
+  const rosterFilter = searchParams.get('filter')
   const {
     studyLocations,
     studyLogs,
@@ -50,7 +51,6 @@ export default function LibraryHoursPage() {
     toggleStudyLocation,
     updateStudyLocation,
     verifyStudyHours,
-    denyStudyHours,
     getMemberVerifiedHours,
   } = useChapterOps()
   const permissions = usePermissions()
@@ -76,30 +76,34 @@ export default function LibraryHoursPage() {
   )
 
   const roster = useMemo(() => {
-    return eligibleMembers
-      .map((member) => {
-        const verified = getMemberVerifiedHours(member.id)
-        const required = getMemberStudyHoursRequired(member.id)
-        const pct =
-          required === null
-            ? 0
-            : Math.min(100, Math.round((verified / Math.max(required, 1)) * 100))
-        const pending = studyLogs.filter(
-          (log) =>
-            log.memberId === member.id &&
-            !log.verified &&
-            !log.rejected &&
-            logInCurrentPeriod(log, studyHoursReset)
-        ).length
-        return { member, verified, required, pct, pending }
-      })
-      .sort((a, b) => b.verified - a.verified)
+    let rows = eligibleMembers.map((member) => {
+      const verified = getMemberVerifiedHours(member.id)
+      const required = getMemberStudyHoursRequired(member.id)
+      const pct =
+        required === null
+          ? 0
+          : Math.min(100, Math.round((verified / Math.max(required, 1)) * 100))
+      const pending = studyLogs.filter(
+        (log) =>
+          log.memberId === member.id &&
+          !log.verified &&
+          logInCurrentPeriod(log, studyHoursReset)
+      ).length
+      return { member, verified, required, pct, pending }
+    })
+    if (rosterFilter === 'below') {
+      rows = rows.filter(
+        (r) => r.required !== null && r.verified < (r.required as number)
+      )
+    }
+    return rows.sort((a, b) => b.verified - a.verified)
   }, [
     eligibleMembers,
     getMemberVerifiedHours,
     getMemberStudyHoursRequired,
     studyLogs,
     studyHoursReset,
+    rosterFilter,
   ])
 
   const membersWithRequirement = roster.filter((r) => r.required !== null)
@@ -110,7 +114,7 @@ export default function LibraryHoursPage() {
   const pendingLogs = useMemo(
     () =>
       studyLogs.filter(
-        (log) => !log.verified && !log.rejected && logInCurrentPeriod(log, studyHoursReset)
+        (log) => !log.verified && logInCurrentPeriod(log, studyHoursReset)
       ),
     [studyLogs, studyHoursReset]
   )
@@ -184,7 +188,6 @@ export default function LibraryHoursPage() {
       />
 
       <PageShell className="space-y-8">
-        <PersistErrorNotice />
         <div className="ledger-bar grid-cols-2 lg:grid-cols-4">
           <div className="ledger-cell">
             <p className="font-serif text-3xl tracking-tight">
@@ -425,12 +428,7 @@ export default function LibraryHoursPage() {
               <h2 className="font-serif text-xl tracking-tight">Approved locations</h2>
             </div>
             <ul className="list-editorial">
-              {studyLocations.length === 0 ? (
-                <li className="py-4 text-sm text-neutral-500">
-                  No study locations yet — add one to start logging hours.
-                </li>
-              ) : (
-              studyLocations.map((loc) => (
+              {studyLocations.map((loc) => (
                 <li key={loc.id} className="flex flex-wrap items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-[var(--ink)]">{loc.name}</p>
@@ -458,19 +456,6 @@ export default function LibraryHoursPage() {
                     type="button"
                     onClick={() =>
                       updateStudyLocation(loc.id, {
-                        address:
-                          window.prompt('Location address', loc.address ?? '') ??
-                          loc.address,
-                      })
-                    }
-                    className="btn-ghost px-2 py-1 text-[10px]"
-                  >
-                    Address
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateStudyLocation(loc.id, {
                         name: window.prompt('Location name', loc.name) || loc.name,
                       })
                     }
@@ -479,8 +464,7 @@ export default function LibraryHoursPage() {
                     Rename
                   </button>
                 </li>
-              ))
-              )}
+              ))}
             </ul>
           </section>
         )}
@@ -509,22 +493,13 @@ export default function LibraryHoursPage() {
                       )}
                     </div>
                     {permissions.canVerifyStudyHours && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => verifyStudyHours(entry.id)}
-                          className="btn-primary px-3 py-1.5 text-[10px]"
-                        >
-                          Verify
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => denyStudyHours(entry.id)}
-                          className="btn-ghost px-3 py-1.5 text-[10px] text-red-700"
-                        >
-                          Deny
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => verifyStudyHours(entry.id)}
+                        className="btn-primary px-3 py-1.5 text-[10px]"
+                      >
+                        Verify
+                      </button>
                     )}
                   </li>
                 )

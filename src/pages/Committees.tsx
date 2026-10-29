@@ -4,8 +4,10 @@ import { Plus, Users, ChevronRight, MessageSquare } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { SearchField } from '../components/ui/SearchField'
 import { useGovernance } from '../context/GovernanceContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
+import { useIsMemberShell } from '../hooks/useShellKind'
 import { useMembers } from '../context/MembersContext'
 
 type Tab = 'groups' | 'chats'
@@ -18,6 +20,8 @@ export default function Committees() {
   const { members, getMemberById } = useMembers()
   const resolvedMemberId = memberId ?? members[0]?.id ?? ''
   const canManageAll = permissions.canAccessExecTools
+  const memberShell = useIsMemberShell()
+  const pageTitle = memberShell ? 'Groups' : 'Committees'
 
   const [tab, setTab] = useState<Tab>('groups')
   const [createOpen, setCreateOpen] = useState(false)
@@ -146,7 +150,7 @@ export default function Committees() {
   return (
     <>
       <TopBar
-        title="Committees"
+        title={pageTitle}
         subtitle="Groups, subgroups, and committee chat"
         actions={
           canManageAll ? (
@@ -350,16 +354,13 @@ export default function Committees() {
           </div>
 
           <div>
-            <label htmlFor="committee-member-search" className="text-xs font-medium text-neutral-500">
-              Members
-            </label>
-            <input
-              id="committee-member-search"
+            <label className="text-xs font-medium text-neutral-500">Members</label>
+            <SearchField
               value={memberSearch}
-              onChange={(e) => setMemberSearch(e.target.value)}
+              onChange={setMemberSearch}
               placeholder="Search members…"
+              className="mt-1 sm:max-w-none"
               aria-label="Search members"
-              className="mt-1 w-full rounded-sm border border-black/5 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-accent/40"
             />
             <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-sm border border-black/5 bg-white p-2">
               {filteredMembers.map((m) => (

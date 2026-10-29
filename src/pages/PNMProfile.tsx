@@ -22,6 +22,11 @@ import { useRecruitment } from '../context/RecruitmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { useMembers } from '../context/MembersContext'
+import { PIPELINE_STAGES } from '../data/pipelineStages'
+import { addDays, localTodayIso } from '../lib/demoRelativeDates'
+import { ensureProspectOnRoster } from '../lib/recruitment/promotion'
+import { applyBidResponse, transitionProspectStage } from '../lib/recruitment/transitions'
+import type { PipelineStage } from '../types'
 
 export default function PNMProfile() {
   const { id } = useParams<{ id: string }>()
@@ -35,13 +40,22 @@ export default function PNMProfile() {
     archiveProspect,
     unarchiveProspect,
     deleteProspect,
+    canEditRecruitment,
+    cycles,
+    activeCycle,
   } = useRecruitment()
-  const { members } = useMembers()
+  const { members, promoteProspectToMember } = useMembers()
   const prospect = id ? getProspect(id) : undefined
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [promoteError, setPromoteError] = useState('')
   const { languagePack } = useChapter()
+  const cycle = prospect?.cycleId
+    ? cycles.find((c) => c.id === prospect.cycleId)
+    : activeCycle
+  const cycleReadOnly = Boolean(cycle?.archivedAt)
+  const canEdit = canEditRecruitment && !cycleReadOnly
 
   const assignableMembers = useMemo(
     () =>
@@ -67,12 +81,57 @@ export default function PNMProfile() {
       : [
           {
             id: 'default',
-            date: prospect.lastContact || '2025-08-01',
+            date: prospect.lastContact || localTodayIso(),
             type: 'Note',
             description: prospect.notes || 'No activity yet',
             author: prospect.assignedBrother || 'Recruitment',
           },
         ]
+
+  const stageDeps = {
+    roster: members.map((m) => ({ id: m.id, email: m.email })),
+    promote: promoteProspectToMember,
+    pledgeClass: cycle?.label,
+    bidDeadline: cycle?.bidDay ?? addDays(localTodayIso(), 3),
+  }
+
+  const handleStageChange = (newStage: PipelineStage) => {
+    if (!canEdit) return
+    setPromoteError('')
+    const result = transitionProspectStage(prospect, newStage, stageDeps)
+    if (!result.ok) {
+      setPromoteError(result.error)
+      return
+    }
+    if (Object.keys(result.patch).length > 0) updateProspect(prospect.id, result.patch)
+  }
+
+  const handleBidResponse = (response: 'accepted' | 'declined') => {
+    if (!canEdit) return
+    setPromoteError('')
+    const result = applyBidResponse(prospect, response, stageDeps)
+    if (!result.ok) {
+      setPromoteError(result.error)
+      return
+    }
+    updateProspect(prospect.id, result.patch)
+  }
+
+  const handleAddToRoster = () => {
+    if (!canEdit) return
+    setPromoteError('')
+    const linked = ensureProspectOnRoster(
+      prospect,
+      stageDeps.roster,
+      stageDeps.promote,
+      stageDeps.pledgeClass
+    )
+    if (!linked.ok) {
+      setPromoteError(linked.error)
+      return
+    }
+    updateProspect(prospect.id, { rosterMemberId: linked.rosterMemberId })
+  }
 
   const activityIcons: Record<string, string> = {
     Call: '📞',
@@ -101,30 +160,33 @@ export default function PNMProfile() {
         subtitle="Potential New Member Profile"
         actions={
           <div className="flex flex-wrap gap-2">
-            {prospect.archived ? (
+            {canEdit &&
+              (prospect.archived ? (
+                <button
+                  type="button"
+                  onClick={() => unarchiveProspect(prospect.id)}
+                  className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                >
+                  Unarchive
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => archiveProspect(prospect.id)}
+                  className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                >
+                  Archive
+                </button>
+              ))}
+            {canEdit && (
               <button
                 type="button"
-                onClick={() => unarchiveProspect(prospect.id)}
-                className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                onClick={handleDelete}
+                className="rounded-sm border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
               >
-                Unarchive
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => archiveProspect(prospect.id)}
-                className="rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-              >
-                Archive
+                Delete
               </button>
             )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-sm border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
-            >
-              Delete
-            </button>
             <Link
               to="/recruitment/pipeline"
               className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
@@ -137,6 +199,16 @@ export default function PNMProfile() {
       />
 
       <div className="p-8">
+        {promoteError && (
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {promoteError}
+          </p>
+        )}
+        {cycleReadOnly && (
+          <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This PNM belongs to an archived cycle — edits are disabled.
+          </p>
+        )}
         <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-700 text-white shadow-xl">
           <div className="p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -148,12 +220,14 @@ export default function PNMProfile() {
                     size="xl"
                     className="rounded-2xl ring-2 ring-white/20"
                   />
-                  <PhotoUpload
-                    value={prospect.photoUrl}
-                    initials={prospect.avatar}
-                    onChange={(url) => updateProspect(prospect.id, { photoUrl: url })}
-                    size="sm"
-                  />
+                  {canEdit && (
+                    <PhotoUpload
+                      value={prospect.photoUrl}
+                      initials={prospect.avatar}
+                      onChange={(url) => updateProspect(prospect.id, { photoUrl: url })}
+                      size="sm"
+                    />
+                  )}
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -161,6 +235,9 @@ export default function PNMProfile() {
                       {prospect.firstName} {prospect.lastName}
                     </h2>
                     <StatusPill label={prospect.status} variant="gold" />
+                    {prospect.bid?.response === 'declined' && (
+                      <StatusPill label="Declined" variant="outstanding" />
+                    )}
                   </div>
                   <p className="mt-1 text-white/70">
                     {prospect.major || 'Undeclared'} · Class of {prospect.graduationYear}
@@ -233,29 +310,57 @@ export default function PNMProfile() {
               <CardHeader title={`${languagePack.recruitmentTerm} Info`} />
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
+                  <dt className="text-neutral-500">Stage</dt>
+                  <dd className="font-medium text-neutral-900">
+                    {canEdit ? (
+                      <select
+                        value={prospect.status}
+                        onChange={(e) => handleStageChange(e.target.value as PipelineStage)}
+                        className="rounded-sm border border-black/5 bg-white px-2 py-1 text-sm"
+                      >
+                        {PIPELINE_STAGES.map((stage) => (
+                          <option key={stage} value={stage}>
+                            {stage}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      prospect.status
+                    )}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
                   <dt className="text-neutral-500">Assigned {languagePack.memberSingular}</dt>
                   <dd className="font-medium text-neutral-900">
-                    <select
-                      value={prospect.assignedBrother ?? ''}
-                      onChange={(e) =>
-                        updateProspect(prospect.id, {
-                          assignedBrother: e.target.value || undefined,
-                        })
-                      }
-                      className="rounded-sm border border-black/5 bg-white px-2 py-1 text-sm"
-                    >
-                      <option value="">Unassigned</option>
-                      {assignableMembers.map((m) => (
-                        <option key={m.id} value={`${m.firstName} ${m.lastName}`}>
-                          {m.firstName} {m.lastName}
-                        </option>
-                      ))}
-                    </select>
+                    {canEdit ? (
+                      <select
+                        value={prospect.assignedBrother ?? ''}
+                        onChange={(e) =>
+                          updateProspect(prospect.id, {
+                            assignedBrother: e.target.value || '',
+                          })
+                        }
+                        className="rounded-sm border border-black/5 bg-white px-2 py-1 text-sm"
+                      >
+                        <option value="">Unassigned</option>
+                        {assignableMembers.map((m) => (
+                          <option key={m.id} value={`${m.firstName} ${m.lastName}`}>
+                            {m.firstName} {m.lastName}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      prospect.assignedBrother || 'Unassigned'
+                    )}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-neutral-500">Source</dt>
                   <dd className="font-medium text-neutral-900">{prospect.source || '—'}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-neutral-500">Cycle</dt>
+                  <dd className="font-medium text-neutral-900">{cycle?.label ?? '—'}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-neutral-500">Last Contact</dt>
@@ -265,7 +370,49 @@ export default function PNMProfile() {
                       : 'Never'}
                   </dd>
                 </div>
+                {prospect.rosterMemberId && (
+                  <div className="flex justify-between">
+                    <dt className="text-neutral-500">Roster</dt>
+                    <dd className="font-medium text-neutral-900">Linked</dd>
+                  </div>
+                )}
               </dl>
+              {canEdit &&
+                (prospect.status === 'Accepted' || prospect.status === 'New Member') &&
+                !prospect.rosterMemberId && (
+                  <button
+                    type="button"
+                    onClick={handleAddToRoster}
+                    className="mt-4 w-full rounded-sm border border-black/10 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                  >
+                    Add to roster
+                  </button>
+                )}
+              {canEdit && prospect.status === 'Bid' && prospect.bid?.response === 'pending' && (
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleBidResponse('accepted')}
+                    className="flex-1 rounded-sm bg-emerald-600 py-2 text-sm font-semibold text-white"
+                  >
+                    Mark accepted
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBidResponse('declined')}
+                    className="flex-1 rounded-sm border border-red-200 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                  >
+                    Mark declined
+                  </button>
+                </div>
+              )}
+              {prospect.bid && (
+                <p className="mt-3 text-xs text-neutral-500">
+                  Bid {prospect.bid.response}
+                  {prospect.bid.deadline ? ` · deadline ${prospect.bid.deadline}` : ''}
+                  {prospect.bid.extendedAt ? ` · extended ${prospect.bid.extendedAt}` : ''}
+                </p>
+              )}
             </Card>
 
             <Card>
@@ -292,13 +439,15 @@ export default function PNMProfile() {
               <CardHeader
                 title="Activity Timeline"
                 action={
-                  <button
-                    type="button"
-                    onClick={() => setShowNoteModal(true)}
-                    className="flex items-center gap-1 text-xs font-medium text-accent hover:opacity-80"
-                  >
-                    <Plus size={14} /> Add Note
-                  </button>
+                  canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowNoteModal(true)}
+                      className="flex items-center gap-1 text-xs font-medium text-accent hover:opacity-80"
+                    >
+                      <Plus size={14} /> Add Note
+                    </button>
+                  ) : undefined
                 }
               />
               <div className="relative space-y-0">

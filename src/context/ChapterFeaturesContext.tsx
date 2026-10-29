@@ -28,6 +28,7 @@ function readState(): ChapterFeaturesState {
       return {
         enabled: { ...base.enabled, ...parsed.enabled },
         editors: { ...base.editors, ...parsed.editors },
+        policies: { ...base.policies, ...(parsed.policies ?? {}) },
       }
     }
   } catch {
@@ -50,6 +51,8 @@ interface ChapterFeaturesContextValue {
   setEditors: (capability: EditorCapabilityId, memberIds: string[]) => void
   toggleEditor: (capability: EditorCapabilityId, memberId: string) => void
   canMemberEdit: (capability: EditorCapabilityId, memberId: string | null) => boolean
+  announcementsOfficersOnly: boolean
+  setAnnouncementsOfficersOnly: (value: boolean) => void
 }
 
 const ChapterFeaturesContext = createContext<ChapterFeaturesContextValue | null>(null)
@@ -113,6 +116,16 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
     [features]
   )
 
+  const setAnnouncementsOfficersOnly = useCallback(
+    (value: boolean) => {
+      persist({
+        ...features,
+        policies: { ...features.policies, announcementsOfficersOnly: value },
+      })
+    },
+    [features, persist]
+  )
+
   const value = useMemo(
     () => ({
       features,
@@ -124,6 +137,8 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
       setEditors,
       toggleEditor,
       canMemberEdit,
+      announcementsOfficersOnly: features.policies.announcementsOfficersOnly,
+      setAnnouncementsOfficersOnly,
     }),
     [
       features,
@@ -133,6 +148,7 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
       setEditors,
       toggleEditor,
       canMemberEdit,
+      setAnnouncementsOfficersOnly,
     ]
   )
 

@@ -7,9 +7,11 @@ import { localTodayIso } from '../../lib/liveAlerts'
 
 interface MemberStudyHoursPanelProps {
   memberId: string
+  /** Render inside Chapter Room section shell (no outer card chrome) */
+  embedded?: boolean
 }
 
-export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) {
+export function MemberStudyHoursPanel({ memberId, embedded = false }: MemberStudyHoursPanelProps) {
   const {
     studyLogs,
     studyHoursReset,
@@ -62,9 +64,13 @@ export function MemberStudyHoursPanel({ memberId }: MemberStudyHoursPanelProps) 
 
   return (
     <>
-      <section id="study-hours" className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
+      <section
+        id="study-hours"
+        className={embedded ? '' : 'border border-[var(--rule)] bg-[var(--surface-card)] p-4'}
+      >
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="font-serif text-lg tracking-tight">Study hours</h2>
+          {!embedded && <h2 className="font-serif text-lg tracking-tight">Study hours</h2>}
+          {embedded && <span className="sr-only">Study hours</span>}
           <button
             type="button"
             onClick={() => {

@@ -76,7 +76,8 @@ const payload = {
 if (resendKey) {
   Object.assign(payload, {
     external_email_enabled: true,
-    mailer_autoconfirm: false,
+    // App verifies email via 6-digit OTP — do not send a separate confirm-link email.
+    mailer_autoconfirm: true,
     smtp_host: 'smtp.resend.com',
     smtp_port: '465',
     smtp_user: 'resend',

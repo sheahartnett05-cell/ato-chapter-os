@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, ListRow } from '../components/ui/Section'
@@ -10,7 +12,15 @@ import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 import type { RsvpExcuse } from '../types/features'
 
 export default function ExcuseApprovals() {
-  const { excuses, events, updateExcuseStatus, setAttendanceEntry } = useChapterOps()
+  const [searchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status')
+  const {
+    excuses,
+    events,
+    updateExcuseStatus,
+    applyExcuseAttendanceDecision,
+    getEventAttendance,
+  } = useChapterOps()
   const { getMemberById } = useMembers()
   const { profile } = useAuth()
   const { issueFine } = useGovernance()
@@ -31,13 +41,22 @@ export default function ExcuseApprovals() {
     updateExcuseStatus(id, status, reviewerName)
 
     if (status === 'approved') {
-      setAttendanceEntry(excuse.eventId, excuse.memberId, 'Excused', 0)
+      // Present wins; otherwise Excused (see attendanceMath comment)
+      applyExcuseAttendanceDecision(id, 'approved')
       return
     }
 
     if (status === 'denied') {
+      const prior = getEventAttendance(excuse.eventId).find(
+        (a) => a.memberId === excuse.memberId
+      )
+      const wasExcused = prior?.status === 'Excused'
+      applyExcuseAttendanceDecision(id, 'denied')
+
+      // Fine only for a fresh deny (pending → denied), not for undoing Excused
+      if (wasExcused) return
+
       const event = events.find((e) => e.id === excuse.eventId)
-      setAttendanceEntry(excuse.eventId, excuse.memberId, 'Absent', 0)
       const amount = absenceFine?.fine_amount ?? 15
       const due = new Date()
       due.setDate(due.getDate() + 14)
@@ -48,14 +67,19 @@ export default function ExcuseApprovals() {
         dateIssued: new Date().toISOString().slice(0, 10),
         dueDate: due.toISOString().slice(0, 10),
         status: 'Unpaid',
+        sourceRef: excuse.id,
       })
     }
   }
 
   const pending = excuses.filter((e) => e.status === 'pending')
-  const sorted = [...excuses].sort(
-    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-  )
+  const visible = useMemo(() => {
+    const base =
+      statusFilter === 'pending' ? excuses.filter((e) => e.status === 'pending') : excuses
+    return [...base].sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    )
+  }, [excuses, statusFilter])
 
   return (
     <>
@@ -65,10 +89,10 @@ export default function ExcuseApprovals() {
       />
       <PageShell>
         <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
-          {sorted.length === 0 ? (
+          {visible.length === 0 ? (
             <p className="p-8 text-center text-sm text-neutral-500">No excuses submitted.</p>
           ) : (
-            sorted.map((excuse) => {
+            visible.map((excuse) => {
               const member = getMemberById(excuse.memberId)
               const event = events.find((e) => e.id === excuse.eventId)
               return (

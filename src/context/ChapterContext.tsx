@@ -17,8 +17,10 @@ import {
   readOnboardingChapterMeta,
   readOnboardingOrgId,
 } from '../lib/onboardingStorage'
+import { currentTermLabel } from '../lib/demoRelativeDates'
 import { writeJson } from '../lib/persist'
 import {
+  accentInkForLightSurface,
   contrastText,
   darkenHex,
   effectiveAccent,
@@ -33,6 +35,7 @@ const ONBOARDING_KEY = 'chapter-os-onboarding'
 interface ChapterMeta {
   chapterDesignation: string
   university: string
+  semester?: string
 }
 
 interface ChapterContextValue {
@@ -88,7 +91,7 @@ function readInitialChapterMeta(): ChapterMeta {
     const raw = localStorage.getItem('chapter-os-chapter-meta')
     if (raw) {
       const parsed = JSON.parse(raw) as ChapterMeta
-      if (parsed.chapterDesignation || parsed.university) return parsed
+      if (parsed.chapterDesignation || parsed.university || parsed.semester) return parsed
     }
   } catch {
     /* ignore */
@@ -135,7 +138,9 @@ function applyThemeCssVariables(org: OrganizationChapter) {
   root.style.setProperty('--primary-subtle', `${primaryColor}10`)
   root.style.setProperty('--rule', 'rgb(0 0 0 / 0.12)')
   root.style.setProperty('--ink', '#141414')
-  root.style.setProperty('--muted', '#6b6b6b')
+  root.style.setProperty('--muted', '#5c5c5c')
+  root.style.setProperty('--accent-ink', accentInkForLightSurface(accent))
+  root.style.setProperty('--focus-ring', '#141414')
 
   root.setAttribute('data-org', id)
   document.body.style.backgroundColor = lightenHex(primaryColor, 0.96)
@@ -150,7 +155,8 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
   const chapter = buildOrganizationChapter(
     nationalOrg,
     chapterMeta.chapterDesignation || 'Chapter',
-    chapterMeta.university || 'Your University'
+    chapterMeta.university || 'Your University',
+    chapterMeta.semester ?? currentTermLabel()
   )
 
   const setSelectedOrg = useCallback((id: string) => {

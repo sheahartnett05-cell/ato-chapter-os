@@ -14,6 +14,7 @@ export type ChapterFeatureId =
   | 'committees'
   | 'bylaws'
   | 'execSlides'
+  | 'attendancePoints'
 
 export type EditorCapabilityId =
   | 'editAnnouncements'
@@ -28,6 +29,7 @@ export type EditorCapabilityId =
   | 'editTables'
   | 'editBylaws'
   | 'editChapterSetup'
+  | 'editAttendance'
   | 'manageInvites'
 
 export interface ChapterFeatureDef {
@@ -121,8 +123,14 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
   },
   {
     id: 'execSlides',
-    label: 'Exec slides',
+    label: 'Chapter meeting',
     description: 'Officer meeting decks',
+    defaultEnabled: true,
+  },
+  {
+    id: 'attendancePoints',
+    label: 'Attendance & points',
+    description: 'Roll call, attendance %, and event points',
     defaultEnabled: true,
   },
 ]
@@ -195,6 +203,12 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
     featureId: 'bylaws',
   },
   {
+    id: 'editAttendance',
+    label: 'Edit attendance',
+    description: 'Take roll call and correct attendance records',
+    featureId: 'attendancePoints',
+  },
+  {
     id: 'editChapterSetup',
     label: 'Edit chapter setup',
     description: 'Positions, features, and editors (with President)',
@@ -206,11 +220,21 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
   },
 ]
 
+export interface ChapterPolicies {
+  /** When true, only officers and assigned announcement editors may post */
+  announcementsOfficersOnly: boolean
+}
+
 export interface ChapterFeaturesState {
   /** featureId → enabled */
   enabled: Record<ChapterFeatureId, boolean>
   /** capabilityId → memberIds who may edit */
   editors: Record<EditorCapabilityId, string[]>
+  policies: ChapterPolicies
+}
+
+export function defaultChapterPolicies(): ChapterPolicies {
+  return { announcementsOfficersOnly: false }
 }
 
 export function defaultChapterFeaturesState(): ChapterFeaturesState {
@@ -218,5 +242,5 @@ export function defaultChapterFeaturesState(): ChapterFeaturesState {
   for (const f of CHAPTER_FEATURES) enabled[f.id] = f.defaultEnabled
   const editors = {} as Record<EditorCapabilityId, string[]>
   for (const c of EDITOR_CAPABILITIES) editors[c.id] = []
-  return { enabled, editors }
+  return { enabled, editors, policies: defaultChapterPolicies() }
 }

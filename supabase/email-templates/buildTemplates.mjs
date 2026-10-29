@@ -109,6 +109,7 @@ export function getAgoraAuthEmailTemplates() {
       preheader: 'Confirm your Agora account',
       title: 'Confirm your email',
       body: confirmBody,
+      token: '{{ .Token }}',
       ctaLabel: 'Confirm email',
       ctaHref: '{{ .ConfirmationURL }}',
     }),

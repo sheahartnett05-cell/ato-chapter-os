@@ -1,15 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import {
-  Plus,
-  Search,
-  ArrowUpDown,
-  Download,
-  Columns,
-  RefreshCw,
-  CalendarDays,
-  ChevronLeft,
-} from 'lucide-react'
+import { Plus, ArrowUpDown, Download, Columns, RefreshCw, CalendarDays, ChevronLeft } from 'lucide-react'
+import { SearchField } from '../components/ui/SearchField'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
@@ -218,78 +210,65 @@ export default function ChapterTables() {
         title={table.name}
         subtitle={table.description}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/tables"
-              className="flex items-center gap-1.5 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-            >
-              <ChevronLeft size={15} />
-              All forms
-            </Link>
-            {linkedEvent && (
-              <Link
-                to={`/events/${linkedEvent.id}`}
-                className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-              >
-                <CalendarDays size={15} />
-                {linkedEvent.name}
-              </Link>
-            )}
-            {canSyncGuestList && (
-              <button
-                type="button"
-                onClick={handleSync}
-                className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-              >
-                <RefreshCw size={15} className={synced ? 'text-emerald-600' : ''} />
-                {synced ? 'Synced' : isSignatureForm ? 'Sync roster' : 'Sync guest list'}
-              </button>
-            )}
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-            >
-              <Download size={15} />
-              Export
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowColModal(true)}
-              className="flex items-center gap-2 rounded-sm border border-black/5 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-            >
-              <Columns size={15} />
-              Add column
-            </button>
-            <button
-              type="button"
-              onClick={handleAddRow}
-              disabled={table.columns.length === 0}
-              className="flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus size={15} />
-              Add row
-            </button>
-          </div>
+          <Link
+            to="/tables"
+            className="flex items-center gap-1.5 rounded-sm border border-[var(--rule)] px-3 py-2 text-sm text-[var(--muted)] hover:bg-black/[0.02]"
+          >
+            <ChevronLeft size={15} />
+            All forms
+          </Link>
         }
       />
 
-      <PageShell>
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
-          <div className="flex flex-wrap items-center gap-3 border-b border-black/5 px-5 py-4">
-            <div className="relative">
-              <Search
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-              />
-              <input
-                type="search"
-                placeholder="Search table…"
-                aria-label="Search table"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full min-w-0 rounded-sm border border-black/5 bg-neutral-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-accent/40 sm:w-56"
-              />
-            </div>
+      <PageShell className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {linkedEvent && (
+            <Link
+              to={`/events/${linkedEvent.id}`}
+              className="flex items-center gap-2 rounded-sm border border-[var(--rule)] px-3 py-2 text-sm text-[var(--ink)] hover:bg-black/[0.02]"
+            >
+              <CalendarDays size={15} />
+              {linkedEvent.name}
+            </Link>
+          )}
+          {canSyncGuestList && (
+            <button
+              type="button"
+              onClick={handleSync}
+              className="btn-ghost gap-2 text-xs"
+            >
+              <RefreshCw size={15} className={synced ? 'text-emerald-600' : ''} />
+              {synced ? 'Synced' : isSignatureForm ? 'Sync roster' : 'Sync guest list'}
+            </button>
+          )}
+          <button type="button" className="btn-ghost gap-2 text-xs">
+            <Download size={15} />
+            Export
+          </button>
+          <button type="button" onClick={() => setShowColModal(true)} className="btn-ghost gap-2 text-xs">
+            <Columns size={15} />
+            Column
+          </button>
+          <button
+            type="button"
+            onClick={handleAddRow}
+            disabled={table.columns.length === 0}
+            className="btn-primary gap-2 text-xs disabled:opacity-50"
+          >
+            <Plus size={15} />
+            Add row
+          </button>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--surface-card)]">
+          <div className="flex flex-wrap items-center gap-3 border-b border-[var(--rule)] px-4 py-3">
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Search rows…"
+              aria-label="Search form rows"
+              className="min-w-full flex-[1_1_100%] sm:min-w-0 sm:flex-[1_1_auto]"
+            />
             {hasRsvpColumn && (
               <select
                 value={filterRsvp}

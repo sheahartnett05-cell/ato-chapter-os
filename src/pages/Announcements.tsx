@@ -4,6 +4,8 @@ import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/Toast'
 import { PollCard } from '../components/communications/PollCard'
 import { SignupCard } from '../components/communications/SignupCard'
 import { useAuth, usePermissions } from '../context/AuthContext'
@@ -14,6 +16,7 @@ import {
   DEFAULT_TEMPLATE_TOKENS,
 } from '../data/templateData'
 import { roleLabel } from '../types/permissions'
+import { addDays, localTodayIso } from '../lib/demoRelativeDates'
 import type { AnnouncementTemplate, PostKind } from '../types/features'
 
 type Tab = 'feed' | 'polls' | 'signups' | 'templates'
@@ -35,7 +38,9 @@ export default function Announcements() {
   const { chapter, languagePack } = useChapter()
   const { profile, role, memberId } = useAuth()
   const permissions = usePermissions()
-  const { posts, templates, addPost, updatePost, deletePost, togglePin } = useCommunications()
+  const { toast } = useToast()
+  const { posts, templates, addPost, updatePost, deletePost, restorePost, togglePin } =
+    useCommunications()
 
   const voterId = memberId ?? ''
   const canCreate = permissions.canPostAnnouncements
@@ -51,7 +56,7 @@ export default function Announcements() {
   const [body, setBody] = useState('')
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState(['', ''])
-  const [pollCloses, setPollCloses] = useState('2025-08-30')
+  const [pollCloses, setPollCloses] = useState(() => addDays(localTodayIso(), 7))
   const [signupSlots, setSignupSlots] = useState(['', ''])
   const [pinNew, setPinNew] = useState(false)
   const [composerError, setComposerError] = useState('')
@@ -176,6 +181,7 @@ export default function Announcements() {
     }
     setPublishing(false)
     setComposerOpen(false)
+    toast({ title: 'Posted', tone: 'success' })
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -256,8 +262,23 @@ export default function Announcements() {
         {tab === 'feed' && (
           <ul className="space-y-6">
             {sorted.length === 0 && (
-              <li className="border border-[var(--rule)] px-4 py-8 text-center font-mono text-xs text-[var(--muted)]">
-                No posts yet
+              <li>
+                <EmptyState
+                  compact
+                  title="No posts yet"
+                  description="Share an update with the chapter."
+                  action={
+                    canCreate ? (
+                      <button
+                        type="button"
+                        className="btn-primary text-xs"
+                        onClick={() => openComposer('announcement')}
+                      >
+                        New post
+                      </button>
+                    ) : undefined
+                  }
+                />
               </li>
             )}
             {sorted.map((a) => {
@@ -510,7 +531,20 @@ export default function Announcements() {
         confirmLabel="Delete"
         destructive
         onConfirm={() => {
-          if (deletePostId) deletePost(deletePostId)
+          if (!deletePostId) return
+          const snapshot = posts.find((p) => p.id === deletePostId)
+          deletePost(deletePostId)
+          setDeletePostId(null)
+          if (snapshot) {
+            toast({
+              title: 'Post deleted',
+              tone: 'neutral',
+              action: {
+                label: 'Undo',
+                onClick: () => restorePost(snapshot),
+              },
+            })
+          }
         }}
         onCancel={() => setDeletePostId(null)}
       />

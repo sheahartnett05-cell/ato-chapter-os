@@ -1,3 +1,5 @@
+import type { OfficerFunction } from './officerFunction'
+
 export type ExcuseStatus = 'pending' | 'approved' | 'denied'
 
 export type PostKind = 'announcement' | 'poll' | 'signup'
@@ -70,6 +72,8 @@ export interface ChapterPosition {
   description?: string
   assignedMemberId?: string
   isCustom: boolean
+  /** Canonical responsibility for dashboards (independent of display title). */
+  function?: OfficerFunction
 }
 
 export interface RsvpExcuse {

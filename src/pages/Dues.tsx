@@ -1,14 +1,21 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ExternalLink, Plus } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/Toast'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
 import { parsePositiveAmount } from '../lib/formUtils'
+import { addDays, currentTermLabel, localTodayIso } from '../lib/demoRelativeDates'
 
 export default function DuesPage() {
+  const [searchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status')
+  const { toast } = useToast()
   const {
     duesCharges,
     duesPayments,
@@ -30,21 +37,22 @@ export default function DuesPage() {
   const [draft, setDraft] = useState({
     label: '',
     amount: 100,
-    dueDate: '2025-09-30',
-    semester: 'Fall 2025',
+    dueDate: addDays(localTodayIso(), 30),
+    semester: currentTermLabel(),
   })
 
-  const roster = useMemo(
-    () =>
-      members
-        .filter((m) => m.status === 'Active' || m.status === 'New Member')
-        .map((m) => ({
-          member: m,
-          balance: memberDuesBalance(m.id),
-        }))
-        .sort((a, b) => b.balance - a.balance),
-    [memberDuesBalance, members]
-  )
+  const roster = useMemo(() => {
+    let list = members
+      .filter((m) => m.status === 'Active' || m.status === 'New Member')
+      .map((m) => ({
+        member: m,
+        balance: memberDuesBalance(m.id),
+      }))
+    if (statusFilter === 'unpaid') {
+      list = list.filter((r) => r.balance > 0)
+    }
+    return list.sort((a, b) => b.balance - a.balance)
+  }, [memberDuesBalance, members, statusFilter])
 
   const totals = useMemo(() => {
     const billed = duesCharges.reduce((s, c) => s + c.amount * (c.assignedMemberIds.length || roster.length), 0)
@@ -73,7 +81,7 @@ export default function DuesPage() {
       assignedMemberIds: [],
     })
     setChargeOpen(false)
-    setDraft({ label: '', amount: 100, dueDate: '2025-09-30', semester: 'Fall 2025' })
+    setDraft({ label: '', amount: 100, dueDate: addDays(localTodayIso(), 30), semester: currentTermLabel() })
   }
 
   const applyPayment = () => {
@@ -92,6 +100,7 @@ export default function DuesPage() {
     recordDuesPayment(payOpen.chargeId, payOpen.memberId, amount, 'BillHighway')
     setPayOpen(null)
     setPayAmount(0)
+    toast({ title: 'Payment recorded', tone: 'success' })
   }
 
   const payHref = billHighway.enabled
@@ -203,8 +212,23 @@ export default function DuesPage() {
           </div>
           <ul className="list-editorial">
             {duesCharges.length === 0 ? (
-              <li className="py-6 text-sm text-[var(--muted)]">
-                No charges yet. Use the form above to create your first semester charge.
+              <li className="list-none">
+                <EmptyState
+                  compact
+                  title="No charges yet"
+                  description="Create a semester charge to track member balances."
+                  action={
+                    isTreasurer ? (
+                      <button
+                        type="button"
+                        className="btn-primary text-xs"
+                        onClick={() => setChargeOpen(true)}
+                      >
+                        Add charge
+                      </button>
+                    ) : undefined
+                  }
+                />
               </li>
             ) : (
               duesCharges.map((c) => (
@@ -261,10 +285,25 @@ export default function DuesPage() {
                         type="button"
                         className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]"
                         onClick={() => {
-                          const openCharge = duesCharges[0]
+                          const openCharge =
+                            duesCharges.find(
+                              (c) =>
+                                (c.assignedMemberIds.length === 0 ||
+                                  c.assignedMemberIds.includes(member.id)) &&
+                                duesPayments
+                                  .filter((p) => p.chargeId === c.id && p.memberId === member.id)
+                                  .reduce((s, p) => s + p.amountPaid, 0) < c.amount,
+                            ) ?? duesCharges.find(
+                              (c) =>
+                                c.assignedMemberIds.length === 0 ||
+                                c.assignedMemberIds.includes(member.id),
+                            )
                           if (!openCharge) return
+                          const paid = duesPayments
+                            .filter((p) => p.chargeId === openCharge.id && p.memberId === member.id)
+                            .reduce((s, p) => s + p.amountPaid, 0)
                           setPayOpen({ chargeId: openCharge.id, memberId: member.id })
-                          setPayAmount(Math.min(balance, openCharge.amount))
+                          setPayAmount(Math.min(balance, Math.max(0, openCharge.amount - paid)))
                         }}
                       >
                         Record

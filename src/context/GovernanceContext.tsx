@@ -281,6 +281,9 @@ export function GovernanceProvider({ children }: { children: ReactNode }) {
   const issueFine = useCallback(
     (fine: Omit<Fine, 'id'>) => {
       setFinesList((prev) => {
+        if (fine.sourceRef && prev.some((f) => f.sourceRef === fine.sourceRef)) {
+          return prev
+        }
         const next = [...prev, { ...fine, id: `f-${Date.now()}` }]
         writeGovernanceBlob({
           cases,

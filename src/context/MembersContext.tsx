@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { DEMO_MEMBERS as seedMembers } from '../data/demoFixtures'
+import { currentTermLabel } from '../lib/demoRelativeDates'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
 import { syncAllMemberDues } from '../lib/duesSync'
 import { syncMemberAttendancePct } from '../lib/attendanceSync'
@@ -20,8 +21,9 @@ import {
   publishInviteCodesToCloud,
   resolveJoinCode,
 } from '../lib/joinCodes'
-import { pushLocalChapterToCloud, bootstrapChapterCloud, setCachedCloudChapterId, getCachedCloudChapterId, hydrateFromCloud, canSyncToCloud } from '../lib/chapterCloud'
-import { linkChapterMembership, requiresSupabaseAuth } from '../lib/supabaseAuth'
+import { pushLocalChapterToCloud, bootstrapChapterCloud, setCachedCloudChapterId, getCachedCloudChapterId, canSyncToCloud } from '../lib/chapterCloud'
+import { cloudIdentityEnabled, rpcSetMemberRole } from '../lib/cloudIdentity'
+import { requiresSupabaseAuth } from '../lib/supabaseAuth'
 import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
 import type { ChapterLock, InviteCode, MemberAccount } from '../types/memberAccount'
 import type { Member } from '../types'
@@ -152,6 +154,8 @@ interface MembersContextValue {
     graduationYear?: number
     photoUrl?: string
     avatar?: string
+    /** Defaults to currentTermLabel() */
+    pledgeClass?: string
   }) => { ok: true; memberId: string } | { ok: false; error: string }
   updateMemberProfile: (memberId: string, patch: Partial<UserProfile>) => void
   updateMemberDetails: (memberId: string, patch: Partial<Member>) => void
@@ -162,9 +166,10 @@ interface MembersContextValue {
     charges: import('../types/chapterOps').DuesCharge[],
     payments: import('../types/chapterOps').DuesPayment[]
   ) => void
-  /** Sync roster attendancePct from recorded event attendance */
+  /** Sync roster attendancePct + points from recorded event attendance */
   syncRosterAttendance: (
-    attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>
+    attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>,
+    eventPointsById?: Record<string, number>
   ) => void
   lockChapter: (lock: Omit<ChapterLock, 'lockedAt' | 'lockedByUserId'>, userId: string) => void
 }
@@ -548,7 +553,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         phone: input.profile.phone,
         major: input.profile.major ?? 'Undeclared',
         graduationYear: input.profile.graduationYear,
-        pledgeClass: 'Fall 2025',
+        pledgeClass: currentTermLabel(),
         status,
         isExec,
         role: input.role,
@@ -559,7 +564,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         duesStatus: 'Outstanding',
         duesPaid: 0,
         duesExpected: 850,
-        attendancePct: 0,
+        attendancePct: null,
         points: 0,
         avatar: input.profile.avatar,
         photoUrl: input.profile.photoUrl,
@@ -626,6 +631,12 @@ export function MembersProvider({ children }: { children: ReactNode }) {
             appMemberId: memberId,
             role: input.role,
             isFounder: true,
+            profile: {
+              firstName: input.profile.firstName,
+              lastName: input.profile.lastName,
+              email: input.email ?? input.profile.email,
+              phone: input.profile.phone,
+            },
           })
           if (!boot.ok) {
             console.warn('[agora] founder cloud bootstrap failed', boot.error)
@@ -639,48 +650,38 @@ export function MembersProvider({ children }: { children: ReactNode }) {
             chapterDesignation: input.chapterDesignation,
             university: input.university,
             orgId: input.orgId,
-            cloudChapterId: published.chapterId ?? getCachedCloudChapterId() ?? undefined,
+            cloudChapterId:
+              published.chapterId ?? boot.chapterId ?? getCachedCloudChapterId() ?? undefined,
           })
         })()
-      } else if (input.cloudChapterId) {
-        setCachedCloudChapterId(input.cloudChapterId)
-        primeChapterIdentityForCloud(input)
-        if (requiresSupabaseAuth()) {
-          void (async () => {
-            await linkChapterMembership({
-              chapterId: input.cloudChapterId!,
-              appMemberId: memberId,
-              role: input.role,
-              isFounder: false,
-            })
-            await hydrateFromCloud()
-            mergeJoinerAfterHydrate({
-              memberId,
-              newMember,
-              account,
-              inviteCodeId: input.inviteCodeId,
-              inviteCode:
-                input.inviteCode ??
-                inviteCodes.find((i) => i.id === input.inviteCodeId)?.code,
-            })
-          })()
-        }
       } else if (requiresSupabaseAuth()) {
+        const joinCode =
+          input.inviteCode ??
+          inviteCodes.find((i) => i.id === input.inviteCodeId)?.code
+        if (input.cloudChapterId) setCachedCloudChapterId(input.cloudChapterId)
         primeChapterIdentityForCloud(input)
         void (async () => {
-          await bootstrapChapterCloud({
+          const boot = await bootstrapChapterCloud({
             appMemberId: memberId,
             role: input.role,
             isFounder: false,
+            joinCode,
+            profile: {
+              firstName: input.profile.firstName,
+              lastName: input.profile.lastName,
+              email: input.email ?? input.profile.email,
+              phone: input.profile.phone,
+            },
           })
+          if (!boot.ok) {
+            console.warn('[agora] join cloud bootstrap failed', boot.error)
+          }
           mergeJoinerAfterHydrate({
             memberId,
             newMember,
             account,
             inviteCodeId: input.inviteCodeId,
-            inviteCode:
-              input.inviteCode ??
-              inviteCodes.find((i) => i.id === input.inviteCodeId)?.code,
+            inviteCode: joinCode,
           })
         })()
       }
@@ -726,7 +727,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         phone: input.phone?.trim() || '',
         major: input.major?.trim() || 'Undeclared',
         graduationYear: input.graduationYear ?? new Date().getFullYear() + 1,
-        pledgeClass: 'Fall 2025',
+        pledgeClass: currentTermLabel(),
         status: input.status ?? 'Active',
         isExec: false,
         birthday: '2000-01-01',
@@ -736,7 +737,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         duesStatus: 'Outstanding',
         duesPaid: 0,
         duesExpected: 850,
-        attendancePct: 0,
+        attendancePct: null,
         points: 0,
         avatar: `${input.firstName[0] ?? ''}${input.lastName[0] ?? ''}`.toUpperCase() || '?',
       }
@@ -756,6 +757,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       graduationYear?: number
       photoUrl?: string
       avatar?: string
+      pledgeClass?: string
     }) => {
       const email = (prospect.email || '').trim().toLowerCase()
       if (!prospect.firstName.trim() || !prospect.lastName.trim()) {
@@ -776,7 +778,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         phone: prospect.phone?.trim() || '',
         major: prospect.major?.trim() || 'Undeclared',
         graduationYear: prospect.graduationYear ?? new Date().getFullYear() + 1,
-        pledgeClass: 'Spring 2026',
+        pledgeClass: prospect.pledgeClass?.trim() || currentTermLabel(),
         status: 'New Member',
         isExec: false,
         role: 'NewMember',
@@ -787,7 +789,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         duesStatus: 'Outstanding',
         duesPaid: 0,
         duesExpected: 850,
-        attendancePct: 0,
+        attendancePct: null,
         points: 0,
         avatar:
           prospect.avatar ||
@@ -863,6 +865,15 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       persistAccounts(
         accounts.map((a) => (a.memberId === memberId ? { ...a, role } : a))
       )
+      if (cloudIdentityEnabled()) {
+        const acct = accounts.find((a) => a.memberId === memberId)
+        const chapterId = getCachedCloudChapterId()
+        if (acct?.userId && chapterId) {
+          void rpcSetMemberRole(chapterId, acct.userId, role).then((res) => {
+            if (!res.ok) console.warn('[agora] set_member_role failed', res.error)
+          })
+        }
+      }
     },
     [roster, accounts, persistRoster, persistAccounts]
   )
@@ -884,9 +895,15 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   )
 
   const syncRosterAttendance = useCallback(
-    (attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>) => {
-      const synced = syncMemberAttendancePct(roster, attendanceByEvent)
-      const changed = synced.some((m, i) => roster[i]?.attendancePct !== m.attendancePct)
+    (
+      attendanceByEvent: Record<string, import('../types').AttendanceEntry[]>,
+      eventPointsById?: Record<string, number>
+    ) => {
+      const synced = syncMemberAttendancePct(roster, attendanceByEvent, eventPointsById)
+      const changed = synced.some(
+        (m, i) =>
+          roster[i]?.attendancePct !== m.attendancePct || roster[i]?.points !== m.points
+      )
       if (changed) persistRoster(synced)
     },
     [roster, persistRoster]

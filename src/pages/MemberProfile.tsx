@@ -12,6 +12,10 @@ import {
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import {
+  formatAttendancePct,
+  pointsFromEntry,
+} from '../lib/attendance/attendanceMath'
 import { localTodayIso } from '../lib/liveAlerts'
 
 const tabs = ['Overview', 'Attendance', 'Dues', 'Events', 'Points'] as const
@@ -42,7 +46,7 @@ export default function MemberProfile() {
           event: ev.name,
           date: ev.date,
           status: entry.status,
-          pts: entry.pointsEarned,
+          pts: pointsFromEntry(entry, ev.points),
         })
       }
     }
@@ -137,7 +141,9 @@ export default function MemberProfile() {
             </div>
             <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-3 sm:gap-6">
               <div>
-                <p className="text-2xl font-bold text-navy">{member.attendancePct}%</p>
+                <p className="text-2xl font-bold text-navy">
+                  {formatAttendancePct(member.attendancePct)}
+                </p>
                 <p className="text-xs text-slate-500">Attendance</p>
               </div>
               <div>
@@ -216,7 +222,10 @@ export default function MemberProfile() {
           <Card padding={false}>
             <div className="border-b border-border px-5 py-4">
               <p className="text-sm text-slate-500">
-                Semester attendance: <strong className="text-navy">{member.attendancePct}%</strong>
+                Semester attendance:{' '}
+                <strong className="text-navy">
+                  {formatAttendancePct(member.attendancePct)}
+                </strong>
               </p>
             </div>
             {attendanceRows.length === 0 ? (

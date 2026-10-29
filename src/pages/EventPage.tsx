@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -20,12 +20,13 @@ import { useChapterOps } from '../context/ChapterOpsContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
+import { useChapterFeatures } from '../context/ChapterFeaturesContext'
 import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
+import { pointsFromEntry } from '../lib/attendance/attendanceMath'
 import {
   FORM_RSVP_OPTIONS,
   formRsvpButtonClass,
   formRsvpVariant,
-  isAffirmativeFormRsvp,
   normalizeFormRsvp,
   type FormRsvpOption,
 } from '../lib/formRsvps'
@@ -47,7 +48,13 @@ export default function EventPage() {
   const { getTableForEvent, getEventRsvps, updateMemberFormRsvp } = useChapterTables()
   const { memberId, profile } = useAuth()
   const permissions = usePermissions()
-  const canTakeRoll = permissions.canAccessExecTools || permissions.canEditEventPoints
+  const { isFeatureEnabled, canMemberEdit } = useChapterFeatures()
+  const attendanceOn = isFeatureEnabled('attendancePoints')
+  const canTakeRoll =
+    attendanceOn &&
+    (permissions.canAccessExecTools ||
+      permissions.canEditEventPoints ||
+      canMemberEdit('editAttendance', memberId))
   const { getMemberById, members } = useMembers()
   const { config } = useStandardsModuleConfig()
   const excusePolicy = config.excuse_policy
@@ -64,6 +71,12 @@ export default function EventPage() {
   const myRsvp = myFormRsvp ? normalizeFormRsvp(myFormRsvp.rsvp) : null
 
   const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
+
+  useEffect(() => {
+    if (!attendanceOn && (activeSection === 'attendance' || activeSection === 'points')) {
+      setActiveSection('rsvp')
+    }
+  }, [attendanceOn, activeSection])
   const [showExcuseModal, setShowExcuseModal] = useState(false)
   const [excuseCategory, setExcuseCategory] = useState(excusePolicy.categories[0] ?? '')
   const [excuseReason, setExcuseReason] = useState('')
@@ -286,7 +299,11 @@ export default function EventPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-black/5">
-          {(['rsvp', 'attendance', 'points'] as const).map((section) => (
+          {(
+            attendanceOn
+              ? (['rsvp', 'attendance', 'points'] as const)
+              : (['rsvp'] as const)
+          ).map((section) => (
             <button
               key={section}
               type="button"
@@ -427,37 +444,27 @@ export default function EventPage() {
               })()}
 
             {activeSection === 'points' &&
-              (eventAttendance.length > 0
-                ? eventAttendance.map((entry) => {
-                    const member = getMemberById(entry.memberId)
-                    if (!member) return null
-                    return (
-                      <ListRow key={entry.memberId}>
-                        <div className="flex flex-1 justify-between px-2">
-                          <span className="font-semibold text-neutral-900">
-                            {member.firstName} {member.lastName}
-                          </span>
-                          <span className="font-semibold text-accent">+{entry.pointsEarned}</span>
-                        </div>
-                      </ListRow>
-                    )
-                  })
-                : eventFormRsvps.map((entry) => {
-                    const member = entry.memberId ? getMemberById(entry.memberId) : undefined
-                    const displayName =
-                      member != null
-                        ? `${member.firstName} ${member.lastName}`
-                        : entry.memberName || 'Unknown member'
-                    const pts = isAffirmativeFormRsvp(entry.rsvp) ? event.points : 0
-                    return (
-                      <ListRow key={`${entry.tableId}-${entry.rowId}`}>
-                        <div className="flex flex-1 justify-between px-2">
-                          <span className="font-semibold text-neutral-900">{displayName}</span>
-                          <span className="font-semibold text-accent">+{pts}</span>
-                        </div>
-                      </ListRow>
-                    )
-                  }))}
+              (eventAttendance.length === 0 ? (
+                <p className="p-8 text-center text-sm text-neutral-500">
+                  No attendance recorded — points come from Present roll-call only
+                </p>
+              ) : (
+                eventAttendance.map((entry) => {
+                  const member = getMemberById(entry.memberId)
+                  if (!member) return null
+                  const pts = pointsFromEntry(entry, event.points)
+                  return (
+                    <ListRow key={entry.memberId}>
+                      <div className="flex flex-1 justify-between px-2">
+                        <span className="font-semibold text-neutral-900">
+                          {member.firstName} {member.lastName}
+                        </span>
+                        <span className="font-semibold text-accent">+{pts}</span>
+                      </div>
+                    </ListRow>
+                  )
+                })
+              ))}
           </div>
         </Section>
         </Section>

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { FileUp, Search, Trash2, BookMarked } from 'lucide-react'
+import { FileUp, Trash2, BookMarked } from 'lucide-react'
+import { SearchField } from '../components/ui/SearchField'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
@@ -17,7 +18,6 @@ export default function BylawsPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [pasteName, setPasteName] = useState('')
   const [pasteContent, setPasteContent] = useState('')
-  const [uploadError, setUploadError] = useState('')
 
   const active = bylaws.find((b) => b.id === activeId) ?? bylaws[0]
 
@@ -45,10 +45,9 @@ export default function BylawsPage() {
   }
 
   const onFile = async (file: File) => {
-    setUploadError('')
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (ext && !['txt', 'md', 'text'].includes(ext)) {
-      setUploadError('Upload .txt or .md files, or paste content below.')
+      alert('Upload .txt or .md files, or paste content below.')
       return
     }
     const text = await file.text()
@@ -149,19 +148,14 @@ export default function BylawsPage() {
                   )}
                 </div>
 
-                <div className="relative">
-                  <Search
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
-                  />
-                  <input
-                    className="input-editorial pl-9 font-mono text-sm"
-                    placeholder="Search bylaws…"
-                    aria-label="Search bylaws"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
+                <SearchField
+                  value={query}
+                  onChange={setQuery}
+                  placeholder="Search bylaws…"
+                  className="sm:max-w-none"
+                  inputClassName="font-mono text-xs sm:text-sm"
+                  aria-label="Search bylaws"
+                />
 
                 {query.trim() && highlights.length > 0 && (
                   <ul className="border border-[var(--rule)] bg-[var(--primary-subtle)] px-4 py-3 text-sm">
@@ -184,7 +178,6 @@ export default function BylawsPage() {
 
       <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Import bylaws" size="lg">
         <div className="space-y-3">
-          {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
           <input
             className="input-editorial"
             placeholder="Document name (e.g. Chapter Bylaws 2025)"

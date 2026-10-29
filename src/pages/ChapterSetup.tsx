@@ -11,6 +11,8 @@ import {
   roleFromPositionTitle,
   useChapterPositions,
 } from '../context/ChapterPositionsContext'
+import { OFFICER_FUNCTIONS, officerFunctionLabel, type OfficerFunction } from '../types/officerFunction'
+import { inferFunctionFromTitle } from '../lib/officerFunctions'
 import { useMembers } from '../context/MembersContext'
 import { ONBOARDING_ROLES, roleLabel, type UserRole } from '../types/permissions'
 import type { EditorCapabilityId } from '../types/chapterFeatures'
@@ -26,10 +28,13 @@ export default function ChapterSetup() {
     setFeatureEnabled,
     getEditors,
     toggleEditor,
+    announcementsOfficersOnly,
+    setAnnouncementsOfficersOnly,
   } = useChapterFeatures()
   const { members, accounts, assignMemberRole } = useMembers()
-  const { memberId, updateRole, role } = useAuth()
+  const { memberId, updateRole, role, resetOnboarding } = useAuth()
   const permissions = usePermissions()
+  const [wiping, setWiping] = useState(false)
 
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
@@ -205,6 +210,7 @@ export default function ChapterSetup() {
         </Section>
 
         <Section
+          id="officer-positions"
           title="Officer positions"
           subtitle="Add, edit, or remove seats. Matching titles also update app permissions."
         >
@@ -287,6 +293,26 @@ export default function ChapterSetup() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {!isEditing && (
+                        <>
+                        <select
+                          value={
+                            pos.function ??
+                            inferFunctionFromTitle(pos.title, chapter.id)
+                          }
+                          onChange={(e) =>
+                            updatePosition(pos.id, {
+                              function: e.target.value as OfficerFunction,
+                            })
+                          }
+                          className="min-w-[140px] rounded-sm border border-black/5 bg-white px-2 py-2 font-mono text-[10px] uppercase tracking-wide outline-none focus:border-accent/40"
+                          aria-label={`Function for ${pos.title}`}
+                        >
+                          {OFFICER_FUNCTIONS.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {officerFunctionLabel(fn)}
+                            </option>
+                          ))}
+                        </select>
                         <select
                           value={pos.assignedMemberId ?? ''}
                           onChange={(e) => onAssignSeat(pos.id, pos.title, e.target.value)}
@@ -299,6 +325,7 @@ export default function ChapterSetup() {
                             </option>
                           ))}
                         </select>
+                        </>
                       )}
                       {isEditing ? (
                         <>
@@ -382,6 +409,39 @@ export default function ChapterSetup() {
                 </li>
               )
             })}
+          </ul>
+        </Section>
+
+        <Section
+          title="Chapter policies"
+          subtitle="Optional restrictions — defaults keep tools open to all members"
+        >
+          <ul className="divide-y divide-black/5 rounded-2xl border border-black/5">
+            <li className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="font-semibold text-neutral-900">Officers-only announcements</p>
+                <p className="text-xs text-neutral-500">
+                  When on, only officers and assigned announcement editors can post. When off, any
+                  member can create posts, polls, and sign-ups.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={announcementsOfficersOnly}
+                disabled={!isFeatureEnabled('announcements')}
+                onClick={() => setAnnouncementsOfficersOnly(!announcementsOfficersOnly)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40 ${
+                  announcementsOfficersOnly ? 'bg-accent' : 'bg-neutral-200'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+                    announcementsOfficersOnly ? 'left-5' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </li>
           </ul>
         </Section>
 
@@ -497,6 +557,51 @@ export default function ChapterSetup() {
             </Link>
             , then assign officer roles here.
           </p>
+        </Section>
+
+        <Section
+          title="Danger zone"
+          subtitle="Local browser reset and cloud test membership leave — intentional only"
+        >
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetOnboarding()
+                window.location.assign('/onboarding')
+              }}
+              className="theme-pill-muted rounded-sm px-4 py-2 text-xs font-semibold"
+            >
+              Re-run setup wizard
+            </button>
+            <button
+              type="button"
+              disabled={wiping}
+              onClick={() => {
+                void (async () => {
+                  if (
+                    !window.confirm(
+                      'Wipe this browser’s chapter data and leave cloud test memberships? You will start onboarding again.',
+                    )
+                  ) {
+                    return
+                  }
+                  setWiping(true)
+                  try {
+                    const { wipeLocalAndLeaveCloudChapters } = await import('../lib/chapterCloud')
+                    await wipeLocalAndLeaveCloudChapters()
+                    resetOnboarding()
+                    window.location.assign('/onboarding')
+                  } finally {
+                    setWiping(false)
+                  }
+                })()
+              }}
+              className="rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800"
+            >
+              {wiping ? 'Wiping…' : 'Wipe test chapter data'}
+            </button>
+          </div>
         </Section>
       </PageShell>
 

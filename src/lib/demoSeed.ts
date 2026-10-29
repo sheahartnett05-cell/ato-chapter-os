@@ -1,5 +1,27 @@
-import { isGuestPreviewActive, markGuestPreview } from './guestPreview'
+import { GUEST_CHAPTER, isGuestPreviewActive, markGuestPreview } from './guestPreview'
 import { DEMO_EVENTS as demoEvents, DEMO_MEMBERS as demoMembers } from '../data/demoFixtures'
+import { expandDemoRoster } from '../data/demoRosterExpansion'
+import { DEMO_BUDGETS } from '../data/budgetData'
+import { SEED_RSVPS, SEED_RSVP_EXCUSES } from '../data/eventParticipationData'
+import {
+  approvedExcuseMemberIdsForEvent,
+  buildAttendanceForMeeting,
+} from '../data/demoAttendanceSeed'
+import { buildDashboardStubSeed } from '../data/dashboardStubSeed'
+import { inferFunctionFromTitle } from './officerFunctions'
+import {
+  addDays,
+  buildRelativeDemoEvents,
+  currentTermLabel,
+  DEMO_SEED_VERSION,
+  localTodayIso,
+  relativizeDemo,
+  shiftDuesChargesRelative,
+  shiftExcusesRelative,
+  shiftPostsRelative,
+  shiftStudyLogsRelative,
+} from './demoRelativeDates'
+import { makeCycleId } from './recruitment/types'
 import {
   calendarExtraEvents,
   initialBillHighway,
@@ -65,6 +87,11 @@ export const STORAGE_KEYS = {
   committees: 'chapter-os-committees',
   committeeChat: 'chapter-os-committee-chat',
   demoSeeded: 'chapter-os-demo-seeded',
+  demoSeedVersion: 'chapter-os-demo-seed-version',
+  dashboardStubs: 'chapter-os-dashboard-stubs',
+  chapterMeeting: 'chapter-os-chapter-meeting',
+  dashboardFunction: 'chapter-os-dashboard-function',
+  rushCycles: 'chapter-os-rush-cycles',
 } as const
 
 function write(key: string, value: unknown) {
@@ -89,24 +116,93 @@ export function demoEventList() {
   return [...byId.values()]
 }
 
-/** Persist full demo chapter — call when entering guest preview. */
+/** Persist full demo chapter ? call when entering guest preview. */
 export function seedGuestDemo() {
-  write(STORAGE_KEYS.roster, demoMembers)
+  const roster = expandDemoRoster([...demoMembers])
+  const events = buildRelativeDemoEvents(demoEventList())
+  const upcomingIds = events.filter((e) => e.date >= new Date().toISOString().slice(0, 10)).map((e) => e.id)
+
+  const positions = [
+    ...DEMO_CHAPTER_POSITIONS.map((p) => ({
+      ...p,
+      function: inferFunctionFromTitle(p.title),
+      assignedMemberId:
+        p.id === 'p6' ? 'm5' : p.id === 'p5' ? 'm9' : p.id === 'p6b' ? 'm7' : p.assignedMemberId,
+    })),
+    {
+      id: 'p-house',
+      title: 'House Manager',
+      assignedMemberId: 'm2',
+      isCustom: false,
+      function: 'house' as const,
+    },
+    {
+      id: 'p-nme',
+      title: 'New Member Educator',
+      assignedMemberId: 'm10',
+      isCustom: false,
+      function: 'new_member_educator' as const,
+    },
+  ]
+
+  write(STORAGE_KEYS.roster, roster)
   write(STORAGE_KEYS.invites, SEED_INVITE_CODES)
-  write(STORAGE_KEYS.events, demoEventList())
-  write(STORAGE_KEYS.posts, demoPosts)
+  write(STORAGE_KEYS.events, events)
+  write(STORAGE_KEYS.posts, shiftPostsRelative([...demoPosts]))
+  write(STORAGE_KEYS.rsvps, SEED_RSVPS)
+  // Demo-only seed: reconcile approved excuses + use each event's points.
+  // Never rewrite live chapter attendance outside seedGuestDemo.
+  {
+    const excuses = [...SEED_RSVP_EXCUSES]
+    const pointsFor = (id: string) => events.find((e) => e.id === id)?.points ?? 0
+    write(STORAGE_KEYS.attendance, {
+      e1: buildAttendanceForMeeting(roster, 0.86, {
+        eventPoints: pointsFor('e1'),
+        approvedExcuseMemberIds: approvedExcuseMemberIdsForEvent(excuses, 'e1'),
+      }),
+      e2: buildAttendanceForMeeting(roster, 0.79, {
+        eventPoints: pointsFor('e2'),
+        approvedExcuseMemberIds: approvedExcuseMemberIdsForEvent(excuses, 'e2'),
+      }),
+    })
+  }
+  write(STORAGE_KEYS.rsvpExcuses, shiftExcusesRelative([...SEED_RSVP_EXCUSES]))
+  write(STORAGE_KEYS.studyLogs, shiftStudyLogsRelative(initialStudyLogs))
+  write(STORAGE_KEYS.duesCharges, shiftDuesChargesRelative(initialDuesCharges))
+  write('chapter-os-budgets', DEMO_BUDGETS)
+  write(
+    STORAGE_KEYS.dashboardStubs,
+    buildDashboardStubSeed({ pastMeetingId: 'e1', upcomingIds: upcomingIds.slice(0, 3) })
+  )
+  write(STORAGE_KEYS.positions, positions)
+  write(STORAGE_KEYS.chapterMeta, {
+    chapterDesignation: GUEST_CHAPTER.chapterDesignation,
+    university: GUEST_CHAPTER.university,
+    semester: currentTermLabel(),
+  })
   write(STORAGE_KEYS.execSlides, DEMO_EXEC_SLIDES)
   write(STORAGE_KEYS.bylaws, DEMO_BYLAWS)
   write(STORAGE_KEYS.houseTasks, DEMO_HOUSE_TASKS)
   write(STORAGE_KEYS.tableForms, DEMO_CHAPTER_TABLES)
-  write(STORAGE_KEYS.prospects, DEMO_PROSPECTS)
-  write(STORAGE_KEYS.pnmActivities, DEMO_PNM_ACTIVITIES)
-  write(STORAGE_KEYS.positions, DEMO_CHAPTER_POSITIONS)
+  const term = currentTermLabel()
+  const cycleId = makeCycleId(term)
+  const today = localTodayIso()
+  write(STORAGE_KEYS.rushCycles, [
+    {
+      id: cycleId,
+      label: term,
+      startedAt: today,
+      bidDay: addDays(today, 5),
+    },
+  ])
+  write(
+    STORAGE_KEYS.prospects,
+    relativizeDemo(DEMO_PROSPECTS).map((p) => ({ ...p, cycleId }))
+  )
+  write(STORAGE_KEYS.pnmActivities, relativizeDemo(DEMO_PNM_ACTIVITIES))
   write(STORAGE_KEYS.studyLocations, initialStudyLocations)
-  write(STORAGE_KEYS.studyLogs, initialStudyLogs)
   write(STORAGE_KEYS.studyRequired, SEMESTER_STUDY_HOURS_REQUIRED)
   write(STORAGE_KEYS.studyHoursRequirements, DEFAULT_STUDY_HOURS_REQUIREMENTS)
-  write(STORAGE_KEYS.duesCharges, initialDuesCharges)
   write(STORAGE_KEYS.duesPayments, initialDuesPayments)
   write(STORAGE_KEYS.billHighway, initialBillHighway)
   write(STORAGE_KEYS.studyHoursReset, DEFAULT_STUDY_HOURS_RESET)
@@ -122,17 +218,23 @@ export function seedGuestDemo() {
     config: demoGovConfig,
   })
   write(STORAGE_KEYS.demoSeeded, true)
+  try {
+    localStorage.setItem(STORAGE_KEYS.demoSeedVersion, JSON.stringify(DEMO_SEED_VERSION))
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 export const SESSION_BACKUP_KEY = 'chapter-os-session-backup'
 
+/** Session keys cleared with demo data ? never include the backup key itself. */
 const EXTRA_SESSION_KEYS = [
   'chapter-os-onboarding',
   'chapter-os-selected-org',
   'chapter-os-budgets',
   'chapter-os-user-id',
   'chapter-os-supabase-chapter-id',
-  'chapter-os-session-backup',
+  'chapter-os-view-mode',
 ] as const
 
 /** Snapshot real chapter data before guest preview wipes storage. */
@@ -155,7 +257,7 @@ export function backupRealSession() {
   }
 }
 
-/** Restore chapter data after leaving guest preview. */
+/** Restore chapter data after leaving guest preview. Atomic: write restored keys, then drop backup + guest flag. */
 export function restoreRealSession(): boolean {
   try {
     const raw = localStorage.getItem(SESSION_BACKUP_KEY)
@@ -163,6 +265,7 @@ export function restoreRealSession(): boolean {
     const bag = JSON.parse(raw) as Record<string, string>
     clearDemoData()
     for (const [k, v] of Object.entries(bag)) {
+      if (k === SESSION_BACKUP_KEY) continue
       localStorage.setItem(k, v)
     }
     localStorage.removeItem(SESSION_BACKUP_KEY)
@@ -173,7 +276,7 @@ export function restoreRealSession(): boolean {
   }
 }
 
-/** Clear demo / chapter operational storage — call when exiting guest. */
+/** Clear demo / chapter operational storage. Does not remove the real-session backup. */
 export function clearDemoData() {
   Object.values(STORAGE_KEYS).forEach(remove)
   for (const key of EXTRA_SESSION_KEYS) {
@@ -182,6 +285,19 @@ export function clearDemoData() {
     } catch {
       /* ignore */
     }
+  }
+}
+
+/** Re-seed guest preview when stored demo dates are from an older anchor. */
+export function ensureGuestDemoFresh() {
+  if (!isGuestPreviewActive()) return
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.demoSeedVersion)
+    const version = raw ? (JSON.parse(raw) as string) : null
+    if (version === DEMO_SEED_VERSION) return
+    seedGuestDemo()
+  } catch {
+    seedGuestDemo()
   }
 }
 

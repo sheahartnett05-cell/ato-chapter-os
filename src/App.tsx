@@ -12,11 +12,13 @@ import { ChapterResourcesProvider } from './context/ChapterResourcesContext'
 import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { BudgetProvider } from './context/BudgetContext'
-import { JoinPage, OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
-import { ExecShell, MemberShell, SettingsShellPage, AdaptiveShell } from './components/routing/AppShells'
+import { DemoPage, JoinPage, OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
+import { ExecShell, MemberShell, SharedShell } from './components/routing/AppShells'
+import { ChapterViewModeProvider } from './context/ChapterViewModeContext'
 import { FeatureRoute } from './components/routing/FeatureRoute'
 import { DuesSyncBridge } from './components/routing/DuesSyncBridge'
 import { AttendanceSyncBridge } from './components/routing/AttendanceSyncBridge'
+import { ToastProvider } from './components/ui/Toast'
 import ExecutiveDashboard from './pages/ExecutiveDashboard'
 import MemberManagement from './pages/MemberManagement'
 import MemberProfile from './pages/MemberProfile'
@@ -32,7 +34,7 @@ import Announcements from './pages/Announcements'
 import ExcuseApprovals from './pages/ExcuseApprovals'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
-import ExecSlides from './pages/ExecSlides'
+import ChapterMeetingPage from './pages/ChapterMeeting'
 import BylawsPage from './pages/Bylaws'
 import HouseMaintenancePage from './pages/HouseMaintenance'
 import JudicialBoard from './pages/JudicialBoard'
@@ -53,7 +55,8 @@ export default function App() {
           <ChapterPositionsProvider>
             <ChapterFeaturesProvider>
               <AuthProvider>
-                <GovernanceProvider>
+                <ChapterViewModeProvider>
+                  <GovernanceProvider>
                   <CommunicationsProvider>
                     <ChapterResourcesProvider>
                       <ChapterTablesProvider>
@@ -63,9 +66,11 @@ export default function App() {
                               <DuesSyncBridge />
                               <AttendanceSyncBridge />
                               <BrowserRouter>
+                                <ToastProvider>
                                 <Routes>
                                   <Route path="/preview" element={<PreviewPage />} />
                                   <Route path="/login" element={<PreviewPage />} />
+                                  <Route path="/demo" element={<DemoPage />} />
                                   <Route path="/join" element={<JoinPage />} />
                                   <Route path="/join/:code" element={<JoinPage />} />
                                   <Route path="/onboarding" element={<OnboardingPage />} />
@@ -82,11 +87,11 @@ export default function App() {
                                   <Route
                                     path="/announcements"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="announcements">
                                           <Announcements />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -103,37 +108,35 @@ export default function App() {
                                     path="/members/:id"
                                     element={
                                       <ExecShell>
-                                        <FeatureRoute feature="roster">
-                                          <MemberProfile />
-                                        </FeatureRoute>
+                                        <MemberProfile />
                                       </ExecShell>
                                     }
                                   />
                                   <Route
                                     path="/calendar"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="calendar">
                                           <CalendarPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/events/:id"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="calendar">
                                           <EventPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/excuses"
                                     element={
                                       <ExecShell>
-                                        <FeatureRoute feature="calendar">
+                                        <FeatureRoute feature="attendancePoints">
                                           <ExcuseApprovals />
                                         </FeatureRoute>
                                       </ExecShell>
@@ -142,21 +145,21 @@ export default function App() {
                                   <Route
                                     path="/library-hours"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="studyHours">
                                           <LibraryHours />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/dues"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="dues">
                                           <DuesPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -260,21 +263,21 @@ export default function App() {
                                   <Route
                                     path="/committees"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="committees">
                                           <Committees />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/committees/:id"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="committees">
                                           <CommitteeDetail />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
@@ -286,33 +289,37 @@ export default function App() {
                                     }
                                   />
                                   <Route
-                                    path="/exec-slides"
+                                    path="/chapter-meeting"
                                     element={
                                       <ExecShell>
                                         <FeatureRoute feature="execSlides">
-                                          <ExecSlides />
+                                          <ChapterMeetingPage />
                                         </FeatureRoute>
                                       </ExecShell>
                                     }
                                   />
                                   <Route
+                                    path="/exec-slides"
+                                    element={<Navigate to="/chapter-meeting" replace />}
+                                  />
+                                  <Route
                                     path="/bylaws"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="bylaws">
                                           <BylawsPage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/house"
                                     element={
-                                      <AdaptiveShell>
+                                      <SharedShell>
                                         <FeatureRoute feature="house">
                                           <HouseMaintenancePage />
                                         </FeatureRoute>
-                                      </AdaptiveShell>
+                                      </SharedShell>
                                     }
                                   />
 
@@ -335,9 +342,9 @@ export default function App() {
                                   <Route
                                     path="/settings"
                                     element={
-                                      <SettingsShellPage>
+                                      <SharedShell>
                                         <Settings />
-                                      </SettingsShellPage>
+                                      </SharedShell>
                                     }
                                   />
 
@@ -355,6 +362,7 @@ export default function App() {
                                   />
                                   <Route path="*" element={<RootRedirect />} />
                                 </Routes>
+                                </ToastProvider>
                               </BrowserRouter>
                             </BudgetProvider>
                           </ChapterOpsProvider>
@@ -362,7 +370,8 @@ export default function App() {
                       </ChapterTablesProvider>
                     </ChapterResourcesProvider>
                   </CommunicationsProvider>
-                </GovernanceProvider>
+                  </GovernanceProvider>
+                </ChapterViewModeProvider>
               </AuthProvider>
             </ChapterFeaturesProvider>
           </ChapterPositionsProvider>

@@ -36,6 +36,8 @@ export interface Fine {
   id: string
   memberId: string
   caseId?: string
+  /** Idempotency key — e.g. excuse id so denying twice does not double-fine */
+  sourceRef?: string
   amount: number
   reason: string
   dateIssued: string

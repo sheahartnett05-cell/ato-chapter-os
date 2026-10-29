@@ -8,6 +8,9 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:phase-a": "node scripts/test-phase-a-identity.mjs",
     "preview": "vite preview",
     "smoke-test": "node scripts/smoke-test.mjs",
     "smoke-test:quick": "node scripts/smoke-test.mjs --chapters=alpha,beta",
@@ -47,6 +50,7 @@
     "playwright": "^1.62.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^6.4.3"
+    "vite": "^6.4.3",
+    "vitest": "^3.2.4"
   }
 }
