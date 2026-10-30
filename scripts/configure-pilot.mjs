@@ -39,7 +39,7 @@ const accessToken = env.SUPABASE_ACCESS_TOKEN
 const projectRef = env.SUPABASE_PROJECT_REF || projectRefFromUrl(env.VITE_SUPABASE_URL)
 const resendKey = env.RESEND_API_KEY
 const fromEmail = env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-const fromName = env.RESEND_FROM_NAME || 'Agora'
+const fromName = env.RESEND_FROM_NAME || 'Chaptera'
 const siteUrl = (env.PILOT_SITE_URL || env.VITE_APP_URL || '').replace(/\/$/, '')
 
 if (!accessToken || !projectRef) {
@@ -93,7 +93,7 @@ if (!res.ok) {
 }
 
 console.log('✓ Pilot Supabase Auth configured')
-console.log('  • Agora email templates')
+console.log('  • Chaptera email templates')
 if (resendKey) console.log('  • Resend SMTP')
 console.log('  • rate_limit_email_sent: 100/hr')
 console.log('  • rate_limit_otp: 100/hr')

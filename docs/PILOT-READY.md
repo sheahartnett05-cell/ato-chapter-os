@@ -1,49 +1,45 @@
 # Pilot readiness
 
-**Production URL:** https://ato-chapter-os.vercel.app  
-**Supabase project:** `oquqmoroihoksciiqwyt`
+**Production URL:** https://chapteramanager.com  
+**Supabase project:** `oquqmoroihoksciiqwyt` (confirm in dashboard)
 
 ## Done
 
 - [x] Supabase migrations (join codes, invite sync RPC)
-- [x] Agora auth email templates + Resend SMTP
+- [x] Chaptera auth email templates + Resend SMTP (templates in repo)
 - [x] Auth rate limits raised (100/hr email + OTP)
-- [x] Site URL → `https://ato-chapter-os.vercel.app`
-- [x] Vercel production deploy with `VITE_SUPABASE_*` env vars
-- [x] Pilot chapter in cloud with join code (SQL seed for invite RPC)
+- [ ] Site URL → `https://chapteramanager.com`
+- [ ] Vercel domain `chapteramanager.com` + `VITE_SUPABASE_*` env vars
 - [x] Sprint fixes in `sprint-fixes` branch
 
-## Pilot invite link (cloud-backed)
+## Domain cutover
 
+See [`docs/DOMAIN-SETUP.md`](./DOMAIN-SETUP.md) and [`docs/CUSTOMER-EMAILS.md`](./CUSTOMER-EMAILS.md).
+
+```bash
+# .env.local
+RESEND_DOMAIN=chapteramanager.com
+RESEND_FROM_EMAIL=auth@chapteramanager.com
+RESEND_FROM_NAME=Chaptera
+PILOT_SITE_URL=https://chapteramanager.com
+
+npm run configure-resend-domain -- add
+npm run configure-resend-domain -- verify
+npm run configure-resend-domain
+npm run configure-pilot
+npm run configure-chaptera-emails
 ```
-https://ato-chapter-os.vercel.app/join?code=CHAPTER-PILOT-KH34DM
-```
 
-`resolve_join_code` returns this chapter for any device.
+## Founder / join smoke
 
-## One manual step for full founder flow
-
-Automated OTP seed failed because `onboarding@resend.dev` only delivers to your **Resend account email**.
-
-For a real founding president (creates auth user + membership + KV sync):
-
-1. Open https://ato-chapter-os.vercel.app/onboarding
-2. Create chapter as President using **your Resend account email**
-3. Enter OTP from the Agora sign-in email
+1. Open https://chapteramanager.com/onboarding
+2. Create chapter as President
+3. Enter OTP from the Chaptera sign-in email
 4. Share the join code from Settings → Invites
 
 ## Optional before wider pilot
 
-- [ ] **Customer emails** — verify `shopwildflowerboho.com` in Resend → see [`docs/CUSTOMER-EMAILS.md`](./CUSTOMER-EMAILS.md)
-- [ ] Revoke exposed API tokens (Supabase PAT, Resend key from chat)
+- [ ] Customer emails verified on `chapteramanager.com` in Resend
+- [ ] Revoke any exposed API tokens
 - [ ] Connect Vercel to GitHub for auto-deploy on push
 - [ ] Run manual cross-device test (phone + laptop) with invite link
-
-## Commands
-
-```bash
-npm run configure-pilot      # templates + SMTP + rate limits + site URL
-npm run verify-supabase      # RPC + migration checks
-npm run seed-cloud-chapter-sql  # emergency cloud join code (SQL)
-npm run smoke-test:cloud     # Iota cross-device automation
-```

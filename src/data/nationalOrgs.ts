@@ -236,11 +236,11 @@ const MGC_ORGS: NationalOrg[] = [
 ]
 
 /** Neutral product brand — landing / preview before a chapter selects their org */
-export const AGORA_PRODUCT: NationalOrg = {
-  id: 'agora',
-  orgName: 'Agora',
-  nickname: 'Agora',
-  letters: 'AG',
+export const CHAPTERA_PRODUCT: NationalOrg = {
+  id: 'chaptera',
+  orgName: 'Chaptera',
+  nickname: 'Chaptera',
+  letters: 'CH',
   category: 'fraternity',
   orgType: 'IFC',
   primaryColor: '#1a1a1a',
@@ -249,20 +249,23 @@ export const AGORA_PRODUCT: NationalOrg = {
   languagePack: FRAT_LANG,
 }
 
+/** @deprecated Use CHAPTERA_PRODUCT */
+export const AGORA_PRODUCT = CHAPTERA_PRODUCT
+
 /** Deduplicated by id — national fraternity & sorority directory */
 export const NATIONAL_ORGS: NationalOrg[] = [
-  AGORA_PRODUCT,
+  CHAPTERA_PRODUCT,
   ...FRATERNITIES.filter((o, i, arr) => arr.findIndex((x) => x.id === o.id) === i),
   ...SORORITIES,
   ...NPHC_ORGS,
   ...MGC_ORGS,
 ].sort((a, b) => {
-  if (a.id === 'agora') return -1
-  if (b.id === 'agora') return 1
+  if (a.id === 'chaptera') return -1
+  if (b.id === 'chaptera') return 1
   return a.orgName.localeCompare(b.orgName)
 })
 
-export const DEFAULT_ORG_ID = 'agora'
+export const DEFAULT_ORG_ID = 'chaptera'
 
 export const ORG_CATEGORIES: { id: OrgCategory; label: string }[] = [
   { id: 'fraternity', label: 'Fraternities' },
@@ -272,7 +275,7 @@ export const ORG_CATEGORIES: { id: OrgCategory; label: string }[] = [
 ]
 
 export function orgsInCategory(category: OrgCategory): NationalOrg[] {
-  return NATIONAL_ORGS.filter((o) => o.category === category && o.id !== 'agora')
+  return NATIONAL_ORGS.filter((o) => o.category === category && o.id !== 'chaptera')
 }
 
 export function getNationalOrgById(id: string): NationalOrg | undefined {
@@ -281,7 +284,8 @@ export function getNationalOrgById(id: string): NationalOrg | undefined {
 }
 
 const LEGACY_ORG_IDS: Record<string, string> = {
-  'chapter-os': 'agora',
+  agora: 'chaptera',
+  'chapter-os': 'chaptera',
   'ato-uwf': 'ato',
   'zta-uf': 'zeta-tau-alpha',
   'ks-uab': 'kappa-sigma',

@@ -1,10 +1,8 @@
-# agoragreekmanagement.com — connect checklist
+# chapteramanager.com — connect checklist
 
-DNS is at **Porkbun** (`*.ns.porkbun.com`). Add the records below in Porkbun → Domain → DNS.
+DNS is at **Porkbun** (or your registrar). Add the records below for the Chaptera app + auth email.
 
 ## 1. App (Vercel)
-
-Replace existing **A** records on `@` (currently pointing to Porkbun parking IPs) with:
 
 | Type | Host | Value |
 |------|------|-------|
@@ -13,9 +11,12 @@ Replace existing **A** records on `@` (currently pointing to Porkbun parking IPs
 
 Optional: **CNAME** `www` → `cname.vercel-dns.com`
 
-Verify: `npx vercel domains verify agoragreekmanagement.com`
+```bash
+npx vercel domains add chapteramanager.com
+npx vercel domains verify chapteramanager.com
+```
 
-After propagation, the app loads at **https://agoragreekmanagement.com**
+After propagation: **https://chapteramanager.com**
 
 ## 2. Email (Resend) — customer OTP codes
 
@@ -25,20 +26,20 @@ After propagation, the app loads at **https://agoragreekmanagement.com**
 | **MX** | `send` | `feedback-smtp.us-east-1.amazonses.com` — priority **10** |
 | **TXT** | `send` | `v=spf1 include:amazonses.com ~all` |
 
-Sender: `Agora <auth@agoragreekmanagement.com>`
+Sender: `Chaptera <auth@chapteramanager.com>`
 
 ## 3. After DNS propagates (~15–30 min)
 
 ```bash
+# .env.local
+RESEND_DOMAIN=chapteramanager.com
+RESEND_FROM_EMAIL=auth@chapteramanager.com
+RESEND_FROM_NAME=Chaptera
+PILOT_SITE_URL=https://chapteramanager.com
+
+npm run configure-resend-domain -- add
 npm run configure-resend-domain -- verify
 npm run configure-resend-domain
-```
-
-Set Supabase site URL to the custom domain:
-
-```bash
-# .env.local
-PILOT_SITE_URL=https://agoragreekmanagement.com
 npm run configure-pilot
 ```
 
@@ -48,13 +49,13 @@ Test:
 npm run configure-resend-domain -- --test you@gmail.com
 ```
 
-Open https://agoragreekmanagement.com/onboarding → Send login code.
+Open https://chapteramanager.com/onboarding → Send login code.
 
-## Status
+## Status (2026-10-29)
 
-- [x] Domain added to Resend — **verified**
-- [x] Domain added to Vercel — **verified**
-- [x] DNS records at Porkbun
-- [x] Supabase sends from `auth@agoragreekmanagement.com`
-- [x] Supabase `site_url` → https://agoragreekmanagement.com
-- [x] App live at https://agoragreekmanagement.com
+- [x] Domain added to Resend (`chapteramanager.com`) — pending DNS
+- [ ] DNS records at registrar — see [`CHAPTERA_DNS_RECORDS.md`](./CHAPTERA_DNS_RECORDS.md)
+- [x] Domain attached on Vercel → project `ato-chapter-os` (NS still Porkbun; A/CNAME or switch NS needed)
+- [x] New Supabase project `qfurjvkdbvjpvezsrddf` — migrations applied + Chaptera email templates + Resend SMTP
+- [x] Supabase `site_url` → https://chapteramanager.com
+- [ ] App live at https://chapteramanager.com (needs Porkbun DNS)

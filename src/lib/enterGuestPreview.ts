@@ -47,7 +47,7 @@ export function enterGuestPreview(mode: GuestPreviewMode, execPreset?: GuestExec
         memberId,
         profile,
         role,
-        email: `guest.${mode}@agora.preview`,
+        email: `guest.${mode}@chaptera.preview`,
         inviteCodeId: `guest-${mode}`,
         joinedAt: new Date().toISOString(),
       },

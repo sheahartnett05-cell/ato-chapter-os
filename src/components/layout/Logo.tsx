@@ -2,10 +2,14 @@ import { Link } from 'react-router-dom'
 import { useChapter } from '../../context/ChapterContext'
 import { OrgCrest } from '../ui/OrgCrest'
 import { getNationalOrgById } from '../../data/nationalOrgs'
-import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../../lib/brandCopy'
+import {
+  CHAPTERA_PRODUCT_NAME,
+  CHAPTERA_TAGLINE,
+  isProductOrgId,
+} from '../../lib/brandCopy'
 
-/** Product mark — agora portal with columns + arch */
-export function AgoraMark({
+/** Product mark — portal with columns + arch */
+export function ChapteraMark({
   size = 36,
   onDark = false,
   className = '',
@@ -56,6 +60,9 @@ export function AgoraMark({
   )
 }
 
+/** @deprecated Use ChapteraMark */
+export const AgoraMark = ChapteraMark
+
 export function Logo({
   compact = false,
   onDark = true,
@@ -66,11 +73,11 @@ export function Logo({
   to?: string
 }) {
   const { chapter } = useChapter()
-  const isProduct = chapter.id === 'agora' || chapter.id === 'chapter-os'
+  const isProduct = isProductOrgId(chapter.id)
 
-  const title = isProduct ? AGORA_PRODUCT_NAME : chapter.nickname
+  const title = isProduct ? CHAPTERA_PRODUCT_NAME : chapter.nickname
   const subtitle = isProduct
-    ? AGORA_TAGLINE
+    ? CHAPTERA_TAGLINE
     : chapter.chapterDesignation || chapter.letters
 
   const badgeColor = onDark ? chapter.accentColor : chapter.primaryColor
@@ -79,7 +86,7 @@ export function Logo({
   return (
     <Link to={to} className="group flex items-center gap-2.5">
       {isProduct ? (
-        <AgoraMark size={36} onDark={onDark} />
+        <ChapteraMark size={36} onDark={onDark} />
       ) : nationalOrg ? (
         <OrgCrest org={nationalOrg} size={36} />
       ) : (

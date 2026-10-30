@@ -7,9 +7,9 @@ import {
   Users,
   UserSearch,
 } from 'lucide-react'
-import { AgoraMark } from '../layout/Logo'
+import { ChapteraMark } from '../layout/Logo'
 import { OrgCrest } from '../ui/OrgCrest'
-import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../../lib/brandCopy'
+import { CHAPTERA_PRODUCT_NAME, CHAPTERA_TAGLINE } from '../../lib/brandCopy'
 import { contrastText } from '../../lib/themeUtils'
 import type { NationalOrg } from '../../data/nationalOrgs'
 
@@ -22,7 +22,7 @@ const ORG_MOTTOS: Record<string, string> = {
   aka: 'By Culture and By Merit',
 }
 
-const AGORA_FEATURES = [
+const CHAPTERA_FEATURES = [
   {
     icon: Users,
     title: 'Roster & roles',
@@ -63,7 +63,7 @@ function ArchPattern({ accent }: { accent: string }) {
       preserveAspectRatio="xMidYMid slice"
     >
       <defs>
-        <pattern id="agora-columns" width="72" height="120" patternUnits="userSpaceOnUse">
+        <pattern id="chaptera-columns" width="72" height="120" patternUnits="userSpaceOnUse">
           <rect x="8" y="0" width="3" height="120" fill={accent} opacity="0.9" />
           <rect x="61" y="0" width="3" height="120" fill={accent} opacity="0.9" />
           <path
@@ -76,7 +76,7 @@ function ArchPattern({ accent }: { accent: string }) {
           <rect x="0" y="108" width="72" height="2" fill={accent} opacity="0.5" />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#agora-columns)" />
+      <rect width="100%" height="100%" fill="url(#chaptera-columns)" />
     </svg>
   )
 }
@@ -136,14 +136,14 @@ export function BrandHeroPanel({
   const defaultHeadline = org
     ? `Welcome, ${org.nickname}`
     : variant === 'guest'
-      ? 'Tour Agora as a guest'
+      ? 'Tour Chaptera as a guest'
       : 'Your chapter, one workspace'
 
   const defaultDescription = org
     ? (ORG_MOTTOS[org.id] ?? `${org.orgType} · ${org.orgName}`)
     : variant === 'guest'
       ? 'Explore officer and member views with demo data — nothing leaves this browser.'
-      : AGORA_TAGLINE
+      : CHAPTERA_TAGLINE
 
   return (
     <aside
@@ -167,15 +167,15 @@ export function BrandHeroPanel({
           {org ? (
             <OrgCrest org={org} size={44} />
           ) : (
-            <AgoraMark size={44} onDark={fg === '#ffffff'} />
+            <ChapteraMark size={44} onDark={fg === '#ffffff'} />
           )}
           <div className="min-w-0 leading-tight">
             <p className="font-serif text-lg tracking-tight">
-              {org ? org.orgName : AGORA_PRODUCT_NAME}
+              {org ? org.orgName : CHAPTERA_PRODUCT_NAME}
             </p>
             {!org && (
               <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.16em] opacity-55">
-                {AGORA_TAGLINE}
+                {CHAPTERA_TAGLINE}
               </p>
             )}
           </div>
@@ -197,7 +197,7 @@ export function BrandHeroPanel({
 
           {!org && (
             <ul className="mt-8 grid gap-2 sm:grid-cols-2">
-              {AGORA_FEATURES.map((f) => (
+              {CHAPTERA_FEATURES.map((f) => (
                 <FeatureTile key={f.title} {...f} accent={accent} fg={fg} />
               ))}
             </ul>

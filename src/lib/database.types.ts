@@ -1,5 +1,5 @@
 /**
- * Typed surface for Agora Supabase tables (supabase-js v2 shape).
+ * Typed surface for Chaptera Supabase tables (supabase-js v2 shape).
  */
 export type Json =
   | string

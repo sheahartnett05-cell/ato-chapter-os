@@ -1,5 +1,5 @@
 /**
- * Agora-branded Supabase Auth email templates.
+ * Chaptera-branded Supabase Auth email templates.
  * Colors/fonts match src/index.css + onboarding editorial aesthetic.
  */
 
@@ -14,7 +14,7 @@ const C = {
   white: '#ffffff',
 }
 
-const PRODUCT_NAME = 'Agora'
+const PRODUCT_NAME = 'Chaptera'
 const TAGLINE = 'Greek org management platform'
 
 function layout({ preheader, title, body, ctaLabel, ctaHref, token, footerNote }) {
@@ -48,12 +48,10 @@ function layout({ preheader, title, body, ctaLabel, ctaHref, token, footerNote }
 </td></tr>
 <tr><td style="padding:32px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 ${body}${tokenBlock}${ctaBlock}
-<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:${C.muted};">${footerNote ?? 'If you did not request this, you can safely ignore this email.'}</p>
-</td></tr>
-<tr><td style="padding:16px 32px 24px;border-top:1px solid ${C.rule};">
-<p style="margin:0;font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${C.muted};">${PRODUCT_NAME} · ${TAGLINE}</p>
+${footerNote ? `<p style="margin:28px 0 0;font-size:12px;line-height:1.55;color:${C.muted};">${footerNote}</p>` : ''}
 </td></tr>
 </table>
+<p style="margin:16px 0 0;font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${C.muted};">${PRODUCT_NAME} · ${TAGLINE}</p>
 </td></tr>
 </table>
 </body>
@@ -64,10 +62,10 @@ function paragraph(text) {
   return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${C.ink};">${text}</p>`
 }
 
-export function getAgoraAuthEmailTemplates() {
+export function getChapteraAuthEmailTemplates() {
   const magicLinkBody =
     paragraph(
-      'Use the code below to sign in to your Agora account. It expires shortly and can only be used once.'
+      'Use the code below to sign in to your Chaptera account. It expires shortly and can only be used once.'
     ) +
     paragraph(`This code was sent to <strong style="color:${C.ink};">{{ .Email }}</strong>.`)
 
@@ -76,15 +74,15 @@ export function getAgoraAuthEmailTemplates() {
     paragraph('Confirm your email address to finish setting up your account.')
 
   const recoveryBody =
-    paragraph('We received a request to reset the password for your Agora account.') +
+    paragraph('We received a request to reset the password for your Chaptera account.') +
     paragraph('Use the button below to choose a new password. This link expires shortly.')
 
   const inviteBody =
-    paragraph('You have been invited to Agora.') +
+    paragraph('You have been invited to Chaptera.') +
     paragraph('Accept the invitation to create your account and get started.')
 
   const emailChangeBody =
-    paragraph('Confirm your new email address to keep your Agora account secure.') +
+    paragraph('Confirm your new email address to keep your Chaptera account secure.') +
     paragraph('New address: <strong>{{ .NewEmail }}</strong>')
 
   const reauthBody = paragraph('Enter the code below to verify your identity and continue.')
@@ -94,9 +92,9 @@ export function getAgoraAuthEmailTemplates() {
     paragraph('If this was not you, sign in and review your account settings immediately.')
 
   return {
-    mailer_subjects_magic_link: 'Your Agora sign-in code',
+    mailer_subjects_magic_link: 'Your Chaptera sign-in code',
     mailer_templates_magic_link_content: layout({
-      preheader: 'Your Agora sign-in code',
+      preheader: 'Your Chaptera sign-in code',
       title: 'Your sign-in code',
       body: magicLinkBody,
       token: '{{ .Token }}',
@@ -104,9 +102,9 @@ export function getAgoraAuthEmailTemplates() {
         'Never share this code. If you did not request it, you can safely ignore this email.',
     }),
 
-    mailer_subjects_confirmation: 'Confirm your Agora account',
+    mailer_subjects_confirmation: 'Confirm your Chaptera account',
     mailer_templates_confirmation_content: layout({
-      preheader: 'Confirm your Agora account',
+      preheader: 'Confirm your Chaptera account',
       title: 'Confirm your email',
       body: confirmBody,
       token: '{{ .Token }}',
@@ -114,51 +112,51 @@ export function getAgoraAuthEmailTemplates() {
       ctaHref: '{{ .ConfirmationURL }}',
     }),
 
-    mailer_subjects_recovery: 'Reset your Agora password',
+    mailer_subjects_recovery: 'Reset your Chaptera password',
     mailer_templates_recovery_content: layout({
-      preheader: 'Reset your Agora password',
+      preheader: 'Reset your Chaptera password',
       title: 'Reset password',
       body: recoveryBody,
       ctaLabel: 'Reset password',
       ctaHref: '{{ .ConfirmationURL }}',
     }),
 
-    mailer_subjects_invite: 'You are invited to Agora',
+    mailer_subjects_invite: 'You are invited to Chaptera',
     mailer_templates_invite_content: layout({
-      preheader: 'You are invited to Agora',
+      preheader: 'You are invited to Chaptera',
       title: 'You are invited',
       body: inviteBody,
       ctaLabel: 'Accept invitation',
       ctaHref: '{{ .ConfirmationURL }}',
     }),
 
-    mailer_subjects_email_change: 'Confirm your new Agora email',
+    mailer_subjects_email_change: 'Confirm your new Chaptera email',
     mailer_templates_email_change_content: layout({
-      preheader: 'Confirm your new email on Agora',
+      preheader: 'Confirm your new email on Chaptera',
       title: 'Confirm new email',
       body: emailChangeBody,
       ctaLabel: 'Confirm new email',
       ctaHref: '{{ .ConfirmationURL }}',
     }),
 
-    mailer_subjects_reauthentication: 'Your Agora verification code',
+    mailer_subjects_reauthentication: 'Your Chaptera verification code',
     mailer_templates_reauthentication_content: layout({
-      preheader: 'Your Agora verification code',
+      preheader: 'Your Chaptera verification code',
       title: 'Verification code',
       body: reauthBody,
       token: '{{ .Token }}',
     }),
 
-    mailer_subjects_password_changed_notification: 'Your Agora password was changed',
+    mailer_subjects_password_changed_notification: 'Your Chaptera password was changed',
     mailer_templates_password_changed_notification_content: layout({
-      preheader: 'Your Agora password was changed',
+      preheader: 'Your Chaptera password was changed',
       title: 'Password changed',
-      body: securityBody('The password for your Agora account was recently changed.'),
+      body: securityBody('The password for your Chaptera account was recently changed.'),
     }),
 
-    mailer_subjects_email_changed_notification: 'Your Agora email was changed',
+    mailer_subjects_email_changed_notification: 'Your Chaptera email was changed',
     mailer_templates_email_changed_notification_content: layout({
-      preheader: 'Your Agora email was changed',
+      preheader: 'Your Chaptera email was changed',
       title: 'Email changed',
       body: securityBody(
         'Your account email was changed from {{ .OldEmail }} to {{ .Email }}.'
@@ -167,8 +165,11 @@ export function getAgoraAuthEmailTemplates() {
   }
 }
 
+/** @deprecated Use getChapteraAuthEmailTemplates */
+export const getAgoraAuthEmailTemplates = getChapteraAuthEmailTemplates
+
 export function getTemplateManifest() {
-  const t = getAgoraAuthEmailTemplates()
+  const t = getChapteraAuthEmailTemplates()
   return [
     { id: 'magic_link', subjectKey: 'mailer_subjects_magic_link', contentKey: 'mailer_templates_magic_link_content', label: 'Magic link / OTP (login codes)' },
     { id: 'confirmation', subjectKey: 'mailer_subjects_confirmation', contentKey: 'mailer_templates_confirmation_content', label: 'Confirm sign up' },

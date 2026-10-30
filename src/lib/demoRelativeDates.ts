@@ -108,7 +108,7 @@ export function shiftDuesChargesRelative(
 
 /** Authoring anchor for whole-blob date shifts (partner + seed versioning). */
 export const DEMO_DATE_ANCHOR = '2025-08-22'
-export const DEMO_SEED_VERSION = '4'
+export const DEMO_SEED_VERSION = '5'
 
 export function demoDateShiftDays(today = localTodayIso()): number {
   const anchor = new Date(`${DEMO_DATE_ANCHOR}T12:00:00`).getTime()

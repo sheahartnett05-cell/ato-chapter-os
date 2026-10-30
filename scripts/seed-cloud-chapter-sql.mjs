@@ -91,7 +91,7 @@ if (!res.ok) {
 
 console.log('✓ Pilot chapter row inserted (if none existed with join_code)')
 console.log('  join_code:', joinCode)
-console.log('  invite link: https://ato-chapter-os.vercel.app/join?code=' + encodeURIComponent(joinCode))
+console.log('  invite link: https://chapteramanager.com/join?code=' + encodeURIComponent(joinCode))
 
 const { spawnSync } = await import('node:child_process')
 spawnSync('node', ['scripts/verify-supabase-join.mjs'], { stdio: 'inherit', cwd: process.cwd() })

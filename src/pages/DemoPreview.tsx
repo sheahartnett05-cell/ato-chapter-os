@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Shield, Smartphone } from 'lucide-react'
-import { AgoraMark } from '../components/layout/Logo'
+import { ChapteraMark } from '../components/layout/Logo'
 import { useAuth } from '../context/AuthContext'
-import { AGORA_PRODUCT_NAME } from '../lib/brandCopy'
+import { CHAPTERA_PRODUCT_NAME } from '../lib/brandCopy'
 import { enterGuestPreview } from '../lib/enterGuestPreview'
 import {
   GUEST_EXEC_FUNCTION_PRESETS,
@@ -50,8 +50,8 @@ export default function DemoPreview() {
         </div>
 
         <div className="mb-8 flex items-center gap-3">
-          <AgoraMark size={36} />
-          <p className="font-serif text-lg tracking-tight">{AGORA_PRODUCT_NAME}</p>
+          <ChapteraMark size={36} />
+          <p className="font-serif text-lg tracking-tight">{CHAPTERA_PRODUCT_NAME}</p>
         </div>
 
         {visibleKey === 'role' && (

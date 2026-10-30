@@ -1,5 +1,5 @@
 {
-  "name": "agora",
+  "name": "chaptera",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -19,6 +19,7 @@
     "apply-supabase-migrations": "node scripts/apply-supabase-migrations.mjs",
     "configure-resend": "node scripts/configure-resend-supabase.mjs",
     "configure-agora-emails": "node scripts/configure-agora-emails.mjs",
+    "configure-chaptera-emails": "node scripts/configure-agora-emails.mjs",
     "configure-supabase-auth": "node scripts/configure-supabase-auth.mjs",
     "configure-pilot": "node scripts/configure-pilot.mjs",
     "configure-resend-domain": "node scripts/configure-resend-domain.mjs",

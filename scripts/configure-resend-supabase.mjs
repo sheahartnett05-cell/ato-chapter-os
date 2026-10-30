@@ -8,7 +8,7 @@
  *
  * Optional:
  *   RESEND_FROM_EMAIL=onboarding@resend.dev
- *   RESEND_FROM_NAME=Agora
+ *   RESEND_FROM_NAME=Chaptera
  *
  * Usage: npm run configure-resend
  */
@@ -47,7 +47,7 @@ const resendKey = env.RESEND_API_KEY
 const accessToken = env.SUPABASE_ACCESS_TOKEN
 const projectRef = env.SUPABASE_PROJECT_REF || projectRefFromUrl(env.VITE_SUPABASE_URL)
 const fromEmail = env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-const fromName = env.RESEND_FROM_NAME || 'Agora'
+const fromName = env.RESEND_FROM_NAME || 'Chaptera'
 
 if (!resendKey) {
   console.error('Missing RESEND_API_KEY in .env.local')
@@ -121,7 +121,7 @@ Fallback: paste SMTP settings manually (see above).
 console.log('✓ Supabase Auth SMTP updated to use Resend')
 console.log(`
 Next:
-1. npm run configure-agora-emails  (Agora-branded OTP / auth templates)
+1. npm run configure-chaptera-emails  (Chaptera-branded OTP / auth templates)
 2. Authentication → Rate Limits → increase "Rate limit for sending emails" (e.g. 100/hour for QA)
 3. Restart npm run dev
 4. Onboarding → Send login code (use an email Resend can deliver to)

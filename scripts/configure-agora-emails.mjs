@@ -1,6 +1,6 @@
 /**
- * Push Agora email templates + Resend SMTP to Supabase Auth.
- * Usage: npm run configure-agora-emails
+ * Push Chaptera email templates + Resend SMTP to Supabase Auth.
+ * Usage: npm run configure-chaptera-emails
  */
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -42,7 +42,7 @@ const accessToken = env.SUPABASE_ACCESS_TOKEN
 const projectRef = env.SUPABASE_PROJECT_REF || projectRefFromUrl(env.VITE_SUPABASE_URL)
 const resendKey = env.RESEND_API_KEY
 const fromEmail = env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-const fromName = env.RESEND_FROM_NAME || 'Agora'
+const fromName = env.RESEND_FROM_NAME || 'Chaptera'
 const templates = getAgoraAuthEmailTemplates()
 const outDir = join(__dirname, '..', 'supabase', 'email-templates', 'generated')
 
@@ -103,4 +103,4 @@ if (!res.ok) {
   process.exit(1)
 }
 
-console.log('✓ Supabase Auth updated (Agora email templates' + (resendKey ? ' + Resend SMTP' : '') + ')')
+console.log('✓ Supabase Auth updated (Chaptera email templates' + (resendKey ? ' + Resend SMTP' : '') + ')')

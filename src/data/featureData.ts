@@ -52,7 +52,7 @@ const DEMO_ANNOUNCEMENTS: Announcement[] = [
 
     title: 'Scholarship hours due Sunday',
 
-    body: 'Log library hours in Agora before midnight. Scholarship board reviews Monday.',
+    body: 'Log library hours in Chaptera before midnight. Scholarship board reviews Monday.',
 
     author: 'Ethan Walsh',
 

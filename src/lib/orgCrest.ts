@@ -1,11 +1,13 @@
 /**
  * Crest asset resolution.
  * Only real downloaded coats/crests (png/jpg/webp). Fake heraldic SVGs are not used.
- * Agora product mark remains SVG.
+ * Chaptera product mark remains SVG (legacy agora.svg kept as fallback).
  */
+import { isProductOrgId } from './brandCopy'
+
 export function orgCrestCandidates(orgId: string): string[] {
-  if (orgId === 'agora' || orgId === 'chapter-os') {
-    return [`/crests/agora.svg`, `/crests/agora.png`]
+  if (isProductOrgId(orgId)) {
+    return [`/crests/chaptera.svg`, `/crests/agora.svg`, `/crests/chaptera.png`, `/crests/agora.png`]
   }
   return [
     `/crests/${orgId}.png`,

@@ -1,16 +1,16 @@
 # Customer email delivery (Resend)
 
-Agora login codes go through **Supabase Auth → Resend SMTP**. To email **any customer** (not just your Resend account inbox), you need a **verified domain** in Resend.
+Chaptera login codes go through **Supabase Auth → Resend SMTP**. To email **any customer** (not just your Resend account inbox), you need a **verified domain** in Resend.
 
-## Current blocker
+## Production domain
+
+**`chapteramanager.com`** — add via `npm run configure-resend-domain -- add` if missing.
 
 `onboarding@resend.dev` is test-only — Resend returns 403 if you send to anyone except your account email.
 
-Your Resend account should include **`agoragreekmanagement.com`** (add via `npm run configure-resend-domain -- add` if missing).
-
 ## Fix (one time, ~15 min)
 
-### 1. Add these DNS records for `agoragreekmanagement.com`
+### 1. Add these DNS records for `chapteramanager.com`
 
 | Type | Host / Name | Value |
 |------|-------------|-------|
@@ -21,9 +21,10 @@ Your Resend account should include **`agoragreekmanagement.com`** (add via `npm 
 `.env.local`:
 
 ```
-RESEND_DOMAIN=agoragreekmanagement.com
-RESEND_FROM_EMAIL=auth@agoragreekmanagement.com
-RESEND_FROM_NAME=Agora
+RESEND_DOMAIN=chapteramanager.com
+RESEND_FROM_EMAIL=auth@chapteramanager.com
+RESEND_FROM_NAME=Chaptera
+PILOT_SITE_URL=https://chapteramanager.com
 ```
 
 Run this to print the exact values from Resend:
@@ -32,7 +33,7 @@ Run this to print the exact values from Resend:
 npm run configure-resend-domain
 ```
 
-Or open [resend.com/domains](https://resend.com/domains) → `shopwildflowerboho.com` → Records.
+Or open [resend.com/domains](https://resend.com/domains) → `chapteramanager.com` → Records.
 
 ### 2. Verify the domain
 
@@ -44,18 +45,10 @@ Wait until Resend shows **verified** (often 15–30 minutes after DNS propagates
 
 ### 3. Push sender to Supabase
 
-`.env.local` should have:
-
-```
-RESEND_DOMAIN=shopwildflowerboho.com
-RESEND_FROM_EMAIL=auth@shopwildflowerboho.com
-RESEND_FROM_NAME=Agora
-```
-
-Then:
-
 ```bash
 npm run configure-resend-domain
+npm run configure-chaptera-emails
+npm run configure-pilot
 ```
 
 ### 4. Test to a real customer email
@@ -64,15 +57,15 @@ npm run configure-resend-domain
 npm run configure-resend-domain -- --test customer@gmail.com
 ```
 
-Then test onboarding at https://ato-chapter-os.vercel.app/onboarding
+Then test onboarding at https://chapteramanager.com/onboarding
 
 ## Prefer a subdomain?
 
-Add `mail.shopwildflowerboho.com` in Resend instead of the root domain:
+Add `mail.chapteramanager.com` in Resend instead of the root domain:
 
 ```
-RESEND_DOMAIN=mail.shopwildflowerboho.com
-RESEND_FROM_EMAIL=auth@mail.shopwildflowerboho.com
+RESEND_DOMAIN=mail.chapteramanager.com
+RESEND_FROM_EMAIL=auth@mail.chapteramanager.com
 npm run configure-resend-domain -- add
 ```
 

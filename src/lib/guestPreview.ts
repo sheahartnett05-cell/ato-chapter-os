@@ -118,7 +118,7 @@ export const GUEST_EXEC_FUNCTION_PRESETS: GuestExecFunctionPreset[] = [
 
 export const GUEST_CHAPTER = {
   /** Neutral product brand until a real chapter is chosen in onboarding */
-  orgId: 'agora',
+  orgId: 'chaptera',
   chapterDesignation: 'Sample Chapter',
   university: 'Demo University',
 } as const

@@ -595,7 +595,7 @@ export default function Onboarding() {
                 <div>
                   <h2 className="font-serif text-3xl tracking-tight">Select your org</h2>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    Sets chapter colors, language, and branding across Agora.
+                    Sets chapter colors, language, and branding across Chaptera.
                   </p>
                 </div>
 

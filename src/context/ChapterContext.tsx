@@ -17,6 +17,7 @@ import {
   readOnboardingChapterMeta,
   readOnboardingOrgId,
 } from '../lib/onboardingStorage'
+import { CHAPTERA_PRODUCT_NAME, isProductOrgId } from '../lib/brandCopy'
 import { currentTermLabel } from '../lib/demoRelativeDates'
 import { writeJson } from '../lib/persist'
 import {
@@ -144,7 +145,9 @@ function applyThemeCssVariables(org: OrganizationChapter) {
 
   root.setAttribute('data-org', id)
   document.body.style.backgroundColor = lightenHex(primaryColor, 0.96)
-  document.title = org.id === 'agora' || org.id === 'chapter-os' ? 'Agora' : `${org.nickname} · ${org.orgName}`
+  document.title = isProductOrgId(org.id)
+    ? CHAPTERA_PRODUCT_NAME
+    : `${org.nickname} · ${org.orgName}`
 }
 
 export function ChapterProvider({ children }: { children: ReactNode }) {

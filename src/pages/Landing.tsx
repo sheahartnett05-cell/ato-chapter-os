@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, KeyRound, Play, UserPlus } from 'lucide-react'
 import { BrandHeroPanel } from '../components/onboarding/BrandHeroPanel'
-import { AgoraMark } from '../components/layout/Logo'
+import { ChapteraMark } from '../components/layout/Logo'
 import { useAuth } from '../context/AuthContext'
-import { AGORA_PRODUCT_NAME, AGORA_TAGLINE } from '../lib/brandCopy'
+import { CHAPTERA_PRODUCT_NAME, CHAPTERA_TAGLINE } from '../lib/brandCopy'
 import { isGuestPreviewActive } from '../lib/guestPreview'
 import { defaultHomePath } from '../lib/onboardingStorage'
 
@@ -22,10 +22,10 @@ export default function Landing() {
 
       <main className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-14">
         <div className="mb-10 flex items-center gap-3 lg:hidden">
-          <AgoraMark size={40} />
+          <ChapteraMark size={40} />
           <div>
-            <p className="font-serif text-base text-[var(--ink)]">{AGORA_PRODUCT_NAME}</p>
-            <p className="text-xs text-[var(--muted)]">{AGORA_TAGLINE}</p>
+            <p className="font-serif text-base text-[var(--ink)]">{CHAPTERA_PRODUCT_NAME}</p>
+            <p className="text-xs text-[var(--muted)]">{CHAPTERA_TAGLINE}</p>
           </div>
         </div>
 

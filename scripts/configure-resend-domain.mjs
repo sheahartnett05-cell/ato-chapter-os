@@ -89,8 +89,8 @@ const accessToken = env.SUPABASE_ACCESS_TOKEN
 const projectRef = env.SUPABASE_PROJECT_REF || projectRefFromUrl(env.VITE_SUPABASE_URL)
 const resendDomain = env.RESEND_DOMAIN?.trim()
 let fromEmail = env.RESEND_FROM_EMAIL?.trim()
-const fromName = env.RESEND_FROM_NAME || 'Agora'
-const siteUrl = (env.PILOT_SITE_URL || 'https://ato-chapter-os.vercel.app').replace(/\/$/, '')
+const fromName = env.RESEND_FROM_NAME || 'Chaptera'
+const siteUrl = (env.PILOT_SITE_URL || 'https://chapteramanager.com').replace(/\/$/, '')
 
 if (!resendKey) {
   console.error('Missing RESEND_API_KEY in .env.local')
@@ -233,7 +233,7 @@ if (process.argv.includes('--test')) {
     body: JSON.stringify({
       from: `${fromName} <${fromEmail}>`,
       to: [testTo],
-      subject: 'Agora — test email',
+      subject: 'Chaptera — test email',
       html: '<p>If you received this, customer email delivery is working.</p>',
     }),
   })

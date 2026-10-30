@@ -19,7 +19,7 @@ import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 
-const PROD_HOST_MARKERS = ['agoragreek', 'prod', 'production']
+const PROD_HOST_MARKERS = ['chapteramanager', 'agoragreek', 'prod', 'production']
 
 function loadEnvLocal() {
   if (!existsSync('.env.local')) return {}
