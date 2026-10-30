@@ -28,11 +28,36 @@ export function writeChapterDashboardLayouts(layouts: ChapterDashboardLayouts) {
   }
 }
 
+function parseStoredOfficerFunction(raw: string): OfficerFunction | null {
+  let value = raw.trim()
+  if (!value) return null
+
+  // Some demo flows JSON.stringify the function id (stored value `"president"`).
+  if (value.startsWith('"') || value.startsWith('[') || value.startsWith('{')) {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (typeof parsed === 'string') value = parsed.trim()
+    } catch {
+      /* use raw string */
+    }
+  }
+
+  if (
+    value.length >= 2 &&
+    ((value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'")))
+  ) {
+    value = value.slice(1, -1).trim()
+  }
+
+  return isOfficerFunction(value) ? value : null
+}
+
 export function readActiveDashboardFunction(): OfficerFunction | null {
   try {
     const raw = localStorage.getItem(ACTIVE_FUNCTION_KEY)
     if (!raw) return null
-    return isOfficerFunction(raw) ? raw : null
+    return parseStoredOfficerFunction(raw)
   } catch {
     return null
   }

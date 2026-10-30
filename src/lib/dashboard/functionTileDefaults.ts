@@ -23,5 +23,6 @@ export const FUNCTION_TILE_DEFAULTS: Record<OfficerFunction, DashboardTileId[]> 
 
 export function defaultTilesForFunction(fn: OfficerFunction): DashboardTileId[] {
   const key = coerceOfficerFunction(fn)
-  return [...FUNCTION_TILE_DEFAULTS[key]]
+  const tiles = FUNCTION_TILE_DEFAULTS[key]
+  return Array.isArray(tiles) ? [...tiles] : [...FUNCTION_TILE_DEFAULTS.president]
 }

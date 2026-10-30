@@ -90,7 +90,17 @@ export function useOfficerDashboard() {
 
   useEffect(() => {
     const stored = readActiveDashboardFunction()
-    if (!stored) setActiveFunctionState(defaultFunction)
+    if (!stored) {
+      setActiveFunctionState(defaultFunction)
+      return
+    }
+    setActiveFunctionState(stored)
+    try {
+      const raw = localStorage.getItem(ACTIVE_FUNCTION_KEY)
+      if (raw && raw !== stored) writeActiveDashboardFunction(stored)
+    } catch {
+      /* storage unavailable */
+    }
   }, [defaultFunction])
 
   const setActiveFunction = useCallback((fn: OfficerFunction) => {
@@ -119,7 +129,7 @@ export function useOfficerDashboard() {
   )
 
   const tiles = useMemo((): StatTileViewModel[] => {
-    const tileIds = resolveTileSet(activeFunction)
+    const tileIds = resolveTileSet(coerceOfficerFunction(activeFunction))
     const snapshot = {
       today,
       members,
