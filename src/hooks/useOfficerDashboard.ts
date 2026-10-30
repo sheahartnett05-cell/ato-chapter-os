@@ -12,6 +12,7 @@ import type { OfficerFunction } from '../types/officerFunction'
 import { officerFunctionLabel } from '../types/officerFunction'
 import type { ChapterPosition } from '../types/features'
 import {
+  ACTIVE_FUNCTION_KEY,
   readActiveDashboardFunction,
   resolveTileSet,
   writeActiveDashboardFunction,

@@ -1,4 +1,5 @@
 import { budgetTotals } from '../../types/budget'
+import { eventAttendancePct, formatAttendancePct } from '../attendance/attendanceMath'
 import {
   formatHomeEventDateTime,
   nextEventTileValue,
@@ -75,17 +76,16 @@ function actionItemsContext(s: DashboardDataSnapshot): string {
 }
 
 function meetingAttendancePct(s: DashboardDataSnapshot, eventId: string) {
-  const rows = s.getEventAttendance(eventId)
-  const active = activeMembers(s)
-  if (!rows.length || !active.length) return null
-  const present = rows.filter((r) => r.status === 'Present' || r.status === 'Excused').length
-  return Math.round((present / active.length) * 100)
+  return eventAttendancePct(s.getEventAttendance(eventId))
 }
 
 function semesterAvgAttendance(s: DashboardDataSnapshot) {
   const active = activeMembers(s)
-  if (!active.length) return 0
-  return Math.round(active.reduce((sum, m) => sum + m.attendancePct, 0) / active.length)
+  const pcts = active
+    .map((m) => m.attendancePct)
+    .filter((p): p is number => p != null && Number.isFinite(p))
+  if (!pcts.length) return null
+  return Math.round(pcts.reduce((sum, p) => sum + p, 0) / pcts.length)
 }
 
 function nextUpcomingEvent(s: DashboardDataSnapshot) {
@@ -146,7 +146,7 @@ export function computeDashboardTile(
       const pct = meetingAttendancePct(s, meeting.id)
       const avg = semesterAvgMeetingAttendance(s)
       const trend =
-        pct != null
+        pct != null && avg != null
           ? {
               delta: Math.abs(pct - avg),
               direction: pct >= avg ? ('up' as const) : ('down' as const),
@@ -155,8 +155,8 @@ export function computeDashboardTile(
           : undefined
       return {
         ...base,
-        value: pct != null ? `${pct}%` : '—',
-        context: `${truncateTileText(meeting.name, 28)} · semester avg ${avg}%`,
+        value: formatAttendancePct(pct),
+        context: `${truncateTileText(meeting.name, 28)} · semester avg ${formatAttendancePct(avg)}`,
         trend,
         search: `?event=${meeting.id}`,
       }
@@ -266,7 +266,7 @@ export function computeDashboardTile(
         (m) =>
           m.duesStatus === 'Overdue' ||
           m.duesStatus === 'Outstanding' ||
-          m.attendancePct < 70
+          (m.attendancePct != null && m.attendancePct < 70)
       ).length
       return {
         ...base,
@@ -284,7 +284,7 @@ export function computeDashboardTile(
         ...base,
         value: String(open),
         context: 'Open standards cases',
-        href: '/j-board',
+        href: '/standards',
       }
     }
     case 'repeat_absences': {
@@ -381,14 +381,11 @@ export function computeDashboardTile(
       if (!g.termGoalHours) {
         return { ...base, empty: { message: 'Service tracking not set up' }, href: '/chapter-setup' }
       }
-      const below = activeMembers(s).filter((m) => {
-        const hrs = memberVerifiedHours(s.studyLogs, m.id, s.studyHoursReset, new Date())
-        return hrs < g.memberMinimumHours
-      }).length
+      // Use stub service totals only — do not count library/study hour logs as service.
       return {
         ...base,
         value: `${g.loggedHours}`,
-        context: `of ${g.termGoalHours}h goal · ${below} below minimum`,
+        context: `of ${g.termGoalHours}h term goal · min ${g.memberMinimumHours}h/member`,
         progress: g.termGoalHours > 0 ? g.loggedHours / g.termGoalHours : 0,
         href: '/chapter-setup',
       }
@@ -462,12 +459,18 @@ export function computeDashboardTile(
           href: '/calendar',
         }
       }
-      let rateSum = 0
-      for (const e of required) {
-        const pct = meetingAttendancePct(s, e.id)
-        rateSum += pct ?? 0
+      const pcts = required
+        .map((e) => meetingAttendancePct(s, e.id))
+        .filter((p): p is number => p != null)
+      if (!pcts.length) {
+        return {
+          ...base,
+          value: '—',
+          context: 'Last 3 required events',
+          href: '/calendar',
+        }
       }
-      const avg = Math.round(rateSum / required.length)
+      const avg = Math.round(pcts.reduce((sum, p) => sum + p, 0) / pcts.length)
       return {
         ...base,
         value: `${avg}%`,

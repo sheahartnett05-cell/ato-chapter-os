@@ -5,6 +5,7 @@
   --secondary: #333333;
   --accent: #c4a35a;
   --accent-raw: #c4a35a;
+  --accent-ink: #7a6228;
   --primary-foreground: #ffffff;
   --accent-foreground: #171717;
   --surface-tint: #f4f2ee;
@@ -13,7 +14,14 @@
   --primary-subtle: rgba(26, 26, 26, 0.06);
   --rule: rgb(0 0 0 / 0.12);
   --ink: #141414;
-  --muted: #6b6b6b;
+  --muted: #5c5c5c;
+  --focus-ring: var(--ink);
+  /* Overlay stack: banner in flow; drawer/modal/toast cover it */
+  --z-banner: 30;
+  --z-nav: 40;
+  --z-drawer: 50;
+  --z-modal: 60;
+  --z-toast: 70;
 }
 
 @theme {
@@ -73,6 +81,52 @@ h3,
   background: var(--primary);
   color: var(--primary-foreground);
   border-right: 1px solid color-mix(in srgb, var(--primary) 80%, #000);
+  --focus-ring: var(--accent);
+}
+
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+:where(
+  a,
+  button,
+  [role='switch'],
+  [role='tab'],
+  summary,
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.skeleton-block {
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+    opacity: 0.55;
+  }
 }
 
 .theme-stripe {
@@ -148,11 +202,19 @@ h3,
   background: #fff;
   padding: 0.625rem 0.75rem;
   font-size: 1rem;
-  outline: none;
+}
+
+.input-editorial.has-leading-icon {
+  padding-left: 2.25rem;
 }
 
 .input-editorial:focus {
   border-color: var(--primary);
+}
+
+.input-editorial:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 input[type='search'] {

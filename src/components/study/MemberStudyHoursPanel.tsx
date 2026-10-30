@@ -3,8 +3,7 @@ import { Plus } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { useChapterOps } from '../../context/ChapterOpsContext'
 import { resetFrequencyLabel, resetDayLabel } from '../../lib/studyHours'
-
-const TODAY = '2025-08-23'
+import { localTodayIso } from '../../lib/liveAlerts'
 
 interface MemberStudyHoursPanelProps {
   memberId: string
@@ -24,7 +23,7 @@ export function MemberStudyHoursPanel({ memberId, embedded = false }: MemberStud
 
   const [logOpen, setLogOpen] = useState(false)
   const [form, setForm] = useState({
-    date: TODAY,
+    date: localTodayIso(),
     hours: 2,
     locationId: '',
     notes: '',
@@ -60,7 +59,7 @@ export function MemberStudyHoursPanel({ memberId, embedded = false }: MemberStud
       notes: form.notes.trim() || undefined,
     })
     setLogOpen(false)
-    setForm({ date: TODAY, hours: 2, locationId: '', notes: '' })
+    setForm({ date: localTodayIso(), hours: 2, locationId: '', notes: '' })
   }
 
   return (
@@ -136,10 +135,12 @@ export function MemberStudyHoursPanel({ memberId, embedded = false }: MemberStud
                   className={`shrink-0 font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${
                     entry.verified
                       ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-amber-100 text-amber-900'
+                      : entry.rejected
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-amber-100 text-amber-900'
                   }`}
                 >
-                  {entry.verified ? 'Verified' : 'Pending'}
+                  {entry.verified ? 'Verified' : entry.rejected ? 'Denied' : 'Pending'}
                 </span>
               </li>
             ))
@@ -168,7 +169,7 @@ export function MemberStudyHoursPanel({ memberId, embedded = false }: MemberStud
               </p>
             )}
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input
               type="date"
               className="input-editorial font-mono"

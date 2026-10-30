@@ -14,6 +14,7 @@ export interface StudyHoursLog {
   locationId: string
   notes?: string
   verified: boolean
+  rejected?: boolean
 }
 
 export type StudyHoursResetFrequency = 'weekly' | 'monthly' | 'semester'

@@ -1,16 +1,45 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
+import { EmptyState } from '../components/ui/EmptyState'
 import { InviteCodesPanel } from '../components/settings/InviteCodesPanel'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useChapterViewMode } from '../context/ChapterViewModeContext'
 import { userIsExecCapable } from '../lib/access/can'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterFeatures } from '../context/ChapterFeaturesContext'
+import { useChapterOps } from '../context/ChapterOpsContext'
 import { useGovernance } from '../context/GovernanceContext'
 import { useMembers } from '../context/MembersContext'
+import { leaveGuestPreview } from '../lib/leaveGuestPreview'
 import { ONBOARDING_ROLES, roleLabel, type UserProfile } from '../types/permissions'
+
+const NOTIFY_PREFS_KEY = 'chapter-os-notify-prefs'
+
+type NotifyPrefs = { email: boolean; push: boolean }
+
+function readNotifyPrefs(): NotifyPrefs {
+  try {
+    const raw = localStorage.getItem(NOTIFY_PREFS_KEY)
+    if (!raw) return { email: true, push: true }
+    const parsed = JSON.parse(raw) as Partial<NotifyPrefs>
+    return {
+      email: parsed.email !== false,
+      push: parsed.push !== false,
+    }
+  } catch {
+    return { email: true, push: true }
+  }
+}
+
+function writeNotifyPrefs(prefs: NotifyPrefs) {
+  try {
+    localStorage.setItem(NOTIFY_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 type SettingsTab = 'account' | 'position' | 'invites'
 
@@ -104,16 +133,19 @@ function AppViewModeCard() {
   if (!userIsExecCapable(role, permissions)) return null
 
   return (
-    <section className="rounded-xl border border-black/5 bg-neutral-50 px-4 py-4">
-      <p className="text-[10px] font-semibold uppercase text-neutral-400">App experience</p>
-      <p className="mt-1 text-sm text-neutral-600">
-        Chapter Room uses the member layout and bottom nav. Operations uses the officer sidebar.
+    <section className="rounded-sm border border-[var(--rule)] bg-[var(--surface-card)] px-4 py-4">
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+        App experience
+      </p>
+      <p className="mt-1 text-sm text-[var(--muted)]">
+        Chapter Room — the member layout with bottom tabs. Officer Home — the officer sidebar and
+        tools.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setViewMode('chapter-room')}
-          className={`rounded-sm px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${
+          className={`rounded-sm px-3 py-2 font-mono text-[11px] uppercase tracking-wider ${
             viewMode === 'chapter-room' ? 'theme-pill-active' : 'theme-pill-muted'
           }`}
         >
@@ -122,11 +154,11 @@ function AppViewModeCard() {
         <button
           type="button"
           onClick={() => setViewMode('operations')}
-          className={`rounded-sm px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${
+          className={`rounded-sm px-3 py-2 font-mono text-[11px] uppercase tracking-wider ${
             viewMode === 'operations' ? 'theme-pill-active' : 'theme-pill-muted'
           }`}
         >
-          Operations
+          Officer Home
         </button>
       </div>
     </section>
@@ -139,29 +171,60 @@ function AccountSettings({
   cloudEmail,
   onSignOut,
   showCloud,
+  isGuest,
+  memberId,
 }: {
   profile: UserProfile
   onSave: (p: Partial<UserProfile>) => void
   cloudEmail?: string | null
   onSignOut?: () => void
   showCloud?: boolean
+  isGuest?: boolean
+  memberId?: string | null
 }) {
   const [local, setLocal] = useState(profile)
-  const [notifyEmail, setNotifyEmail] = useState(true)
-  const [notifyPush, setNotifyPush] = useState(true)
+  const [notifyPrefs, setNotifyPrefs] = useState<NotifyPrefs>(() => readNotifyPrefs())
+  const { duesPayments, duesCharges } = useChapterOps()
+
+  useEffect(() => {
+    writeNotifyPrefs(notifyPrefs)
+  }, [notifyPrefs])
+
+  const receipts = useMemo(() => {
+    if (!memberId) return []
+    return duesPayments
+      .filter((p) => p.memberId === memberId && p.amountPaid > 0)
+      .map((p) => ({
+        id: p.id,
+        label: duesCharges.find((c) => c.id === p.chargeId)?.label ?? 'Dues',
+        amount: p.amountPaid,
+        date: p.paidAt
+          ? new Date(p.paidAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : '—',
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date))
+  }, [duesPayments, duesCharges, memberId])
+
+  const setNotify = (key: keyof NotifyPrefs, value: boolean) => {
+    setNotifyPrefs((prev) => ({ ...prev, [key]: value }))
+  }
 
   return (
     <div className="mx-auto max-w-xl space-y-10">
       <AppViewModeCard />
       <OfficerPositionsEntry />
       <div>
-        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Profile
         </p>
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
                 First name
               </span>
               <input
@@ -172,7 +235,7 @@ function AccountSettings({
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
                 Last name
               </span>
               <input
@@ -184,7 +247,7 @@ function AccountSettings({
             </label>
           </div>
           <label className="block space-y-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
               Phone
             </span>
             <input
@@ -204,71 +267,134 @@ function AccountSettings({
         </div>
       </div>
 
-      {showCloud && (
+      {isGuest ? (
         <div>
-          <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
-            Cloud account
+          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+            Guest preview
           </p>
           <div className="space-y-3 rounded-md border border-[var(--rule)] px-4 py-4">
             <p className="text-sm text-[var(--ink)]">
-              Signed in as{' '}
-              <span className="font-medium">{cloudEmail ?? '—'}</span>
+              Local demo — data stays in this browser until you exit.
             </p>
             <p className="text-xs text-[var(--muted)]">
-              Chapter data syncs to Supabase when you&apos;re signed in.
+              Starting a real chapter or signing in will set the demo aside.
             </p>
-            {onSignOut && (
-              <button type="button" onClick={onSignOut} className="btn-secondary">
-                Sign out
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => leaveGuestPreview('/onboarding?intent=create')}
+                className="btn-primary text-xs"
+              >
+                Create chapter / sign in
               </button>
+              <Link to="/demo" className="btn-ghost text-xs">
+                Change demo role
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : showCloud ? (
+        <div>
+          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+            Cloud account
+          </p>
+          <div className="space-y-3 rounded-md border border-[var(--rule)] px-4 py-4">
+            {cloudEmail ? (
+              <>
+                <p className="text-sm text-[var(--ink)]">
+                  Signed in as <span className="font-medium">{cloudEmail}</span>
+                </p>
+                <p className="text-xs text-[var(--muted)]">
+                  Chapter data syncs to Supabase when you&apos;re signed in.
+                </p>
+                {onSignOut && (
+                  <button type="button" onClick={onSignOut} className="btn-secondary">
+                    Sign out
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-[var(--ink)]">
+                  Not signed in — this chapter is saved only in this browser.
+                </p>
+                <Link to="/onboarding" className="btn-primary inline-block text-xs">
+                  Sign in
+                </Link>
+              </>
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       <div>
-        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Notifications
         </p>
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          Preferences save on this device. Email and push delivery are not connected yet.
+        </p>
         <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
-          {[
-            { label: 'Email', checked: notifyEmail, set: setNotifyEmail },
-            { label: 'Push', checked: notifyPush, set: setNotifyPush },
-          ].map(({ label, checked, set }) => (
-            <li key={label} className="flex items-center justify-between gap-4 px-4 py-3.5">
-              <span className="text-sm font-medium text-[var(--ink)]">{label}</span>
-              <button
-                type="button"
-                onClick={() => set(!checked)}
-                className={`min-w-[3.25rem] rounded-sm px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${
-                  checked ? 'theme-pill-active' : 'theme-pill-muted'
-                }`}
-              >
-                {checked ? 'On' : 'Off'}
-              </button>
-            </li>
-          ))}
+          {(
+            [
+              { key: 'email' as const, label: 'Email' },
+              { key: 'push' as const, label: 'Push' },
+            ] as const
+          ).map(({ key, label }) => {
+            const checked = notifyPrefs[key]
+            return (
+              <li key={key} className="flex items-center justify-between gap-4 px-4 py-3.5">
+                <span className="text-sm font-medium text-[var(--ink)]">{label}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={checked}
+                  aria-label={`${label} notifications`}
+                  onClick={() => setNotify(key, !checked)}
+                  className={`min-h-11 min-w-[3.25rem] rounded-sm px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider ${
+                    checked ? 'theme-pill-active' : 'theme-pill-muted'
+                  }`}
+                >
+                  {checked ? 'On' : 'Off'}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </div>
 
       <div>
-        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Dues receipts
+          {isGuest ? (
+            <span className="ml-2 font-normal normal-case tracking-normal text-[var(--muted)]">
+              (sample)
+            </span>
+          ) : null}
         </p>
-        <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
-          {[
-            { date: 'Aug 1, 2025', amount: 425 },
-            { date: 'Jan 15, 2025', amount: 425 },
-          ].map((r) => (
-            <li
-              key={r.date}
-              className="flex items-center justify-between px-4 py-3.5 text-sm"
-            >
-              <span className="text-[var(--muted)]">{r.date}</span>
-              <span className="font-semibold tabular-nums text-[var(--ink)]">${r.amount}</span>
-            </li>
-          ))}
-        </ul>
+        {receipts.length === 0 ? (
+          <EmptyState compact title="No payments recorded yet" />
+        ) : (
+          <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+            {receipts.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 px-4 py-3.5 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="text-[var(--muted)]">{r.date}</span>
+                  <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
+                    {r.label}
+                    {isGuest ? ' · sample' : ''}
+                  </span>
+                </span>
+                <span className="font-semibold tabular-nums text-[var(--ink)]">
+                  ${r.amount.toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )
@@ -647,6 +773,8 @@ export default function Settings() {
             onSave={saveProfile}
             showCloud={showCloud}
             cloudEmail={authEmail}
+            isGuest={onboarding?.isGuest === true}
+            memberId={onboarding?.memberId ?? null}
             onSignOut={() => {
               void signOut().then(() => window.location.assign('/onboarding'))
             }}

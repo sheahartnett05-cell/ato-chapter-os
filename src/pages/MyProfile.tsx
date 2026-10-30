@@ -14,6 +14,7 @@ import {
   memberStatusVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
+import { formatAttendancePct } from '../lib/attendance/attendanceMath'
 
 export default function MyProfile() {
   const { profile, role, onboarding, updateProfile, permissions } = useAuth()
@@ -83,8 +84,14 @@ export default function MyProfile() {
             <StatusPill label={member.status} variant={memberStatusVariant(member.status)} />
             <StatusPill label={member.duesStatus} variant={duesVariant(member.duesStatus)} />
             <StatusPill
-              label={`${member.attendancePct}% attendance`}
-              variant={attendanceVariant(member.attendancePct >= 80 ? 'Good' : 'Low')}
+              label={`${formatAttendancePct(member.attendancePct)} attendance`}
+              variant={attendanceVariant(
+                member.attendancePct == null
+                  ? 'Low'
+                  : member.attendancePct >= 80
+                    ? 'Good'
+                    : 'Low'
+              )}
             />
           </div>
         )}
@@ -114,7 +121,7 @@ export default function MyProfile() {
 
           {editing ? (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   value={local.firstName}
                   onChange={(e) => setLocal({ ...local, firstName: e.target.value })}
@@ -226,7 +233,7 @@ export default function MyProfile() {
             <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
               Chapter record
             </p>
-            <dl className="grid grid-cols-2 gap-3 text-sm">
+            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-[var(--muted)]">Pledge class</dt>
                 <dd className="font-medium">{member.pledgeClass}</dd>

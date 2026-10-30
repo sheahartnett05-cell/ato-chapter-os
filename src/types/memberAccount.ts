@@ -38,4 +38,6 @@ export interface ChapterLock {
   lockedByUserId: string
   /** Invite code id issued at founding for members to join */
   primaryJoinCodeId?: string
+  /** Durable primary join code string (shown to founder / published to registry) */
+  primaryJoinCode?: string
 }

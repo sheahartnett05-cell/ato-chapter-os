@@ -13,8 +13,7 @@ import {
   expenseLineLabel,
   lineItemsWithSpent,
 } from '../types/budget'
-
-const TODAY = '2025-08-23'
+import { localTodayIso } from '../lib/liveAlerts'
 
 const emptyLineDraft = () => ({ label: '', allocated: 500 })
 
@@ -22,7 +21,7 @@ const emptyExpenseDraft = () => ({
   lineItemId: '',
   amount: 50,
   description: '',
-  date: TODAY,
+  date: localTodayIso(),
 })
 
 export default function BudgetDetail() {

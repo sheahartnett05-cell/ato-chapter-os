@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private goPreview = () => {
     this.setState({ error: null })
-    window.location.assign('/preview')
+    window.location.assign('/')
   }
 
   private wipeAndRestart = async () => {
@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <h1 className="font-serif text-2xl text-[var(--ink,#141414)]">Something went wrong</h1>
           <p className="max-w-md text-sm text-[var(--muted,#6b6b6b)]">
             Corrupt local chapter data or a stale cloud membership can break the app. Wipe test
-            data and start onboarding again, or open guest preview.
+            data and start again, or go back to the start page.
           </p>
           <p className="max-w-md font-mono text-[10px] text-red-700/80">{this.state.error.message}</p>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.wiping ? 'Wiping…' : 'Wipe chapter & restart'}
             </button>
             <button type="button" onClick={this.goPreview} className="btn-ghost">
-              Go to preview
+              Back to start
             </button>
           </div>
         </div>

@@ -4,14 +4,18 @@ import { ExternalLink, Plus } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/Toast'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
 import { parsePositiveAmount } from '../lib/formUtils'
+import { addDays, currentTermLabel, localTodayIso } from '../lib/demoRelativeDates'
 
 export default function DuesPage() {
   const [searchParams] = useSearchParams()
   const statusFilter = searchParams.get('status')
+  const { toast } = useToast()
   const {
     duesCharges,
     duesPayments,
@@ -33,8 +37,8 @@ export default function DuesPage() {
   const [draft, setDraft] = useState({
     label: '',
     amount: 100,
-    dueDate: '2025-09-30',
-    semester: 'Fall 2025',
+    dueDate: addDays(localTodayIso(), 30),
+    semester: currentTermLabel(),
   })
 
   const roster = useMemo(() => {
@@ -77,7 +81,7 @@ export default function DuesPage() {
       assignedMemberIds: [],
     })
     setChargeOpen(false)
-    setDraft({ label: '', amount: 100, dueDate: '2025-09-30', semester: 'Fall 2025' })
+    setDraft({ label: '', amount: 100, dueDate: addDays(localTodayIso(), 30), semester: currentTermLabel() })
   }
 
   const applyPayment = () => {
@@ -96,6 +100,7 @@ export default function DuesPage() {
     recordDuesPayment(payOpen.chargeId, payOpen.memberId, amount, 'BillHighway')
     setPayOpen(null)
     setPayAmount(0)
+    toast({ title: 'Payment recorded', tone: 'success' })
   }
 
   const payHref = billHighway.enabled
@@ -206,17 +211,38 @@ export default function DuesPage() {
             <h2 className="font-serif text-xl tracking-tight">Charges</h2>
           </div>
           <ul className="list-editorial">
-            {duesCharges.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-3 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{c.label}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                    {c.semester} · Due {c.dueDate}
-                  </p>
-                </div>
-                <span className="metric text-sm">${c.amount}</span>
+            {duesCharges.length === 0 ? (
+              <li className="list-none">
+                <EmptyState
+                  compact
+                  title="No charges yet"
+                  description="Create a semester charge to track member balances."
+                  action={
+                    isTreasurer ? (
+                      <button
+                        type="button"
+                        className="btn-primary text-xs"
+                        onClick={() => setChargeOpen(true)}
+                      >
+                        Add charge
+                      </button>
+                    ) : undefined
+                  }
+                />
               </li>
-            ))}
+            ) : (
+              duesCharges.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-3 py-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{c.label}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {c.semester} · Due {c.dueDate}
+                    </p>
+                  </div>
+                  <span className="metric text-sm">${c.amount}</span>
+                </li>
+              ))
+            )}
           </ul>
         </section>
 
@@ -259,10 +285,25 @@ export default function DuesPage() {
                         type="button"
                         className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]"
                         onClick={() => {
-                          const openCharge = duesCharges[0]
+                          const openCharge =
+                            duesCharges.find(
+                              (c) =>
+                                (c.assignedMemberIds.length === 0 ||
+                                  c.assignedMemberIds.includes(member.id)) &&
+                                duesPayments
+                                  .filter((p) => p.chargeId === c.id && p.memberId === member.id)
+                                  .reduce((s, p) => s + p.amountPaid, 0) < c.amount,
+                            ) ?? duesCharges.find(
+                              (c) =>
+                                c.assignedMemberIds.length === 0 ||
+                                c.assignedMemberIds.includes(member.id),
+                            )
                           if (!openCharge) return
+                          const paid = duesPayments
+                            .filter((p) => p.chargeId === openCharge.id && p.memberId === member.id)
+                            .reduce((s, p) => s + p.amountPaid, 0)
                           setPayOpen({ chargeId: openCharge.id, memberId: member.id })
-                          setPayAmount(Math.min(balance, openCharge.amount))
+                          setPayAmount(Math.min(balance, Math.max(0, openCharge.amount - paid)))
                         }}
                       >
                         Record

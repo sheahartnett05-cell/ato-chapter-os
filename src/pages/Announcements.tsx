@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, ClipboardList, FileText, Megaphone, Pin, Plus } from 'lucide-react'
+import { BarChart3, ClipboardList, FileText, Megaphone, Pin, Plus, Pencil, Trash2 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/Toast'
 import { PollCard } from '../components/communications/PollCard'
 import { SignupCard } from '../components/communications/SignupCard'
 import { useAuth, usePermissions } from '../context/AuthContext'
@@ -13,6 +16,7 @@ import {
   DEFAULT_TEMPLATE_TOKENS,
 } from '../data/templateData'
 import { roleLabel } from '../types/permissions'
+import { addDays, localTodayIso } from '../lib/demoRelativeDates'
 import type { AnnouncementTemplate, PostKind } from '../types/features'
 
 type Tab = 'feed' | 'polls' | 'signups' | 'templates'
@@ -34,23 +38,29 @@ export default function Announcements() {
   const { chapter, languagePack } = useChapter()
   const { profile, role, memberId } = useAuth()
   const permissions = usePermissions()
-  const { posts, templates, addPost, togglePin } = useCommunications()
+  const { toast } = useToast()
+  const { posts, templates, addPost, updatePost, deletePost, restorePost, togglePin } =
+    useCommunications()
 
   const voterId = memberId ?? ''
   const canCreate = permissions.canPostAnnouncements
 
   const [tab, setTab] = useState<Tab>('feed')
   const [composerOpen, setComposerOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editBody, setEditBody] = useState('')
   const [composerKind, setComposerKind] = useState<ComposerKind>('announcement')
   const [selectedTemplate, setSelectedTemplate] = useState<AnnouncementTemplate | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState(['', ''])
-  const [pollCloses, setPollCloses] = useState('2025-08-30')
+  const [pollCloses, setPollCloses] = useState(() => addDays(localTodayIso(), 7))
   const [signupSlots, setSignupSlots] = useState(['', ''])
   const [pinNew, setPinNew] = useState(false)
   const [composerError, setComposerError] = useState('')
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
 
   const canPublish = useMemo(() => {
@@ -171,6 +181,7 @@ export default function Announcements() {
     }
     setPublishing(false)
     setComposerOpen(false)
+    toast({ title: 'Posted', tone: 'success' })
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -187,13 +198,13 @@ export default function Announcements() {
         subtitle={`${chapter.nickname} · ${chapter.semester}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex border border-[var(--rule)]">
+            <div className="flex max-w-full overflow-x-auto border border-[var(--rule)]">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                  className={`shrink-0 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                     tab === t.id
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                       : 'text-[var(--muted)]'
@@ -220,7 +231,7 @@ export default function Announcements() {
         }
       />
 
-      <PageShell className="space-y-6">
+      <PageShell className="space-y-6 px-4 sm:px-0">
         {tab === 'templates' && (
           <section>
             <p className="mb-4 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
@@ -251,8 +262,23 @@ export default function Announcements() {
         {tab === 'feed' && (
           <ul className="space-y-6">
             {sorted.length === 0 && (
-              <li className="border border-[var(--rule)] px-4 py-8 text-center font-mono text-xs text-[var(--muted)]">
-                No posts yet
+              <li>
+                <EmptyState
+                  compact
+                  title="No posts yet"
+                  description="Share an update with the chapter."
+                  action={
+                    canCreate ? (
+                      <button
+                        type="button"
+                        className="btn-primary text-xs"
+                        onClick={() => openComposer('announcement')}
+                      >
+                        New post
+                      </button>
+                    ) : undefined
+                  }
+                />
               </li>
             )}
             {sorted.map((a) => {
@@ -279,14 +305,38 @@ export default function Announcements() {
                           })}
                         </p>
                       </div>
-                      {canCreate && a.kind === 'announcement' && (
-                        <button
-                          type="button"
-                          onClick={() => togglePin(a.id)}
-                          className="btn-ghost shrink-0 text-[10px]"
-                        >
-                          {a.pinned ? 'Unpin' : 'Pin'}
-                        </button>
+                      {canCreate && (
+                        <div className="flex shrink-0 gap-1">
+                          {a.kind === 'announcement' && (
+                            <button
+                              type="button"
+                              onClick={() => togglePin(a.id)}
+                              className="btn-ghost text-[10px]"
+                            >
+                              {a.pinned ? 'Unpin' : 'Pin'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingId(a.id)
+                              setEditTitle(a.title)
+                              setEditBody(a.body)
+                            }}
+                            className="btn-ghost p-1.5"
+                            aria-label="Edit"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletePostId(a.id)}
+                            className="btn-ghost p-1.5 text-red-600"
+                            aria-label="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -440,6 +490,64 @@ export default function Announcements() {
           </button>
         </div>
       </Modal>
+
+      <Modal
+        open={editingId != null}
+        onClose={() => setEditingId(null)}
+        title="Edit post"
+      >
+        <div className="space-y-3">
+          <input
+            className="input-editorial"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Title"
+          />
+          <textarea
+            className="input-editorial min-h-[100px] resize-none"
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            placeholder="Body"
+          />
+          <button
+            type="button"
+            className="btn-primary w-full"
+            onClick={() => {
+              if (editingId && editTitle.trim()) {
+                updatePost(editingId, { title: editTitle, body: editBody })
+                setEditingId(null)
+              }
+            }}
+          >
+            Save changes
+          </button>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deletePostId}
+        title="Delete post"
+        message="Delete this post permanently?"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (!deletePostId) return
+          const snapshot = posts.find((p) => p.id === deletePostId)
+          deletePost(deletePostId)
+          setDeletePostId(null)
+          if (snapshot) {
+            toast({
+              title: 'Post deleted',
+              tone: 'neutral',
+              action: {
+                label: 'Undo',
+                onClick: () => restorePost(snapshot),
+              },
+            })
+          }
+        }}
+        onCancel={() => setDeletePostId(null)}
+      />
     </>
   )
 }

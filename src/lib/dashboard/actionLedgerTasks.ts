@@ -91,17 +91,20 @@ export function buildActionLedgerTasks(input: {
     })
   }
 
-  const lowStudy = members.filter(
-    (m) => (m.status === 'Active' || m.status === 'New Member') && m.attendancePct < 70
+  const lowAtt = members.filter(
+    (m) =>
+      (m.status === 'Active' || m.status === 'New Member') &&
+      m.attendancePct != null &&
+      m.attendancePct < 70
   )
-  if (lowStudy.length > 0) {
-    const first = lowStudy[0]
+  if (lowAtt.length > 0) {
+    const first = lowAtt[0]
     tasks.push({
       id: 'attendance-low',
       type: 'attendance',
       title: `Check in · ${memberName(first)} · ${first.attendancePct}% attendance`,
       description:
-        lowStudy.length > 1 ? `+${lowStudy.length - 1} more below 70%` : '',
+        lowAtt.length > 1 ? `+${lowAtt.length - 1} more below 70%` : '',
       priority: 'high',
       link: '/members?filter=attendance',
       functions: ['scholarship', 'internal_vp_standards', 'president'],

@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { Check, Pencil, Plus, Trash2, Settings2, Users, X } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { useChapterFeatures } from '../context/ChapterFeaturesContext'
@@ -31,8 +32,9 @@ export default function ChapterSetup() {
     setAnnouncementsOfficersOnly,
   } = useChapterFeatures()
   const { members, accounts, assignMemberRole } = useMembers()
-  const { memberId, updateRole, role } = useAuth()
+  const { memberId, updateRole, role, resetOnboarding } = useAuth()
   const permissions = usePermissions()
+  const [wiping, setWiping] = useState(false)
 
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
@@ -45,6 +47,7 @@ export default function ChapterSetup() {
     university: chapter.university,
   })
   const [metaSaved, setMetaSaved] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
 
   const activeMembers = useMemo(
     () =>
@@ -54,7 +57,8 @@ export default function ChapterSetup() {
     [members]
   )
 
-  const canManageSetup = permissions.canAccessAdminSettings || role === 'President'
+  const canManageSetup =
+    permissions.canAccessAdminSettings || role === 'President' || role === 'Treasurer'
   if (!canManageSetup) {
     return <Navigate to="/home" replace />
   }
@@ -65,11 +69,17 @@ export default function ChapterSetup() {
   }
 
   const onAssignSeat = (positionId: string, title: string, nextMemberId: string) => {
+    const previousHolderId = positions.find((p) => p.id === positionId)?.assignedMemberId
     const assigned = nextMemberId || undefined
-    assignPosition(positionId, assigned)
-    if (!assigned) return
     const mapped = roleFromPositionTitle(title)
-    if (mapped) applyRole(assigned, mapped)
+
+    assignPosition(positionId, assigned)
+
+    if (previousHolderId && previousHolderId !== assigned && mapped) {
+      applyRole(previousHolderId, 'ActiveMember')
+    }
+    if (!assigned || !mapped) return
+    applyRole(assigned, mapped)
   }
 
   const saveMeta = () => {
@@ -116,9 +126,14 @@ export default function ChapterSetup() {
   }
 
   const deletePosition = (id: string, title: string) => {
-    if (!window.confirm(`Remove “${title}” from officer positions?`)) return
-    removePosition(id)
-    if (editingId === id) cancelEdit()
+    setDeleteConfirm({ id, title })
+  }
+
+  const confirmDeletePosition = () => {
+    if (!deleteConfirm) return
+    removePosition(deleteConfirm.id)
+    if (editingId === deleteConfirm.id) cancelEdit()
+    setDeleteConfirm(null)
   }
 
   const roleForMember = (id: string): UserRole => {
@@ -543,7 +558,66 @@ export default function ChapterSetup() {
             , then assign officer roles here.
           </p>
         </Section>
+
+        <Section
+          title="Danger zone"
+          subtitle="Local browser reset and cloud test membership leave — intentional only"
+        >
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetOnboarding()
+                window.location.assign('/onboarding')
+              }}
+              className="theme-pill-muted rounded-sm px-4 py-2 text-xs font-semibold"
+            >
+              Re-run setup wizard
+            </button>
+            <button
+              type="button"
+              disabled={wiping}
+              onClick={() => {
+                void (async () => {
+                  if (
+                    !window.confirm(
+                      'Wipe this browser’s chapter data and leave cloud test memberships? You will start onboarding again.',
+                    )
+                  ) {
+                    return
+                  }
+                  setWiping(true)
+                  try {
+                    const { wipeLocalAndLeaveCloudChapters } = await import('../lib/chapterCloud')
+                    await wipeLocalAndLeaveCloudChapters()
+                    resetOnboarding()
+                    window.location.assign('/onboarding')
+                  } finally {
+                    setWiping(false)
+                  }
+                })()
+              }}
+              className="rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800"
+            >
+              {wiping ? 'Wiping…' : 'Wipe test chapter data'}
+            </button>
+          </div>
+        </Section>
       </PageShell>
+
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        title="Remove officer position"
+        message={
+          deleteConfirm
+            ? `Remove “${deleteConfirm.title}” from officer positions?`
+            : ''
+        }
+        confirmLabel="Remove"
+        destructive
+        onConfirm={confirmDeletePosition}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   )
 }

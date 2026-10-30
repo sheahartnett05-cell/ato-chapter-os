@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { CalendarDays, Megaphone, Settings, User, UsersRound } from 'lucide-react'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
 import type { ChapterFeatureId } from '../../types/chapterFeatures'
@@ -11,13 +11,7 @@ const NAV = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const
 
-function isActive(pathname: string, to: string, end?: boolean) {
-  if (end) return pathname === to || pathname === '/chapter-room'
-  return pathname === to || pathname.startsWith(`${to}/`)
-}
-
 export function MemberBottomNav() {
-  const { pathname } = useLocation()
   const features = useChapterFeaturesOptional()
   const featureOk = (id?: ChapterFeatureId) =>
     !id || features?.isFeatureEnabled(id) !== false
@@ -26,7 +20,7 @@ export function MemberBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-[var(--z-nav)] border-t backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--surface-card) 96%, transparent)',
         borderColor: 'var(--rule)',
@@ -37,18 +31,20 @@ export function MemberBottomNav() {
         {visibleNav.map((item) => {
           const { to, label, icon: Icon } = item
           const end = 'end' in item ? item.end : undefined
-          const active = isActive(pathname, to, end)
           return (
-            <Link
+            <NavLink
               key={to}
               to={to}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 font-mono text-[9px] uppercase tracking-wider ${
-                active ? 'text-[var(--primary)]' : 'text-[var(--muted)]'
-              }`}
+              end={Boolean(end)}
+              className={({ isActive }) =>
+                `flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-3 py-1 font-mono text-[11px] uppercase tracking-wider ${
+                  isActive ? 'text-[var(--primary)]' : 'text-[var(--muted)]'
+                }`
+              }
             >
-              <Icon size={18} strokeWidth={1.5} />
+              <Icon size={18} strokeWidth={1.5} aria-hidden />
               {label}
-            </Link>
+            </NavLink>
           )
         })}
       </div>

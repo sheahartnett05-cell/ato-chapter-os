@@ -12,12 +12,13 @@ import { ChapterResourcesProvider } from './context/ChapterResourcesContext'
 import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { BudgetProvider } from './context/BudgetContext'
-import { OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
+import { DemoPage, JoinPage, OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
 import { ExecShell, MemberShell, SharedShell } from './components/routing/AppShells'
 import { ChapterViewModeProvider } from './context/ChapterViewModeContext'
 import { FeatureRoute } from './components/routing/FeatureRoute'
 import { DuesSyncBridge } from './components/routing/DuesSyncBridge'
 import { AttendanceSyncBridge } from './components/routing/AttendanceSyncBridge'
+import { ToastProvider } from './components/ui/Toast'
 import ExecutiveDashboard from './pages/ExecutiveDashboard'
 import MemberManagement from './pages/MemberManagement'
 import MemberProfile from './pages/MemberProfile'
@@ -65,9 +66,13 @@ export default function App() {
                               <DuesSyncBridge />
                               <AttendanceSyncBridge />
                               <BrowserRouter>
+                                <ToastProvider>
                                 <Routes>
                                   <Route path="/preview" element={<PreviewPage />} />
                                   <Route path="/login" element={<PreviewPage />} />
+                                  <Route path="/demo" element={<DemoPage />} />
+                                  <Route path="/join" element={<JoinPage />} />
+                                  <Route path="/join/:code" element={<JoinPage />} />
                                   <Route path="/onboarding" element={<OnboardingPage />} />
                                   <Route path="/" element={<RootRedirect />} />
 
@@ -131,7 +136,7 @@ export default function App() {
                                     path="/excuses"
                                     element={
                                       <ExecShell>
-                                        <FeatureRoute feature="calendar">
+                                        <FeatureRoute feature="attendancePoints">
                                           <ExcuseApprovals />
                                         </FeatureRoute>
                                       </ExecShell>
@@ -357,6 +362,7 @@ export default function App() {
                                   />
                                   <Route path="*" element={<RootRedirect />} />
                                 </Routes>
+                                </ToastProvider>
                               </BrowserRouter>
                             </BudgetProvider>
                           </ChapterOpsProvider>

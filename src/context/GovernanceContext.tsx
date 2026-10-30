@@ -19,6 +19,7 @@ import {
   canViewAllCases,
 } from '../data/governanceData'
 import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type {
   Committee,
   CommitteeChatMessage,
@@ -42,21 +43,11 @@ type GovernanceBlob = {
 }
 
 function readGovernanceBlob(): GovernanceBlob | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.governance)
-    if (!raw) return null
-    return JSON.parse(raw) as GovernanceBlob
-  } catch {
-    return null
-  }
+  return readJson<GovernanceBlob | null>(STORAGE_KEYS.governance, null)
 }
 
 function writeGovernanceBlob(blob: GovernanceBlob) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.governance, JSON.stringify(blob))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEYS.governance, blob)
 }
 
 function uid(prefix: string) {
@@ -64,44 +55,31 @@ function uid(prefix: string) {
 }
 
 function readCommittees(): Committee[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.committees)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Committee[]
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    /* ignore */
-  }
+  const parsed = readJson<Committee[] | null>(STORAGE_KEYS.committees, null)
+  if (parsed && Array.isArray(parsed)) return parsed
   return allowDemoData() ? initialCommittees : []
 }
 
 function readChatMessages(): CommitteeChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.committeeChat)
-    if (raw) {
-      const parsed = JSON.parse(raw) as CommitteeChatMessage[]
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    /* ignore */
-  }
+  const parsed = readJson<CommitteeChatMessage[] | null>(STORAGE_KEYS.committeeChat, null)
+  if (parsed && Array.isArray(parsed)) return parsed
   return allowDemoData() ? initialChat : []
 }
 
 function writeCommittees(next: Committee[]) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.committees, JSON.stringify(next))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(STORAGE_KEYS.committees, next)
 }
 
 function writeChatMessages(next: CommitteeChatMessage[]) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.committeeChat, JSON.stringify(next))
-  } catch {
-    /* storage unavailable */
+  writeJson(STORAGE_KEYS.committeeChat, next)
+}
+
+function emptyGovernanceConfig(): GovernanceConfig {
+  return {
+    jBoardChairId: '',
+    jBoardMemberIds: [],
+    casesHiddenFromMembers: false,
+    standardsChairId: '',
   }
 }
 
@@ -161,7 +139,7 @@ export function GovernanceProvider({ children }: { children: ReactNode }) {
     storedGov?.fineSchedule ?? (allowDemoData() ? initialFineSchedule : [])
   )
   const [config, setConfig] = useState<GovernanceConfig>(
-    () => storedGov?.config ?? initialConfig
+    () => storedGov?.config ?? (allowDemoData() ? initialConfig : emptyGovernanceConfig())
   )
 
   const viewerId = CURRENT_EXEC_ID
@@ -303,6 +281,9 @@ export function GovernanceProvider({ children }: { children: ReactNode }) {
   const issueFine = useCallback(
     (fine: Omit<Fine, 'id'>) => {
       setFinesList((prev) => {
+        if (fine.sourceRef && prev.some((f) => f.sourceRef === fine.sourceRef)) {
+          return prev
+        }
         const next = [...prev, { ...fine, id: `f-${Date.now()}` }]
         writeGovernanceBlob({
           cases,

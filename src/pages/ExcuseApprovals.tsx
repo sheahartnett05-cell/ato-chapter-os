@@ -14,7 +14,13 @@ import type { RsvpExcuse } from '../types/features'
 export default function ExcuseApprovals() {
   const [searchParams] = useSearchParams()
   const statusFilter = searchParams.get('status')
-  const { excuses, events, updateExcuseStatus, setAttendanceEntry } = useChapterOps()
+  const {
+    excuses,
+    events,
+    updateExcuseStatus,
+    applyExcuseAttendanceDecision,
+    getEventAttendance,
+  } = useChapterOps()
   const { getMemberById } = useMembers()
   const { profile } = useAuth()
   const { issueFine } = useGovernance()
@@ -35,13 +41,22 @@ export default function ExcuseApprovals() {
     updateExcuseStatus(id, status, reviewerName)
 
     if (status === 'approved') {
-      setAttendanceEntry(excuse.eventId, excuse.memberId, 'Excused', 0)
+      // Present wins; otherwise Excused (see attendanceMath comment)
+      applyExcuseAttendanceDecision(id, 'approved')
       return
     }
 
     if (status === 'denied') {
+      const prior = getEventAttendance(excuse.eventId).find(
+        (a) => a.memberId === excuse.memberId
+      )
+      const wasExcused = prior?.status === 'Excused'
+      applyExcuseAttendanceDecision(id, 'denied')
+
+      // Fine only for a fresh deny (pending → denied), not for undoing Excused
+      if (wasExcused) return
+
       const event = events.find((e) => e.id === excuse.eventId)
-      setAttendanceEntry(excuse.eventId, excuse.memberId, 'Absent', 0)
       const amount = absenceFine?.fine_amount ?? 15
       const due = new Date()
       due.setDate(due.getDate() + 14)
@@ -52,6 +67,7 @@ export default function ExcuseApprovals() {
         dateIssued: new Date().toISOString().slice(0, 10),
         dueDate: due.toISOString().slice(0, 10),
         status: 'Unpaid',
+        sourceRef: excuse.id,
       })
     }
   }

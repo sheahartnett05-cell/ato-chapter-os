@@ -14,6 +14,7 @@ import {
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
 import { Modal } from '../components/ui/Modal'
+import { EmptyState } from '../components/ui/EmptyState'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useIsMemberShell } from '../hooks/useShellKind'
@@ -630,9 +631,22 @@ export default function CalendarPage() {
             </div>
 
             {upcomingAgenda.length === 0 ? (
-              <p className="border border-[var(--rule)] py-8 text-center font-mono text-xs text-[var(--muted)]">
-                No upcoming events.
-              </p>
+              <EmptyState
+                compact
+                title="No upcoming events"
+                description="Add an event to fill the agenda."
+                action={
+                  canEditPoints ? (
+                    <button
+                      type="button"
+                      className="btn-primary text-xs"
+                      onClick={() => setCreateOpen(true)}
+                    >
+                      Create event
+                    </button>
+                  ) : undefined
+                }
+              />
             ) : (
               <ul className="list-editorial border border-[var(--rule)]">
                 {upcomingAgenda.map((event) => (

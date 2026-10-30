@@ -1,18 +1,5 @@
-import type {
-  ActivityItem,
-  Alert,
-  AttendanceEntry,
-  Event,
-  Member,
-  Prospect,
-  RsvpEntry,
-} from '../types'
-
-export const CHAPTER = {
-  name: 'Demo Chapter',
-  school: 'Demo University',
-  semester: 'Fall 2025',
-}
+/** Guest-preview seed data — imported only by demoSeed and allowDemoData() contexts. */
+import type { ActivityItem, Event, Member, Prospect } from '../types'
 
 const DEMO_MEMBERS: Member[] = [
   {
@@ -354,43 +341,6 @@ const DEMO_EVENTS: Event[] = [
   },
 ]
 
-const DEMO_RSVPS: Record<string, RsvpEntry[]> = {
-  e2: [
-    { memberId: 'm1', status: 'Going' },
-    { memberId: 'm2', status: 'Going' },
-    { memberId: 'm3', status: 'Going' },
-    { memberId: 'm4', status: 'Going' },
-    { memberId: 'm6', status: 'Not Going' },
-    { memberId: 'm7', status: 'Going' },
-    { memberId: 'm8', status: 'Not Going' },
-    { memberId: 'm9', status: 'Going' },
-  ],
-  e5: [
-    { memberId: 'm1', status: 'Going', guest: 'Sarah Mitchell' },
-    { memberId: 'm2', status: 'Going' },
-    { memberId: 'm3', status: 'Going', guest: 'Emily Chen' },
-    { memberId: 'm4', status: 'Going' },
-    { memberId: 'm5', status: 'Going', guest: 'Jessica Torres' },
-    { memberId: 'm6', status: 'Not Going' },
-    { memberId: 'm7', status: 'Going' },
-    { memberId: 'm9', status: 'Going', guest: 'Amanda Lee' },
-  ],
-}
-
-const DEMO_ATTENDANCE: Record<string, AttendanceEntry[]> = {
-  e1: [
-    { memberId: 'm1', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm2', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm3', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm4', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm5', status: 'Excused', pointsEarned: 0 },
-    { memberId: 'm6', status: 'Absent', pointsEarned: 0 },
-    { memberId: 'm7', status: 'Present', pointsEarned: 5 },
-    { memberId: 'm8', status: 'Absent', pointsEarned: 0 },
-    { memberId: 'm9', status: 'Present', pointsEarned: 5 },
-  ],
-}
-
 const DEMO_PROSPECTS: Prospect[] = [
   {
     id: 'p1',
@@ -412,6 +362,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     notes:
       'Referred by Tyler Brooks. Strong leadership background — was HS class president. Very engaged at IFC open house.',
     avatar: 'JW',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p2',
@@ -432,6 +383,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Hackathons', 'Gaming', 'Weightlifting'],
     notes: 'Met at orientation week tabling. Quiet but thoughtful — asked great questions about philanthropy.',
     avatar: 'CM',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p3',
@@ -451,7 +403,8 @@ const DEMO_PROSPECTS: Prospect[] = [
     nextFollowUp: '2025-08-24',
     interests: ['Surfing', 'Photography', 'Entrepreneurship'],
     notes: 'DM\'d chapter Instagram. Scheduled coffee meetup for next week.',
-    avatar: 'MCa',
+    avatar: 'MC',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p4',
@@ -472,6 +425,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Robotics', 'Fishing', 'Intramural soccer'],
     notes: 'New lead from IFC roster. Needs initial outreach call.',
     avatar: 'HR',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p5',
@@ -492,6 +446,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Debate team', 'Volunteer law clinic', 'Running'],
     notes: 'Top prospect this cycle. Invited to cookout and 1-on-1 with President. Parents supportive.',
     avatar: 'NC',
+    cycleId: 'cycle-fall-2025',
   },
   {
     id: 'p6',
@@ -512,6 +467,12 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['CPA track', 'Golf', 'Community service'],
     notes: 'Bid extended at exec meeting 8/22. Awaiting response by Friday.',
     avatar: 'GS',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-22',
+      deadline: '2025-08-24',
+      response: 'pending',
+    },
   },
   {
     id: 'p7',
@@ -532,6 +493,13 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Student government', 'Real estate', 'Fitness'],
     notes: 'Accepted bid! Starting new member education September 1.',
     avatar: 'CB',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-14',
+      deadline: '2025-08-18',
+      response: 'accepted',
+      respondedAt: '2025-08-15',
+    },
   },
   {
     id: 'p8',
@@ -552,6 +520,40 @@ const DEMO_PROSPECTS: Prospect[] = [
     interests: ['Personal training', 'Beach volleyball', 'Nutrition'],
     notes: 'Completed initiation Spring 2025. Now active new member.',
     avatar: 'DA',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-05',
+      deadline: '2025-08-08',
+      response: 'accepted',
+      respondedAt: '2025-08-07',
+    },
+  },
+  {
+    id: 'p9',
+    firstName: 'Blake',
+    lastName: 'Henderson',
+    status: 'Bid',
+    rating: 3,
+    assignedBrother: 'Logan Pierce',
+    major: 'Psychology',
+    graduationYear: 2029,
+    phone: '(850) 555-1209',
+    email: 'bhenderson@students.demo.edu',
+    instagram: '@blake_h',
+    hometown: 'Niceville, FL',
+    source: 'Member Referral',
+    lastContact: '2025-08-20',
+    nextFollowUp: '',
+    interests: ['Intramural flag football', 'Campus ministry'],
+    notes: 'Declined bid — staying open to other chapters.',
+    avatar: 'BH',
+    cycleId: 'cycle-fall-2025',
+    bid: {
+      extendedAt: '2025-08-18',
+      deadline: '2025-08-21',
+      response: 'declined',
+      respondedAt: '2025-08-20',
+    },
   },
 ]
 
@@ -604,131 +606,4 @@ const DEMO_PNM_ACTIVITIES: Record<string, ActivityItem[]> = {
   ],
 }
 
-const DEMO_ALERTS: Alert[] = [
-  {
-    id: 'al1',
-    type: 'dues',
-    title: '3 members with outstanding dues',
-    description: 'Derek Nguyen ($850), Brandon Sullivan ($650), Cameron Foster ($425) owe balances.',
-    priority: 'high',
-    link: '/members?filter=dues',
-  },
-  {
-    id: 'al2',
-    type: 'attendance',
-    title: '2 members below 70% attendance',
-    description: 'Brandon Sullivan (58%) and Derek Nguyen (65%) need follow-up.',
-    priority: 'high',
-    link: '/members?filter=attendance',
-  },
-  {
-    id: 'al3',
-    type: 'recruitment',
-    title: '4 PNMs need follow-up this week',
-    description: 'Hunter Reynolds (no contact), Mason Caldwell, Connor Matthews, James Whitfield.',
-    priority: 'medium',
-    link: '/recruitment/pipeline',
-  },
-  {
-    id: 'al4',
-    type: 'task',
-    title: 'Venue deposit due in 3 days',
-    description: 'Fall Formal venue deposit ($500) due to Pensacola Grand Hotel by Aug 26.',
-    priority: 'medium',
-  },
-]
-
-const DEMO_CHAPTER_HEALTH = [
-  { label: 'Recruitment', score: 82, trend: '+12%' },
-  { label: 'Finances', score: 71, trend: '-3%' },
-  { label: 'Attendance', score: 84, trend: '+5%' },
-  { label: 'Events', score: 90, trend: '+2%' },
-  { label: 'Brotherhood', score: 88, trend: '+8%' },
-  { label: 'Officer Tasks', score: 76, trend: '-1%' },
-]
-
-export const PIPELINE_STAGES = [
-  'New',
-  'Contacted',
-  'Met',
-  'Interested',
-  'Invited',
-  'Bid',
-  'Accepted',
-  'New Member',
-] as const
-
-export function getMember(id: string): Member | undefined {
-  return liveMembers().find((m) => m.id === id)
-}
-
-export function getEvent(id: string): Event | undefined {
-  return liveEvents().find((e) => e.id === id)
-}
-
-export function getProspect(id: string): Prospect | undefined {
-  return liveProspects().find((p) => p.id === id)
-}
-
-import { isGuestPreviewActive } from '../lib/guestPreview'
-
-function allowDemoData() {
-  return isGuestPreviewActive()
-}
-
-
-
-function liveMembers() {
-  return allowDemoData() ? DEMO_MEMBERS : []
-}
-function liveEvents() {
-  return allowDemoData() ? DEMO_EVENTS : []
-}
-function liveProspects() {
-  return allowDemoData() ? DEMO_PROSPECTS : []
-}
-
-function gateArray<T>(demo: T[]): T[] {
-  return new Proxy([] as T[], {
-    get(_t, prop) {
-      const src = allowDemoData() ? demo : []
-      const v = Reflect.get(src, prop)
-      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(src) : v
-    },
-    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : []),
-    getOwnPropertyDescriptor: (_t, p) =>
-      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : [], p),
-    has: (_t, p) => Reflect.has(allowDemoData() ? demo : [], p),
-  })
-}
-
-function gateRecord<T extends object>(demo: T, empty: T): T {
-  return new Proxy(empty, {
-    get(_t, prop) {
-      return Reflect.get(allowDemoData() ? demo : empty, prop)
-    },
-    ownKeys: () => Reflect.ownKeys(allowDemoData() ? demo : empty),
-    getOwnPropertyDescriptor: (_t, p) =>
-      Reflect.getOwnPropertyDescriptor(allowDemoData() ? demo : empty, p),
-    has: (_t, p) => Reflect.has(allowDemoData() ? demo : empty, p),
-  }) as T
-}
-
-export const members = gateArray(DEMO_MEMBERS)
-export const events = gateArray(DEMO_EVENTS)
-export const prospects = gateArray(DEMO_PROSPECTS)
-export const alerts = gateArray(DEMO_ALERTS)
-export const rsvps = gateRecord(DEMO_RSVPS, {} as typeof DEMO_RSVPS)
-export const attendance = gateRecord(DEMO_ATTENDANCE, {} as typeof DEMO_ATTENDANCE)
-export const pnmActivities = gateRecord(DEMO_PNM_ACTIVITIES, {} as typeof DEMO_PNM_ACTIVITIES)
-export const chapterHealth = allowDemoData() ? DEMO_CHAPTER_HEALTH : []
-
-export {
-  DEMO_MEMBERS,
-  DEMO_EVENTS,
-  DEMO_PROSPECTS,
-  DEMO_PNM_ACTIVITIES,
-  DEMO_ALERTS,
-}
-
-export const CURRENT_MEMBER_ID = 'm5'
+export { DEMO_MEMBERS, DEMO_EVENTS, DEMO_PROSPECTS, DEMO_PNM_ACTIVITIES }

@@ -1,5 +1,5 @@
 /**
- * Typed surface for Agora Supabase tables (supabase-js v2 shape).
+ * Typed surface for Chaptera Supabase tables (supabase-js v2 shape).
  */
 export type Json =
   | string
@@ -22,6 +22,8 @@ type ChapterRow = {
   secondary_color: string | null
   accent_color: string | null
   founded_by: string | null
+  join_code: string | null
+  invite_codes: Json
   created_at: string
   updated_at: string
 }
@@ -51,6 +53,8 @@ export interface Database {
           secondary_color?: string | null
           accent_color?: string | null
           founded_by?: string | null
+          join_code?: string | null
+          invite_codes?: Json
           created_at?: string
           updated_at?: string
         }
@@ -82,7 +86,7 @@ export interface Database {
           chapter_id: string
           user_id: string
           app_member_id: string
-          role: string
+          role: Database['public']['Enums']['chapter_member_role'] | string
           is_founder: boolean
           joined_at: string
         }
@@ -91,7 +95,7 @@ export interface Database {
           chapter_id: string
           user_id: string
           app_member_id: string
-          role?: string
+          role?: Database['public']['Enums']['chapter_member_role'] | string
           is_founder?: boolean
           joined_at?: string
         }
@@ -100,13 +104,57 @@ export interface Database {
           chapter_id: string
           user_id: string
           app_member_id: string
-          role: string
+          role: Database['public']['Enums']['chapter_member_role'] | string
           is_founder: boolean
           joined_at: string
         }>
         Relationships: [
           {
             foreignKeyName: 'chapter_memberships_chapter_id_fkey'
+            columns: ['chapter_id']
+            isOneToOne: false
+            referencedRelation: 'chapters'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      chapter_officer_seats: {
+        Row: {
+          id: string
+          chapter_id: string
+          seat_id: string
+          title: string
+          function: string
+          member_user_id: string | null
+          capabilities: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          chapter_id: string
+          seat_id: string
+          title: string
+          function?: string
+          member_user_id?: string | null
+          capabilities?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<{
+          id: string
+          chapter_id: string
+          seat_id: string
+          title: string
+          function: string
+          member_user_id: string | null
+          capabilities: string[]
+          created_at: string
+          updated_at: string
+        }>
+        Relationships: [
+          {
+            foreignKeyName: 'chapter_officer_seats_chapter_id_fkey'
             columns: ['chapter_id']
             isOneToOne: false
             referencedRelation: 'chapters'
@@ -209,7 +257,7 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
-      claim_or_create_chapter: {
+      create_chapter: {
         Args: {
           p_org_id: string
           p_designation: string
@@ -222,13 +270,81 @@ export interface Database {
           p_secondary_color?: string | null
           p_accent_color?: string | null
           p_app_member_id?: string | null
-          p_role?: string | null
-          p_is_founder?: boolean | null
+          p_first_name?: string | null
+          p_last_name?: string | null
+          p_email?: string | null
+          p_phone?: string | null
         }
         Returns: string
       }
+      join_chapter: {
+        Args: {
+          p_code: string
+          p_app_member_id?: string | null
+          p_first_name?: string | null
+          p_last_name?: string | null
+          p_email?: string | null
+          p_phone?: string | null
+        }
+        Returns: string
+      }
+      set_member_role: {
+        Args: {
+          p_chapter_id: string
+          p_user_id: string
+          p_role: Database['public']['Enums']['chapter_member_role']
+        }
+        Returns: undefined
+      }
+      assign_officer_seat: {
+        Args: {
+          p_chapter_id: string
+          p_seat_id: string
+          p_member_user_id: string | null
+          p_title?: string | null
+          p_function?: string | null
+          p_capabilities?: string[] | null
+        }
+        Returns: undefined
+      }
+      remove_officer_seat: {
+        Args: { p_chapter_id: string; p_seat_id: string }
+        Returns: undefined
+      }
+      leave_chapter: {
+        Args: { p_chapter_id: string }
+        Returns: undefined
+      }
+      transfer_founder: {
+        Args: { p_chapter_id: string; p_new_founder_user_id: string }
+        Returns: undefined
+      }
+      has_capability: {
+        Args: { p_chapter_id: string; p_cap: string }
+        Returns: boolean
+      }
+      is_president: {
+        Args: { p_chapter_id: string }
+        Returns: boolean
+      }
+      is_chapter_officer: {
+        Args: { p_chapter_id: string }
+        Returns: boolean
+      }
       leave_all_chapters: {
         Args: Record<string, never>
+        Returns: undefined
+      }
+      resolve_join_code: {
+        Args: { p_code: string }
+        Returns: Json
+      }
+      sync_chapter_join_codes: {
+        Args: {
+          p_chapter_id: string
+          p_join_code: string | null
+          p_invite_codes?: Json
+        }
         Returns: undefined
       }
       is_chapter_member: {
@@ -236,7 +352,19 @@ export interface Database {
         Returns: boolean
       }
     }
-    Enums: Record<string, never>
+    Enums: {
+      chapter_member_role:
+        | 'President'
+        | 'VicePresident'
+        | 'Treasurer'
+        | 'Secretary'
+        | 'JBoardChair'
+        | 'RecruitmentChair'
+        | 'ScholarshipChair'
+        | 'Chaplain'
+        | 'ActiveMember'
+        | 'NewMember'
+    }
     CompositeTypes: Record<string, never>
   }
 }

@@ -42,7 +42,9 @@ export function buildLiveAlerts(input: {
 
   const lowAtt = members.filter(
     (m) =>
-      (m.status === 'Active' || m.status === 'New Member') && m.attendancePct < 70
+      (m.status === 'Active' || m.status === 'New Member') &&
+      m.attendancePct != null &&
+      m.attendancePct < 70
   )
   if (lowAtt.length > 0) {
     alerts.push({

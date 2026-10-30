@@ -5,11 +5,13 @@ import App from './App.tsx'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { bootCloud } from './components/routing/CloudBootstrap'
 import { isGuestPreviewActive } from './lib/guestPreview'
-import { clearDemoData, STORAGE_KEYS } from './lib/demoSeed'
+import { clearDemoData, ensureGuestDemoFresh, STORAGE_KEYS } from './lib/demoSeed'
 
 try {
   if (!isGuestPreviewActive() && localStorage.getItem(STORAGE_KEYS.demoSeeded)) {
     clearDemoData()
+  } else {
+    ensureGuestDemoFresh()
   }
 } catch {
   /* storage unavailable */

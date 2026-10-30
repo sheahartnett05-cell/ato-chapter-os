@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { DEMO_EVENTS as seedEvents } from '../data/mockData'
+import { DEMO_EVENTS as seedEvents } from '../data/demoFixtures'
 import {
   SEED_ATTENDANCE,
   SEED_RSVP_EXCUSES,
@@ -23,8 +23,15 @@ import {
   initialStudyLocations,
   initialStudyLogs,
 } from '../data/chapterOpsData'
+import {
+  attendancePatchForExcuseDecision,
+  buildRollCallEntry,
+  normalizeAttendanceEntries,
+  normalizePoints,
+} from '../lib/attendance/attendanceMath'
 import { memberVerifiedHours, memberStudyHoursRequired } from '../lib/studyHours'
 import { allowDemoData, EMPTY_BILL_HIGHWAY, STORAGE_KEYS } from '../lib/demoSeed'
+import { readJson, writeJson } from '../lib/persist'
 import type { AttendanceEntry, Event, RsvpEntry } from '../types'
 import type { RsvpExcuse } from '../types/features'
 import type {
@@ -60,7 +67,13 @@ export interface ChapterOpsContextValue {
     eventId: string,
     memberId: string,
     status: AttendanceEntry['status'],
-    pointsEarned?: number
+    pointsEarned?: number,
+    opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
+  ) => void
+  clearAttendanceEntry: (eventId: string, memberId: string) => void
+  applyExcuseAttendanceDecision: (
+    excuseId: string,
+    decision: 'approved' | 'denied' | 'reopened'
   ) => void
   submitExcuse: (input: {
     eventId: string
@@ -96,6 +109,7 @@ export interface ChapterOpsContextValue {
   toggleStudyLocation: (id: string) => void
   logStudyHours: (entry: Omit<StudyHoursLog, 'id' | 'verified'>) => void
   verifyStudyHours: (id: string) => void
+  denyStudyHours: (id: string) => void
 
   duesCharges: DuesCharge[]
   duesPayments: DuesPayment[]
@@ -126,15 +140,8 @@ function seedEventList(): Event[] {
 }
 
 function readEvents(): Event[] {
-  try {
-    const raw = localStorage.getItem(EVENTS_KEY)
-    if (raw) {
-      const stored = JSON.parse(raw) as Event[]
-      if (Array.isArray(stored)) return stored
-    }
-  } catch {
-    /* ignore */
-  }
+  const stored = readJson<Event[] | null>(EVENTS_KEY, null)
+  if (stored && Array.isArray(stored)) return stored
   return allowDemoData() ? seedEventList() : []
 }
 
@@ -157,29 +164,7 @@ function readExcuses(): RsvpExcuse[] {
 }
 
 function writeEvents(next: Event[]) {
-  try {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(next))
-  } catch {
-    /* storage unavailable */
-  }
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T
-  } catch {
-    /* ignore */
-  }
-  return fallback
-}
-
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage unavailable */
-  }
+  writeJson(EVENTS_KEY, next)
 }
 
 function readStudyHoursRequirements(): StudyHoursRequirementsConfig {
@@ -308,7 +293,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
   )
 
   const getEventAttendance = useCallback(
-    (eventId: string) => attendance[eventId] ?? [],
+    (eventId: string) => normalizeAttendanceEntries(attendance[eventId] ?? []),
     [attendance]
   )
 
@@ -317,19 +302,74 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       eventId: string,
       memberId: string,
       status: AttendanceEntry['status'],
-      pointsEarned = 0
+      pointsEarned = 0,
+      opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
     ) => {
+      const recordedAt = opts?.recordedAt ?? new Date().toISOString()
+      const source = opts?.source ?? 'roll_call'
       persistAttendance((prev) => {
-        const list = prev[eventId] ?? []
-        const existing = list.find((a) => a.memberId === memberId)
-        const entry: AttendanceEntry = { memberId, status, pointsEarned }
-        const nextList = existing
-          ? list.map((a) => (a.memberId === memberId ? entry : a))
-          : [...list, entry]
+        const list = normalizeAttendanceEntries(prev[eventId] ?? [])
+        const entry =
+          source === 'roll_call'
+            ? buildRollCallEntry(memberId, status, pointsEarned, recordedAt)
+            : {
+                memberId,
+                status,
+                pointsEarned: status === 'Present' ? normalizePoints(pointsEarned) : 0,
+                recordedAt,
+                source,
+              }
+        // Corrections replace: drop prior rows for this member, append authoritative row
+        const nextList = [...list.filter((a) => a.memberId !== memberId), entry]
         return { ...prev, [eventId]: nextList }
       })
     },
     [persistAttendance]
+  )
+
+  const clearAttendanceEntry = useCallback(
+    (eventId: string, memberId: string) => {
+      persistAttendance((prev) => {
+        const list = normalizeAttendanceEntries(prev[eventId] ?? [])
+        const nextList = list.filter((a) => a.memberId !== memberId)
+        if (nextList.length === list.length) return prev
+        return { ...prev, [eventId]: nextList }
+      })
+    },
+    [persistAttendance]
+  )
+
+  const applyExcuseAttendanceDecision = useCallback(
+    (excuseId: string, decision: 'approved' | 'denied' | 'reopened') => {
+      const excuse = excuses.find((e) => e.id === excuseId)
+      if (!excuse) return
+      const recordedAt = new Date().toISOString()
+      persistAttendance((prev) => {
+        const list = normalizeAttendanceEntries(prev[excuse.eventId] ?? [])
+        const existing = list.find((a) => a.memberId === excuse.memberId)
+        const patch = attendancePatchForExcuseDecision(
+          decision,
+          excuse.memberId,
+          existing,
+          recordedAt
+        )
+        if (patch.kind === 'noop') return prev
+        if (patch.kind === 'remove') {
+          return {
+            ...prev,
+            [excuse.eventId]: list.filter((a) => a.memberId !== excuse.memberId),
+          }
+        }
+        return {
+          ...prev,
+          [excuse.eventId]: [
+            ...list.filter((a) => a.memberId !== excuse.memberId),
+            patch.entry,
+          ],
+        }
+      })
+    },
+    [excuses, persistAttendance]
   )
 
   const submitExcuse = useCallback(
@@ -489,7 +529,19 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
 
   const verifyStudyHours = useCallback((id: string) => {
     setStudyLogs((prev) => {
-      const next = prev.map((l) => (l.id === id ? { ...l, verified: true } : l))
+      const next = prev.map((l) =>
+        l.id === id ? { ...l, verified: true, rejected: false } : l
+      )
+      writeJson(STORAGE_KEYS.studyLogs, next)
+      return next
+    })
+  }, [])
+
+  const denyStudyHours = useCallback((id: string) => {
+    setStudyLogs((prev) => {
+      const next = prev.map((l) =>
+        l.id === id ? { ...l, verified: false, rejected: true } : l
+      )
       writeJson(STORAGE_KEYS.studyLogs, next)
       return next
     })
@@ -607,6 +659,8 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       setRsvp,
       getEventAttendance,
       setAttendanceEntry,
+      clearAttendanceEntry,
+      applyExcuseAttendanceDecision,
       submitExcuse,
       updateExcuseStatus,
       getEventExcuses,
@@ -630,6 +684,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       toggleStudyLocation,
       logStudyHours,
       verifyStudyHours,
+      denyStudyHours,
       duesCharges,
       duesPayments,
       billHighway,
@@ -652,6 +707,8 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       setRsvp,
       getEventAttendance,
       setAttendanceEntry,
+      clearAttendanceEntry,
+      applyExcuseAttendanceDecision,
       submitExcuse,
       updateExcuseStatus,
       getEventExcuses,
@@ -673,6 +730,7 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       toggleStudyLocation,
       logStudyHours,
       verifyStudyHours,
+      denyStudyHours,
       getMemberVerifiedHours,
       updateStudyHoursReset,
       duesCharges,

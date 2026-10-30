@@ -194,7 +194,7 @@ export function StandardsSetupWizard({
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col">
       {/* Progress */}
-      <div className="border-b border-[var(--rule)] bg-[var(--surface-card)] px-6 py-5 lg:px-10">
+      <div className="border-b border-[var(--rule)] bg-[var(--surface-card)] px-4 py-5 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-3xl">
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
@@ -233,7 +233,7 @@ export function StandardsSetupWizard({
       </div>
 
       {/* Body */}
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8 pb-28 lg:px-10">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-10">
         {step === 1 && (
           <div className="space-y-8">
             <div>
@@ -552,7 +552,7 @@ export function StandardsSetupWizard({
       </div>
 
       {/* Sticky footer */}
-      <div className="sticky bottom-0 z-10 border-t border-[var(--rule)] bg-[var(--surface-card)]/95 px-6 py-4 backdrop-blur lg:px-10">
+      <div className="sticky bottom-0 z-10 border-t border-[var(--rule)] bg-[var(--surface-card)]/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <button
             type="button"

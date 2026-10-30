@@ -1,6 +1,7 @@
-import { Bell } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { TopBarChapterModeLinks } from './ChapterModeNav'
 import { Logo } from './Logo'
+import { useShellMenuOptional } from '../../context/ShellMenuContext'
 
 interface TopBarProps {
   title: string
@@ -11,10 +12,22 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
+  const shellMenu = useShellMenuOptional()
+
   return (
-    <header className="sticky top-[2px] z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
+    <header className="sticky top-0 z-20 border-b border-[var(--rule)] bg-[var(--surface-card)]">
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
         <div className="flex min-w-0 items-start gap-3 sm:items-center">
+          {shellMenu && (
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--rule)] text-[var(--ink)] md:hidden"
+              aria-label="Open menu"
+              onClick={shellMenu.openMenu}
+            >
+              <Menu size={18} strokeWidth={1.75} />
+            </button>
+          )}
           <TopBarChapterModeLinks />
           {showBrand && (
             <div className="hidden sm:block">
@@ -24,7 +37,7 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
           <div className="min-w-0 flex-1">
             <h1 className="font-serif text-2xl leading-tight tracking-tight text-[var(--ink)]">{title}</h1>
             {subtitle && (
-              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+              <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                 {subtitle}
               </p>
             )}
@@ -36,20 +49,6 @@ export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarPro
             {actions}
           </div>
         )}
-
-        <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <button
-            type="button"
-            className="relative border border-[var(--rule)] p-2 text-[var(--ink)] transition hover:bg-black/[0.03]"
-            aria-label="Notifications"
-          >
-            <Bell size={16} strokeWidth={1.5} />
-            <span
-              className="absolute right-1.5 top-1.5 h-1.5 w-1.5"
-              style={{ background: 'var(--accent)' }}
-            />
-          </button>
-        </div>
       </div>
     </header>
   )

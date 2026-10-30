@@ -13,6 +13,13 @@ import { markGuestPreview } from '../lib/guestPreview'
 import { writeJson, removeJson } from '../lib/persist'
 import { applyPositionBoost, positionPermissionBoost } from '../lib/positionPermissions'
 import {
+  cloudIdentityEnabled,
+  fetchCloudMembership,
+  fetchMyCapabilities,
+  permissionsFromCapabilities,
+  type ServerCapability,
+} from '../lib/cloudIdentity'
+import {
   getAuthEmail,
   getAuthUserId,
   isEmailVerified,
@@ -103,6 +110,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(readOnboarding)
+  const [serverRole, setServerRole] = useState<UserRole | null>(null)
+  const [serverCaps, setServerCaps] = useState<ServerCapability[] | null>(null)
   const [, tick] = useState(0)
 
   useEffect(() => subscribeSupabaseSession(() => tick((n) => n + 1)), [])
@@ -110,6 +119,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabaseAuth = requiresSupabaseAuth()
   const authUserId = getAuthUserId()
   const authEmail = getAuthEmail()
+
+  useEffect(() => {
+    let cancelled = false
+    async function hydrateServerIdentity() {
+      if (!cloudIdentityEnabled() || onboarding?.isGuest) {
+        if (!cancelled) {
+          setServerRole(null)
+          setServerCaps(null)
+        }
+        return
+      }
+      const membership = await fetchCloudMembership()
+      if (cancelled) return
+      if (!membership) {
+        setServerRole(null)
+        setServerCaps(null)
+        return
+      }
+      setServerRole(membership.role)
+      const caps = await fetchMyCapabilities(membership.chapterId)
+      if (!cancelled) setServerCaps(caps)
+    }
+    void hydrateServerIdentity()
+    return () => {
+      cancelled = true
+    }
+  }, [authUserId, onboarding?.isGuest, onboarding?.completed])
 
   const completeOnboarding = useCallback(
     (data: Omit<OnboardingData, 'completed'>) => {
@@ -165,8 +201,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(() => {
-    const role = onboarding?.role ?? null
-    const permissions = role ? getPermissions(role) : getPermissions('ActiveMember')
+    const localRole = onboarding?.role ?? null
+    const role = serverRole ?? localRole
+    const baseRole = role ?? 'ActiveMember'
+    const permissions =
+      serverCaps != null && !onboarding?.isGuest
+        ? permissionsFromCapabilities(baseRole, serverCaps, getPermissions)
+        : getPermissions(baseRole)
     const userId = authUserId ?? onboarding?.userId ?? null
 
     return {
@@ -191,6 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [
     onboarding,
+    serverRole,
+    serverCaps,
     authUserId,
     authEmail,
     supabaseAuth,

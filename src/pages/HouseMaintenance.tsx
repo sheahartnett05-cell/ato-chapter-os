@@ -221,7 +221,7 @@ export default function HouseMaintenancePage() {
             value={form.area}
             onChange={(e) => setForm({ ...form, area: e.target.value })}
           />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <select
               className="input-editorial"
               value={form.priority}

@@ -1,6 +1,9 @@
 import type { StudyHoursLog, StudyHoursResetConfig, StudyHoursRequirementsConfig } from '../types/chapterOps'
+import { localTodayIso } from './liveAlerts'
 
-const DEMO_TODAY = new Date('2025-08-23T12:00:00')
+function defaultReference(): Date {
+  return new Date(`${localTodayIso()}T12:00:00`)
+}
 
 export function parseResetTime(time: string): { hours: number; minutes: number } {
   const [h, m] = time.split(':').map(Number)
@@ -10,7 +13,7 @@ export function parseResetTime(time: string): { hours: number; minutes: number }
 /** Start of the current tracking period (null = semester / all-time). */
 export function getStudyPeriodStart(
   config: StudyHoursResetConfig,
-  reference = DEMO_TODAY
+  reference = defaultReference()
 ): Date | null {
   if (config.frequency === 'semester') return null
 
@@ -39,7 +42,7 @@ export function getStudyPeriodStart(
 export function logInCurrentPeriod(
   log: StudyHoursLog,
   config: StudyHoursResetConfig,
-  reference = DEMO_TODAY
+  reference = defaultReference()
 ): boolean {
   const start = getStudyPeriodStart(config, reference)
   if (!start) return true
@@ -51,7 +54,7 @@ export function memberVerifiedHours(
   logs: StudyHoursLog[],
   memberId: string,
   config: StudyHoursResetConfig,
-  reference = DEMO_TODAY
+  reference = defaultReference()
 ): number {
   return logs
     .filter(
@@ -88,7 +91,7 @@ export function resetDayLabel(config: StudyHoursResetConfig): string {
   return `Day ${config.resetDay}`
 }
 
-export function nextResetLabel(config: StudyHoursResetConfig, reference = DEMO_TODAY): string {
+export function nextResetLabel(config: StudyHoursResetConfig, reference = defaultReference()): string {
   if (config.frequency === 'semester') return 'Hours accumulate for the full term'
   const start = getStudyPeriodStart(config, reference)
   if (!start) return ''

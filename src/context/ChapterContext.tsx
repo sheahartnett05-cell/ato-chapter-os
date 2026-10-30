@@ -17,9 +17,11 @@ import {
   readOnboardingChapterMeta,
   readOnboardingOrgId,
 } from '../lib/onboardingStorage'
+import { CHAPTERA_PRODUCT_NAME, isProductOrgId } from '../lib/brandCopy'
 import { currentTermLabel } from '../lib/demoRelativeDates'
 import { writeJson } from '../lib/persist'
 import {
+  accentInkForLightSurface,
   contrastText,
   darkenHex,
   effectiveAccent,
@@ -137,11 +139,15 @@ function applyThemeCssVariables(org: OrganizationChapter) {
   root.style.setProperty('--primary-subtle', `${primaryColor}10`)
   root.style.setProperty('--rule', 'rgb(0 0 0 / 0.12)')
   root.style.setProperty('--ink', '#141414')
-  root.style.setProperty('--muted', '#6b6b6b')
+  root.style.setProperty('--muted', '#5c5c5c')
+  root.style.setProperty('--accent-ink', accentInkForLightSurface(accent))
+  root.style.setProperty('--focus-ring', '#141414')
 
   root.setAttribute('data-org', id)
   document.body.style.backgroundColor = lightenHex(primaryColor, 0.96)
-  document.title = org.id === 'agora' || org.id === 'chapter-os' ? 'Agora' : `${org.nickname} · ${org.orgName}`
+  document.title = isProductOrgId(org.id)
+    ? CHAPTERA_PRODUCT_NAME
+    : `${org.nickname} · ${org.orgName}`
 }
 
 export function ChapterProvider({ children }: { children: ReactNode }) {

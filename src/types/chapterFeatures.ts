@@ -14,6 +14,7 @@ export type ChapterFeatureId =
   | 'committees'
   | 'bylaws'
   | 'execSlides'
+  | 'attendancePoints'
 
 export type EditorCapabilityId =
   | 'editAnnouncements'
@@ -28,6 +29,7 @@ export type EditorCapabilityId =
   | 'editTables'
   | 'editBylaws'
   | 'editChapterSetup'
+  | 'editAttendance'
   | 'manageInvites'
 
 export interface ChapterFeatureDef {
@@ -125,6 +127,12 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
     description: 'Officer meeting decks',
     defaultEnabled: true,
   },
+  {
+    id: 'attendancePoints',
+    label: 'Attendance & points',
+    description: 'Roll call, attendance %, and event points',
+    defaultEnabled: true,
+  },
 ]
 
 export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
@@ -193,6 +201,12 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
     label: 'Edit bylaws',
     description: 'Import and update governing docs',
     featureId: 'bylaws',
+  },
+  {
+    id: 'editAttendance',
+    label: 'Edit attendance',
+    description: 'Take roll call and correct attendance records',
+    featureId: 'attendancePoints',
   },
   {
     id: 'editChapterSetup',

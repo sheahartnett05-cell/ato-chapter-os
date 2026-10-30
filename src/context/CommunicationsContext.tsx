@@ -82,6 +82,10 @@ interface CommunicationsContextValue {
   posts: Announcement[]
   templates: AnnouncementTemplate[]
   addPost: (input: CreatePostInput) => Announcement
+  updatePost: (id: string, patch: { title?: string; body?: string }) => void
+  deletePost: (id: string) => void
+  /** Re-insert a previously deleted post (undo). */
+  restorePost: (post: Announcement) => void
   togglePin: (id: string) => void
   votePoll: (postId: string, memberId: string, optionIds: string[]) => boolean
   joinSignup: (postId: string, slotId: string, memberId: string) => boolean
@@ -150,6 +154,38 @@ export function CommunicationsProvider({ children }: { children: ReactNode }) {
       persist(
         posts.map((p) => (p.id === id ? { ...p, pinned: !p.pinned } : { ...p, pinned: false }))
       )
+    },
+    [posts, persist]
+  )
+
+  const updatePost = useCallback(
+    (id: string, patch: { title?: string; body?: string }) => {
+      persist(
+        posts.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                title: patch.title?.trim() ?? p.title,
+                body: patch.body?.trim() ?? p.body,
+              }
+            : p
+        )
+      )
+    },
+    [posts, persist]
+  )
+
+  const deletePost = useCallback(
+    (id: string) => {
+      persist(posts.filter((p) => p.id !== id))
+    },
+    [posts, persist]
+  )
+
+  const restorePost = useCallback(
+    (post: Announcement) => {
+      if (posts.some((p) => p.id === post.id)) return
+      persist([post, ...posts])
     },
     [posts, persist]
   )
@@ -256,6 +292,9 @@ export function CommunicationsProvider({ children }: { children: ReactNode }) {
       posts,
       templates: ANNOUNCEMENT_TEMPLATES,
       addPost,
+      updatePost,
+      deletePost,
+      restorePost,
       togglePin,
       votePoll,
       joinSignup,
@@ -266,6 +305,9 @@ export function CommunicationsProvider({ children }: { children: ReactNode }) {
     [
       posts,
       addPost,
+      updatePost,
+      deletePost,
+      restorePost,
       togglePin,
       votePoll,
       joinSignup,

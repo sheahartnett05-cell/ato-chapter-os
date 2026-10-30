@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, KeyRound, Search, UserPlus } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { SearchField } from '../components/ui/SearchField'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { getOrCreateUserId, useMembers } from '../context/MembersContext'
@@ -14,100 +15,11 @@ import {
 } from '../data/nationalOrgs'
 import type { InviteCode } from '../types/memberAccount'
 import { roleLabel, type UserProfile, type UserRole } from '../types/permissions'
-import { contrastText } from '../lib/themeUtils'
 import { isLikelyEmail } from '../lib/formUtils'
+import { parseJoinCodeFromSearch } from '../lib/joinLinks'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
-import { AgoraMark } from '../components/layout/Logo'
 import { OrgCrest } from '../components/ui/OrgCrest'
-
-const ORG_MOTTOS: Record<string, string> = {
-  ato: 'Established 1865 · Friendship · Truth',
-  'sigma-chi': 'In Hoc Signo Vinces',
-  'kappa-sigma': 'Bononia Docet',
-  'zeta-tau-alpha': 'Seek the Noblest',
-  'delta-gamma': 'Do Good',
-  aka: 'By Culture and By Merit',
-}
-
-function BrandPanel({ org }: { org: NationalOrg | null }) {
-  const primary = org?.primaryColor ?? '#1a1a1a'
-  const accent = org?.accentColor ?? '#c4a35a'
-  const secondary = org?.secondaryColor ?? '#333'
-  const fg = contrastText(primary)
-  const motto = org
-    ? (ORG_MOTTOS[org.id] ?? `${org.orgType} · National Organization`)
-    : 'Built for every chapter'
-
-  return (
-    <aside
-      className="relative hidden min-h-screen overflow-hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-between"
-      style={{ backgroundColor: primary, color: fg }}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage: `linear-gradient(145deg, ${accent} 0%, transparent 42%), linear-gradient(220deg, ${secondary} 0%, transparent 55%)`,
-        }}
-      />
-
-      {/* Centered letter watermark */}
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        aria-hidden
-      >
-        <span
-          className="select-none text-center font-serif font-semibold leading-none tracking-tight opacity-[0.1]"
-          style={{
-            fontSize: 'clamp(6rem, 22vw, 14rem)',
-            transform: 'translateY(0.03em)',
-          }}
-        >
-          {org?.letters ?? 'AG'}
-        </span>
-      </div>
-
-      <div className="relative z-10 p-10 xl:p-14">
-        <div className="flex items-center gap-3">
-          {org ? (
-            <OrgCrest org={org} size={44} />
-          ) : (
-            <AgoraMark size={44} onDark={fg === '#ffffff'} />
-          )}
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-70">Agora</p>
-            {org && (
-              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] opacity-50">
-                {org.letters}
-              </p>
-            )}
-          </div>
-        </div>
-        <h1 className="mt-10 max-w-sm font-serif text-4xl tracking-tight xl:text-5xl">
-          {org ? org.orgName : 'One home for every chapter.'}
-        </h1>
-        <p className="mt-4 max-w-xs text-sm leading-relaxed opacity-70">{motto}</p>
-      </div>
-
-      <div className="relative z-10 space-y-4 p-10 xl:p-14">
-        {org && (
-          <div className="flex gap-1.5">
-            {[primary, accent, secondary].map((c) => (
-              <span
-                key={c}
-                className="h-1.5 flex-1 rounded-sm border border-white/15"
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-        )}
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-55">
-          {org ? `${org.nickname} · ${org.orgType}` : 'Live brand preview'}
-        </p>
-      </div>
-    </aside>
-  )
-}
-
+import { BrandHeroPanel } from '../components/onboarding/BrandHeroPanel'
 function OrgSelectCard({
   org,
   selected,
@@ -150,6 +62,12 @@ function OrgSelectCard({
 }
 export default function Onboarding() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const urlJoinCode = useMemo(
+    () => parseJoinCodeFromSearch(searchParams.toString()),
+    [searchParams]
+  )
+  const intent = searchParams.get('intent')
   const {
     completeOnboarding,
     requiresSupabaseAuth: needsAuth,
@@ -159,16 +77,42 @@ export default function Onboarding() {
   } = useAuth()
   const { orgDirectory, setSelectedOrg, setChapterMeta } = useChapter()
   const { chapterLock, validateInvite, redeemInvite, registerMember } = useMembers()
+  const [resolvedCloudChapterId, setResolvedCloudChapterId] = useState<string | undefined>()
+  const [inviteChapterMeta, setInviteChapterMeta] = useState<{
+    orgId: string
+    chapterDesignation: string
+    university: string
+  } | null>(null)
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [finishBusy, setFinishBusy] = useState(false)
+  const chapterKnown = Boolean(chapterLock || inviteChapterMeta)
+  const skipStart = intent === 'create'
   const steps = useMemo(() => {
-    if (chapterLock) return ['Start', 'Profile', 'About'] as const
-    return ['Start', 'Profile', 'About', 'Organization', 'Chapter'] as const
-  }, [chapterLock])
+    const tail = chapterKnown
+      ? ['Profile', 'About']
+      : ['Profile', 'About', 'Organization', 'Chapter']
+    return skipStart ? tail : ['Start', ...tail]
+  }, [chapterKnown, skipStart])
   const [step, setStep] = useState(0)
-  const [entryPath, setEntryPath] = useState<'invite' | 'create' | null>(null)
+  const [entryPath, setEntryPath] = useState<'invite' | 'create' | null>(
+    intent === 'create' ? 'create' : intent === 'join' || urlJoinCode ? 'invite' : null,
+  )
   const [createRole, setCreateRole] = useState<UserRole>('President')
   const [inviteInput, setInviteInput] = useState('')
   const [inviteError, setInviteError] = useState('')
   const [validatedInvite, setValidatedInvite] = useState<InviteCode | null>(null)
+
+  useEffect(() => {
+    if (intent === 'create' || intent === 'join' || urlJoinCode) return
+    navigate('/', { replace: true })
+  }, [intent, urlJoinCode, navigate])
+
+  useEffect(() => {
+    if (!urlJoinCode) return
+    setEntryPath('invite')
+    setInviteInput(urlJoinCode)
+    setInviteError('')
+  }, [urlJoinCode])
 
   useEffect(() => {
     if (chapterLock && createRole === 'President') setCreateRole('ActiveMember')
@@ -204,8 +148,15 @@ export default function Onboarding() {
       setChapterDesignation(chapterLock.chapterDesignation)
       setUniversity(chapterLock.university)
       setSelectedOrg(chapterLock.orgId)
+      return
     }
-  }, [chapterLock, setSelectedOrg])
+    if (inviteChapterMeta) {
+      setOrgId(inviteChapterMeta.orgId)
+      setChapterDesignation(inviteChapterMeta.chapterDesignation)
+      setUniversity(inviteChapterMeta.university)
+      setSelectedOrg(inviteChapterMeta.orgId)
+    }
+  }, [chapterLock, inviteChapterMeta, setSelectedOrg])
   const filteredOrgs = useMemo(() => {
     const q = orgQuery.trim().toLowerCase()
     return orgsInCategory(category).filter((o) => {
@@ -229,8 +180,7 @@ export default function Onboarding() {
           profile.lastName.trim() &&
           profile.phone.trim() &&
           profile.email?.trim() &&
-          isLikelyEmail(profile.email) &&
-          (!needsAuth || emailVerified)
+          isLikelyEmail(profile.email)
         : stepKey === 'About'
           ? profile.major?.trim() && profile.birthday?.trim()
           : stepKey === 'Organization'
@@ -242,28 +192,49 @@ export default function Onboarding() {
     setOrgId(id)
     setSelectedOrg(id)
   }
-  const advanceFromStart = () => {
+  const advanceFromStart = async () => {
     if (entryPath === 'create') {
       setValidatedInvite(null)
+      setResolvedCloudChapterId(undefined)
+      setInviteChapterMeta(null)
       setInviteError('')
       setStep((s) => s + 1)
       return
     }
     if (entryPath !== 'invite') return
-    const result = validateInvite(inviteInput)
-    if (!result.valid || !result.invite) {
-      setInviteError(result.error ?? 'Invalid code')
-      return
-    }
+    setInviteBusy(true)
     setInviteError('')
-    setValidatedInvite(result.invite)
-    setStep((s) => s + 1)
+    try {
+      const result = await validateInvite(inviteInput)
+      if (!result.valid || !result.invite) {
+        setInviteError(result.error ?? 'Invalid code')
+        return
+      }
+      setValidatedInvite(result.invite)
+      setResolvedCloudChapterId(result.cloudChapterId)
+      if (result.orgId && result.chapterDesignation != null && result.university != null) {
+        setInviteChapterMeta({
+          orgId: result.orgId,
+          chapterDesignation: result.chapterDesignation,
+          university: result.university,
+        })
+      } else {
+        setInviteChapterMeta(null)
+      }
+      setStep((s) => s + 1)
+    } finally {
+      setInviteBusy(false)
+    }
   }
-  const finish = () => {
-    const resolvedOrgId = chapterLock?.orgId ?? orgId
+  const finish = async () => {
+    const resolvedOrgId = chapterLock?.orgId ?? inviteChapterMeta?.orgId ?? orgId
     if (!resolvedOrgId) return
-    const chapter = chapterLock?.chapterDesignation ?? chapterDesignation.trim()
-    const school = chapterLock?.university ?? university.trim()
+    const chapter =
+      chapterLock?.chapterDesignation ??
+      inviteChapterMeta?.chapterDesignation ??
+      chapterDesignation.trim()
+    const school =
+      chapterLock?.university ?? inviteChapterMeta?.university ?? university.trim()
     const selfRegistered = entryPath === 'create'
     // Join codes → ActiveMember; only founder invite → President; create path uses createRole
     const role: UserRole =
@@ -276,15 +247,26 @@ export default function Onboarding() {
     const userId = getAuthUserId() ?? getOrCreateUserId()
     const avatar = initials
     let inviteCodeId = 'self-register'
+    const normalizedInviteCode = inviteInput.trim().toUpperCase()
     if (!selfRegistered) {
       if (!validatedInvite) return
-      const redeemed = redeemInvite(inviteInput)
-      if (!redeemed) {
-        setInviteError('Invite code could not be redeemed')
-        setStep(0)
-        return
+      setFinishBusy(true)
+      try {
+        // Cloud joiners increment usage after hydrate (mergeJoinerAfterHydrate)
+        if (!resolvedCloudChapterId) {
+          const redeemed = await redeemInvite(inviteInput)
+          if (!redeemed) {
+            setInviteError('Invite code could not be redeemed')
+            setStep(0)
+            return
+          }
+          inviteCodeId = redeemed.id
+        } else {
+          inviteCodeId = validatedInvite.id
+        }
+      } finally {
+        setFinishBusy(false)
       }
-      inviteCodeId = redeemed.id
     }
     try {
       const { memberId } = registerMember({
@@ -292,10 +274,12 @@ export default function Onboarding() {
         profile: { ...profile, avatar },
         role,
         inviteCodeId,
+        inviteCode: selfRegistered ? undefined : normalizedInviteCode,
         orgId: resolvedOrgId,
         chapterDesignation: chapter,
         university: school,
         email: profile.email,
+        cloudChapterId: resolvedCloudChapterId,
       })
       flushSync(() => {
         setSelectedOrg(resolvedOrgId)
@@ -315,23 +299,22 @@ export default function Onboarding() {
       navigate(home, { replace: true })
     } catch (e) {
       setInviteError(e instanceof Error ? e.message : 'Could not create account')
-      setStep(0)
     }
   }
   const goNext = () => {
     if (stepKey === 'Start') {
-      advanceFromStart()
+      void advanceFromStart()
       return
     }
     if (step < steps.length - 1) {
       setStep((s) => s + 1)
       return
     }
-    finish()
+    void finish()
   }
   return (
     <div className="flex min-h-screen bg-[var(--surface-tint)] text-[var(--ink)]">
-      <BrandPanel org={selectedOrg} />
+      <BrandHeroPanel org={selectedOrg} variant="onboarding" />
       <div className="flex min-h-screen w-full flex-col lg:w-1/2">
         <div className="theme-stripe" />
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-8 sm:px-10">
@@ -352,152 +335,32 @@ export default function Onboarding() {
             {stepKey === 'Start' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="font-serif text-3xl tracking-tight">Welcome to Agora</h2>
+                  <h2 className="font-serif text-3xl tracking-tight">Join your chapter</h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-                    Join with an invite from your chapter, or create a profile to get started.
+                    Paste the code your officers sent you. Starting a chapter instead? Go back and choose Create a chapter.
                   </p>
                 </div>
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEntryPath('invite')
+                <label className="block">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+                    Join code
+                  </span>
+                  <input
+                    value={inviteInput}
+                    onChange={(e) => {
+                      setInviteInput(e.target.value.toUpperCase())
                       setInviteError('')
                     }}
-                    className={`flex w-full items-start gap-3.5 rounded-md border p-4 text-left transition ${
-                      entryPath === 'invite'
-                        ? 'border-[var(--primary)] bg-[var(--primary-subtle)] shadow-[inset_0_0_0_1px_var(--primary)]'
-                        : 'border-[var(--rule)] bg-[var(--surface-card)] hover:border-[var(--ink)]/40'
-                    }`}
-                  >
-                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--ink)] text-white">
-                      <KeyRound size={16} strokeWidth={1.75} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[var(--ink)]">Join with invite code</p>
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-                        Your exec board sent you a code for a specific role
-                      </p>
-                    </div>
-                    {entryPath === 'invite' && (
-                      <Check size={16} className="mt-1 shrink-0 text-[var(--primary)]" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEntryPath('create')
-                      setValidatedInvite(null)
-                      setInviteError('')
-                      setInviteInput('')
-                    }}
-                    className={`flex w-full items-start gap-3.5 rounded-md border p-4 text-left transition ${
-                      entryPath === 'create'
-                        ? 'border-[var(--primary)] bg-[var(--primary-subtle)] shadow-[inset_0_0_0_1px_var(--primary)]'
-                        : 'border-[var(--rule)] bg-[var(--surface-card)] hover:border-[var(--ink)]/40'
-                    }`}
-                  >
-                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--ink)] text-white">
-                      <UserPlus size={16} strokeWidth={1.75} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[var(--ink)]">Create my profile</p>
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-                        Set up your roster profile without an invite code
-                      </p>
-                    </div>
-                    {entryPath === 'create' && (
-                      <Check size={16} className="mt-1 shrink-0 text-[var(--primary)]" />
-                    )}
-                  </button>
-                </div>
-                {entryPath === 'invite' && (
-                  <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
-                    <label className="block">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                        Invite code
-                      </span>
-                      <input
-                        value={inviteInput}
-                        onChange={(e) => {
-                          setInviteInput(e.target.value.toUpperCase())
-                          setInviteError('')
-                        }}
-                        placeholder="CHAPTER-JOIN-…"
-                        className="input-editorial mt-1 font-mono uppercase tracking-wider"
-                        autoFocus
-                      />
-                    </label>
-                    {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
-                    <p className="text-xs leading-relaxed text-[var(--muted)]">
-                      Ask your president for the chapter join code (created when the chapter was
-                      founded). Starting a new chapter? Use{' '}
-                      <span className="font-mono font-semibold text-[var(--ink)]">CHAPTER-FOUNDER</span>
-                      — a unique join code is generated for members afterward.
-                    </p>
-                  </div>
+                    placeholder="CHAPTER-JOIN-…"
+                    className="input-editorial mt-1 font-mono uppercase tracking-wider"
+                    autoFocus
+                  />
+                </label>
+                {inviteError && <p className="text-sm text-red-600">{inviteError}</p>}
+                {urlJoinCode && (
+                  <p className="text-sm text-[var(--ink)]">
+                    This link already includes a code. Confirm it and continue.
+                  </p>
                 )}
-                {entryPath === 'create' && (
-                  <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      I am joining as
-                    </p>
-                    <div className="space-y-2">
-                      {(
-                        [
-                          ...(!chapterLock
-                            ? [
-                                {
-                                  id: 'President' as const,
-                                  label: 'Founding president',
-                                  hint: 'Locks this chapter and unlocks exec tools',
-                                },
-                              ]
-                            : []),
-                          {
-                            id: 'ActiveMember' as const,
-                            label: 'Active member',
-                            hint: 'Initiated / continuing member',
-                          },
-                          {
-                            id: 'NewMember' as const,
-                            label: 'New member',
-                            hint: 'Pledge / associate class',
-                          },
-                        ] as { id: UserRole; label: string; hint: string }[]
-                      ).map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setCreateRole(opt.id)}
-                          className={`flex w-full items-center justify-between border px-3 py-2.5 text-left transition ${
-                            createRole === opt.id
-                              ? 'border-[var(--primary)] bg-[var(--primary-subtle)]'
-                              : 'border-[var(--rule)] hover:border-[var(--ink)]'
-                          }`}
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-[var(--ink)]">{opt.label}</p>
-                            <p className="text-xs text-[var(--muted)]">{opt.hint}</p>
-                          </div>
-                          {createRole === opt.id && (
-                            <Check size={14} className="shrink-0 text-[var(--primary)]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <p className="pt-1">
-                  <a
-                    href="/preview"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline-offset-2 hover:underline"
-                  >
-                    Or continue as guest preview →
-                  </a>
-                </p>
               </div>
             )}
             {stepKey === 'Profile' && (
@@ -586,7 +449,12 @@ export default function Onboarding() {
                 {needsAuth && (
                   <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      Verify email {emailVerified ? '· signed in' : ''}
+                      Verify email {emailVerified ? '· signed in' : '· optional'}
+                    </p>
+                    <p className="text-xs leading-relaxed text-[var(--muted)]">
+                      {emailVerified
+                        ? 'This browser is signed in. Continue to finish your profile.'
+                        : 'Send a login code if you want cloud sign-in. You can still continue and create your chapter account if the email only has a confirm link.'}
                     </p>
                     {!emailVerified && (
                       <>
@@ -727,7 +595,7 @@ export default function Onboarding() {
                 <div>
                   <h2 className="font-serif text-3xl tracking-tight">Select your org</h2>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    Sets chapter colors, language, and branding across Agora.
+                    Sets chapter colors, language, and branding across Chaptera.
                   </p>
                 </div>
 
@@ -758,20 +626,13 @@ export default function Onboarding() {
                   ))}
                 </div>
 
-                <div className="relative">
-                  <Search
-                    size={15}
-                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]"
-                  />
-                  <input
-                    type="search"
-                    value={orgQuery}
-                    onChange={(e) => setOrgQuery(e.target.value)}
-                    placeholder="Search by name or letters…"
-                    className="input-editorial pl-10"
-                    autoComplete="off"
-                  />
-                </div>
+                <SearchField
+                  value={orgQuery}
+                  onChange={setOrgQuery}
+                  placeholder="Search by name or letters…"
+                  aria-label="Search organizations by name or letters"
+                  className="sm:max-w-none"
+                />
 
                 {selectedOrg && (
                   <div className="flex items-center gap-3 rounded-md border border-[var(--primary)]/30 bg-[var(--primary-subtle)] px-3 py-2.5">
@@ -866,19 +727,28 @@ export default function Onboarding() {
               </div>
             )}
           </div>
+          {inviteError && stepKey !== 'Start' && (
+            <p className="mt-6 text-sm text-red-600">{inviteError}</p>
+          )}
           <div className="mt-8 flex items-center gap-2 border-t border-[var(--rule)] pt-6">
-            {step > 0 && (
+            {step > 0 ? (
               <button type="button" onClick={() => setStep((s) => s - 1)} className="btn-ghost">
                 <ArrowLeft size={14} /> Back
+              </button>
+            ) : (
+              <button type="button" onClick={() => navigate('/')} className="btn-ghost">
+                <ArrowLeft size={14} /> Home
               </button>
             )}
             <button
               type="button"
-              disabled={!canNext}
+              disabled={!canNext || inviteBusy || finishBusy}
               onClick={goNext}
               className="btn-primary ml-auto disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {step < steps.length - 1 ? (
+              {inviteBusy || finishBusy ? (
+                'Checking…'
+              ) : step < steps.length - 1 ? (
                 <>
                   Continue <ArrowRight size={14} />
                 </>

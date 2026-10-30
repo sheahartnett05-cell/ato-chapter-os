@@ -50,6 +50,17 @@ export async function initSupabaseSession(): Promise<void> {
   const { data } = await sb.auth.getSession()
   session = data.session
   user = data.session?.user ?? null
+
+  if (!user && import.meta.env.VITE_SMOKE_TEST === '1') {
+    const { data: anon, error } = await sb.auth.signInAnonymously()
+    if (!error && anon.session) {
+      session = anon.session
+      user = anon.session.user
+    } else if (error) {
+      console.warn('[agora] smoke-test anonymous sign-in failed', error.message)
+    }
+  }
+
   ready = true
   notify()
 

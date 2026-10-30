@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 
 const MAX_BYTES = 2 * 1024 * 1024
@@ -25,12 +25,14 @@ export function PhotoUpload({
   accentColor = 'var(--primary)',
 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [sizeError, setSizeError] = useState('')
 
   const handleFile = (file: File | undefined) => {
     if (!file) return
+    setSizeError('')
     if (!file.type.startsWith('image/')) return
     if (file.size > MAX_BYTES) {
-      alert('Photo must be under 2 MB')
+      setSizeError('Photo must be under 2 MB')
       return
     }
     const reader = new FileReader()
@@ -74,6 +76,7 @@ export function PhotoUpload({
           Remove
         </button>
       )}
+      {sizeError && <p className="mt-1 max-w-[12rem] text-xs text-red-600">{sizeError}</p>}
     </div>
   )
 }

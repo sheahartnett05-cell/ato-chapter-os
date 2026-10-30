@@ -105,3 +105,47 @@ export function shiftDuesChargesRelative(
     createdAt: new Date(`${addDays(today, -14)}T10:00:00`).toISOString(),
   }))
 }
+
+/** Authoring anchor for whole-blob date shifts (partner + seed versioning). */
+export const DEMO_DATE_ANCHOR = '2025-08-22'
+export const DEMO_SEED_VERSION = '5'
+
+export function demoDateShiftDays(today = localTodayIso()): number {
+  const anchor = new Date(`${DEMO_DATE_ANCHOR}T12:00:00`).getTime()
+  const now = new Date(`${today}T12:00:00`).getTime()
+  return Math.round((now - anchor) / 86_400_000)
+}
+
+function shiftIsoString(value: string, days: number): string {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})([\s\S]*)$/)
+  if (!match) return value
+  return addDays(match[1], days) + match[2]
+}
+
+function shiftCopy(value: string): string {
+  const term = currentTermLabel()
+  const year = String(new Date().getFullYear())
+  return value
+    .replaceAll('Fall 2025', term)
+    .replaceAll('fall 2025', term.toLowerCase())
+    .replaceAll('2025', year)
+}
+
+/** Deep-clone seed data with ISO dates and Fall 2025 labels moved to the current term. */
+export function relativizeDemo<T>(value: T, days = demoDateShiftDays()): T {
+  if (typeof value === 'string') {
+    const dated = /^\d{4}-\d{2}-\d{2}/.test(value) ? shiftIsoString(value, days) : value
+    return shiftCopy(dated) as T
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => relativizeDemo(item, days)) as T
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, child] of Object.entries(value)) {
+      out[key] = relativizeDemo(child, days)
+    }
+    return out as T
+  }
+  return value
+}

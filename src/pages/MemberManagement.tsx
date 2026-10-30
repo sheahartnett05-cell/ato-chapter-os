@@ -5,6 +5,8 @@ import { SearchField } from '../components/ui/SearchField'
 import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { TopBar } from '../components/layout/TopBar'
 import { Card } from '../components/ui/Card'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/Toast'
 import {
   StatusPill,
   duesVariant,
@@ -16,6 +18,7 @@ import type { DuesStatus, MemberStatus } from '../types'
 
 export default function MemberManagement() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const { members, addMemberToRoster } = useMembers()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
@@ -44,12 +47,15 @@ export default function MemberManagement() {
 
   useEffect(() => {
     const filter = searchParams.get('filter')
-    if (filter === 'dues') setDuesFilter('Outstanding')
+    if (filter === 'dues' || filter === 'attention') setDuesFilter('Outstanding')
+    if (filter === 'pending') setDuesFilter('Partially Paid')
+    if (filter === 'new-member') setStatusFilter('New Member')
     if (filter === 'attendance') setSortBy('attendance')
   }, [searchParams])
 
   const filtered = useMemo(() => {
     let result = [...members]
+    const filter = searchParams.get('filter')
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(
@@ -62,21 +68,30 @@ export default function MemberManagement() {
     if (statusFilter !== 'All') result = result.filter((m) => m.status === statusFilter)
     if (duesFilter !== 'All') result = result.filter((m) => m.duesStatus === duesFilter)
     if (execOnly) result = result.filter((m) => m.isExec)
+    if (filter === 'attention') {
+      result = result.filter(
+        (m) =>
+          m.duesStatus === 'Outstanding' ||
+          m.duesStatus === 'Overdue' ||
+          (m.attendancePct != null && m.attendancePct < 70),
+      )
+    }
 
     result.sort((a, b) => {
       if (sortBy === 'name')
         return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`)
-      if (sortBy === 'attendance') return b.attendancePct - a.attendancePct
+      if (sortBy === 'attendance')
+        return (a.attendancePct ?? 999) - (b.attendancePct ?? 999)
       return b.duesPaid - a.duesPaid
     })
     return result
-  }, [members, search, statusFilter, duesFilter, execOnly, sortBy])
+  }, [members, search, statusFilter, duesFilter, execOnly, sortBy, searchParams])
 
   return (
     <>
       <TopBar
         title="Member Management"
-        subtitle={`${filtered.length} members`}
+        subtitle={`${members.length} on roster · ${members.filter((m) => m.status === 'Active' || m.status === 'New Member').length} active`}
         actions={
           <div className="flex items-center gap-2">
             <Link
@@ -195,6 +210,45 @@ export default function MemberManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        compact
+                        title={members.length === 0 ? 'No members yet' : 'No matching members'}
+                        description={
+                          members.length === 0
+                            ? 'Add someone to the roster to get started.'
+                            : 'Try a different search or clear filters.'
+                        }
+                        action={
+                          search || statusFilter !== 'All' || duesFilter !== 'All' || execOnly ? (
+                            <button
+                              type="button"
+                              className="btn-ghost text-xs"
+                              onClick={() => {
+                                setSearch('')
+                                setStatusFilter('All')
+                                setDuesFilter('All')
+                                setExecOnly(false)
+                              }}
+                            >
+                              Clear search
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-primary text-xs"
+                              onClick={() => setShowAddModal(true)}
+                            >
+                              Add Member
+                            </button>
+                          )
+                        }
+                      />
+                    </td>
+                  </tr>
+                )}
                 {filtered.map((member) => (
                   <tr
                     key={member.id}
@@ -227,31 +281,41 @@ export default function MemberManagement() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col gap-1">
-                        <StatusPill
-                          label={member.duesStatus}
-                          variant={duesVariant(member.duesStatus)}
-                        />
-                        <span className="text-xs text-slate-400">
-                          ${member.duesPaid} / ${member.duesExpected}
-                        </span>
+                        {member.status === 'Alumni' ? (
+                          <span className="text-xs font-medium text-slate-500">Alumni · N/A</span>
+                        ) : (
+                          <>
+                            <StatusPill
+                              label={member.duesStatus}
+                              variant={duesVariant(member.duesStatus)}
+                            />
+                            <span className="text-xs text-slate-400">
+                              ${member.duesPaid} / ${member.duesExpected}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-sm bg-slate-100">
-                          <div
-                            className={`h-full rounded-sm ${
-                              member.attendancePct >= 80
-                                ? 'bg-emerald-500'
-                                : member.attendancePct >= 70
-                                  ? 'bg-amber-500'
-                                  : 'bg-red-500'
-                            }`}
-                            style={{ width: `${member.attendancePct}%` }}
-                          />
+                      {member.attendancePct == null ? (
+                        <span className="text-slate-600">—</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-sm bg-slate-100">
+                            <div
+                              className={`h-full rounded-sm ${
+                                member.attendancePct >= 80
+                                  ? 'bg-emerald-500'
+                                  : member.attendancePct >= 70
+                                    ? 'bg-amber-500'
+                                    : 'bg-red-500'
+                              }`}
+                              style={{ width: `${member.attendancePct}%` }}
+                            />
+                          </div>
+                          <span className="text-slate-600">{member.attendancePct}%</span>
                         </div>
-                        <span className="text-slate-600">{member.attendancePct}%</span>
-                      </div>
+                      )}
                     </td>
                     <td className="px-5 py-3 font-medium text-navy">{member.points}</td>
                   </tr>
@@ -303,6 +367,7 @@ export default function MemberManagement() {
               setShowAddModal(false)
               setAddError('')
               setAddForm({ firstName: '', lastName: '', email: '' })
+              toast({ title: 'Member saved', tone: 'success' })
             }}
             className="w-full rounded-lg bg-navy py-2.5 text-sm font-semibold text-white hover:bg-navy-light"
           >

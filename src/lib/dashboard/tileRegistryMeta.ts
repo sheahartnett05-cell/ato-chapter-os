@@ -35,7 +35,7 @@ export const TILE_REGISTRY: Record<DashboardTileId, TileRegistryMeta> = {
   minutes_pending: { label: 'Minutes', icon: ScrollText, href: '/calendar' },
   roster_changes: { label: 'Roster', icon: Users, href: '/members' },
   good_standing: { label: 'Good standing', icon: Users, href: '/members' },
-  standards_cases: { label: 'Standards', icon: Scale, href: '/j-board' },
+  standards_cases: { label: 'Standards', icon: Scale, href: '/standards' },
   repeat_absences: { label: 'Absences', icon: CalendarDays, href: '/members' },
   nm_class: { label: 'NM class', icon: Users, href: '/members' },
   nm_behind: { label: 'NM progress', icon: Users, href: '/members' },

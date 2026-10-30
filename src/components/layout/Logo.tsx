@@ -2,9 +2,14 @@ import { Link } from 'react-router-dom'
 import { useChapter } from '../../context/ChapterContext'
 import { OrgCrest } from '../ui/OrgCrest'
 import { getNationalOrgById } from '../../data/nationalOrgs'
+import {
+  CHAPTERA_PRODUCT_NAME,
+  CHAPTERA_TAGLINE,
+  isProductOrgId,
+} from '../../lib/brandCopy'
 
-/** Product mark — agora portal with columns + arch */
-export function AgoraMark({
+/** Product mark — portal with columns + arch */
+export function ChapteraMark({
   size = 36,
   onDark = false,
   className = '',
@@ -55,6 +60,9 @@ export function AgoraMark({
   )
 }
 
+/** @deprecated Use ChapteraMark */
+export const AgoraMark = ChapteraMark
+
 export function Logo({
   compact = false,
   onDark = true,
@@ -65,11 +73,11 @@ export function Logo({
   to?: string
 }) {
   const { chapter } = useChapter()
-  const isProduct = chapter.id === 'agora' || chapter.id === 'chapter-os'
+  const isProduct = isProductOrgId(chapter.id)
 
-  const title = isProduct ? 'Agora' : chapter.nickname
+  const title = isProduct ? CHAPTERA_PRODUCT_NAME : chapter.nickname
   const subtitle = isProduct
-    ? 'Chapter operations'
+    ? CHAPTERA_TAGLINE
     : chapter.chapterDesignation || chapter.letters
 
   const badgeColor = onDark ? chapter.accentColor : chapter.primaryColor
@@ -78,7 +86,7 @@ export function Logo({
   return (
     <Link to={to} className="group flex items-center gap-2.5">
       {isProduct ? (
-        <AgoraMark size={36} onDark={onDark} />
+        <ChapteraMark size={36} onDark={onDark} />
       ) : nationalOrg ? (
         <OrgCrest org={nationalOrg} size={36} />
       ) : (
@@ -104,8 +112,8 @@ export function Logo({
             {title}
           </span>
           <span
-            className={`mt-0.5 block truncate font-mono text-[9px] uppercase tracking-[0.16em] ${
-              onDark ? 'text-white/45' : 'text-[var(--muted)]'
+            className={`mt-0.5 block font-mono text-[11px] uppercase leading-snug tracking-[0.08em] ${
+              onDark ? 'text-white/80' : 'text-[var(--muted)]'
             }`}
           >
             {subtitle}
