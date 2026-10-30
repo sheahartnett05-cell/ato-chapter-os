@@ -1,4 +1,8 @@
-import type { OfficerFunction } from '../../types/officerFunction'
+import {
+  coerceOfficerFunction,
+  isOfficerFunction,
+  type OfficerFunction,
+} from '../../types/officerFunction'
 import type { ChapterDashboardLayouts } from '../../types/dashboardStubs'
 import type { DashboardTileId } from './tileIds'
 import { defaultTilesForFunction } from './functionTileDefaults'
@@ -28,7 +32,7 @@ export function readActiveDashboardFunction(): OfficerFunction | null {
   try {
     const raw = localStorage.getItem(ACTIVE_FUNCTION_KEY)
     if (!raw) return null
-    return raw as OfficerFunction
+    return isOfficerFunction(raw) ? raw : null
   } catch {
     return null
   }
@@ -46,11 +50,12 @@ export function resolveTileSet(
   fn: OfficerFunction,
   chapterOverrides?: ChapterDashboardLayouts
 ): DashboardTileId[] {
+  const resolvedFn = coerceOfficerFunction(fn)
   const layouts = chapterOverrides ?? readChapterDashboardLayouts()
-  const custom = layouts[fn]
-  if (custom && custom.length > 0) {
+  const custom = layouts[resolvedFn]
+  if (Array.isArray(custom) && custom.length > 0) {
     const ids = custom.filter(Boolean).slice(0, 4)
-    if (ids.length > 0) return ids
+    if (ids.length > 0) return ids as DashboardTileId[]
   }
-  return defaultTilesForFunction(fn)
+  return defaultTilesForFunction(resolvedFn)
 }

@@ -25,7 +25,8 @@ import { localTodayIso } from '../lib/liveAlerts'
 import { readJson } from '../lib/persist'
 import { STORAGE_KEYS } from '../lib/demoSeed'
 import type { DashboardStubBundle } from '../types/dashboardStubs'
-import { EMPTY_DASHBOARD_STUBS } from '../data/dashboardStubSeed'
+import { normalizeDashboardStubs } from '../data/dashboardStubSeed'
+import { coerceOfficerFunction } from '../types/officerFunction'
 import type { StatTileViewModel } from '../lib/dashboard/dashboardTypes'
 import { filterDisplayableTiles } from '../lib/dashboard/displayTiles'
 
@@ -47,7 +48,9 @@ export function useOfficerDashboard() {
 
   const stubs = useMemo(
     () =>
-      readJson<DashboardStubBundle>(STORAGE_KEYS.dashboardStubs, EMPTY_DASHBOARD_STUBS),
+      normalizeDashboardStubs(
+        readJson<Partial<DashboardStubBundle> | null>(STORAGE_KEYS.dashboardStubs, null)
+      ),
     []
   )
 
@@ -81,7 +84,7 @@ export function useOfficerDashboard() {
 
   const [activeFunction, setActiveFunctionState] = useState<OfficerFunction>(() => {
     const stored = readActiveDashboardFunction()
-    if (stored) return stored
+    if (stored) return coerceOfficerFunction(stored, defaultFunction)
     return defaultFunction
   })
 

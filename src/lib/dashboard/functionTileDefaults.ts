@@ -1,4 +1,4 @@
-import type { OfficerFunction } from '../../types/officerFunction'
+import { coerceOfficerFunction, type OfficerFunction } from '../../types/officerFunction'
 import type { DashboardTileId } from './tileIds'
 
 export const FUNCTION_TILE_DEFAULTS: Record<OfficerFunction, DashboardTileId[]> = {
@@ -22,5 +22,6 @@ export const FUNCTION_TILE_DEFAULTS: Record<OfficerFunction, DashboardTileId[]> 
 }
 
 export function defaultTilesForFunction(fn: OfficerFunction): DashboardTileId[] {
-  return [...FUNCTION_TILE_DEFAULTS[fn]]
+  const key = coerceOfficerFunction(fn)
+  return [...FUNCTION_TILE_DEFAULTS[key]]
 }
