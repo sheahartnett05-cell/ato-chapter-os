@@ -32,6 +32,27 @@ Shared running notes for **async work** on this repo. Both collaborators (and th
 
 *(Newest entries at the top.)*
 
+### 2026-10-30 — Agent (demo Home crash, Vercel deploy gap)
+
+**Summary:** Officer Home no longer crashes when `chapter-os-dashboard-function` is invalid or JSON-wrapped (`"president"`); added `vercel.json` SPA rewrites. Live Vercel may still serve an older build until redeployed from GitHub `main`.
+
+**Changes:**
+- **Dashboard storage:** `resolveDashboard.ts` — `parseStoredOfficerFunction`, validate layouts; `functionTileDefaults.ts` — safe fallback tiles; `useOfficerDashboard.ts` — normalize stubs, coerce function, rewrite clean function id to localStorage.
+- **Guest reset:** `demoSeed.ts` — clear dashboard function/layouts/meeting keys on demo wipe.
+- **Deploy:** `vercel.json` — SPA fallback to `index.html`.
+
+**Verify:**
+- Set `localStorage['chapter-os-dashboard-function']` to JSON.stringify('president') → `/home` loads (guest preview).
+- `npm run build` passes.
+- After Vercel redeploy from `main`, page source should show a new `assets/index-*.js` (not legacy `index-Cok3ksOE.js`).
+
+**Follow-ups / known gaps:**
+- Public site may still show legacy **Chaptera** `/demo` wizard if Vercel is not linked to this repo’s `main`; confirm Git connection and redeploy.
+- Repo guest entry is `/preview` (Agora); align marketing links when deploy catches up.
+- **Live deploy:** `.github/workflows/deploy-pages.yml` + `docs/DEPLOY.md` — enable GitHub Pages (Actions) or reconnect Vercel to `main`.
+
+---
+
 ### 2026-10-29 — Agent (Chapter Room UX, meeting page, search, settings)
 
 **Summary:** Chapter Room polish (announcements/upcoming, collapsible quick access), Exec Slides replaced by Chapter meeting, sidebar Forms/Members order, shared SearchField, Settings officer positions entry, view-mode hook fallbacks.
