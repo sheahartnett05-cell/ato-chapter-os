@@ -41,16 +41,29 @@ const mainNav = [
     perm: 'canPostAnnouncements' as const,
     feature: 'announcements' as const,
   },
-  {
-    to: '/members',
-    label: 'Members',
-    icon: Users,
-    perm: 'canManageRoster' as const,
-    feature: 'roster' as const,
-  },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
-  { to: '/excuses', label: 'Excuses', icon: ClipboardCheck, perm: 'canAccessExecTools' as const, feature: 'attendancePoints' as const },
-  { to: '/library-hours', label: 'Library Hours', icon: BookOpen, perm: 'canVerifyStudyHours' as const, feature: 'studyHours' as const },
+  { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
+  {
+    to: '/attendance',
+    label: 'Attendance & Excuses',
+    icon: ClipboardCheck,
+    perm: 'canAccessExecTools' as const,
+    feature: 'attendancePoints' as const,
+  },
+  {
+    to: '/library-hours',
+    label: 'Library Hours',
+    icon: BookOpen,
+    perm: 'canVerifyStudyHours' as const,
+    feature: 'studyHours' as const,
+  },
+  { to: '/house', label: 'House', icon: Home, feature: 'house' as const },
+  {
+    to: '/committees',
+    label: 'Committees',
+    icon: UsersRound,
+    feature: 'committees' as const,
+  },
   {
     to: '/budgets',
     label: 'Budgets',
@@ -58,7 +71,6 @@ const mainNav = [
     perm: 'canManageBudgets' as const,
     feature: 'budgets' as const,
   },
-  { to: '/house', label: 'House', icon: Home, feature: 'house' as const },
   {
     to: '/dues',
     label: 'Dues',
@@ -66,14 +78,14 @@ const mainNav = [
     feature: 'dues' as const,
     perm: 'canAccessTreasurerSettings' as const,
   },
-  { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
-  { to: '/tables', label: 'Forms', icon: ClipboardList, feature: 'tables' as const },
   {
-    to: '/committees',
-    label: 'Committees',
-    icon: UsersRound,
-    feature: 'committees' as const,
+    to: '/members',
+    label: 'Members',
+    icon: Users,
+    perm: 'canManageRoster' as const,
+    feature: 'roster' as const,
   },
+  { to: '/bylaws', label: 'Bylaws', icon: ScrollText, feature: 'bylaws' as const },
 ]
 
 const recruitmentNav = [

@@ -34,7 +34,7 @@ export function buildActionLedgerTasks(input: {
       title: `Approve ${memberName(m)}'s excuse · ${dateLabel}`,
       description: ev?.name ?? '',
       priority: 'high',
-      link: `/excuses?status=pending`,
+      link: `/attendance?tab=excuses&status=pending`,
       functions: ['president', 'internal_vp_standards', 'treasurer', 'secretary', 'other'],
     })
   }

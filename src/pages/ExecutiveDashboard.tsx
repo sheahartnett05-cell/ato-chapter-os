@@ -21,6 +21,9 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 }
 
+const homeListStampClass =
+  'timestamp shrink-0 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-[var(--ink)]'
+
 export default function ExecutiveDashboard() {
   const { chapter } = useChapter()
   const { profile } = useAuth()
@@ -41,7 +44,7 @@ export default function ExecutiveDashboard() {
 
   const quickActions = [
     { label: 'Post', icon: Megaphone, to: '/announcements' },
-    { label: 'Excuses', icon: ClipboardCheck, to: '/excuses', badge: pendingExcuses },
+    { label: 'Excuses', icon: ClipboardCheck, to: '/attendance?tab=excuses', badge: pendingExcuses },
     { label: 'Library', icon: BookOpen, to: '/library-hours' },
     { label: 'Setup', icon: Settings, to: '/chapter-setup' },
   ]
@@ -140,9 +143,9 @@ export default function ExecutiveDashboard() {
               <li key={a.id}>
                 <Link
                   to="/announcements"
-                  className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                  className="flex items-start gap-4 py-3.5 transition hover:bg-black/[0.015]"
                 >
-                  <span className="timestamp w-14 shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                  <span className={`${homeListStampClass} min-w-[3.25rem]`}>
                     {formatTime(a.createdAt)}
                   </span>
                   <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
@@ -184,14 +187,16 @@ export default function ExecutiveDashboard() {
                   <li key={event.id}>
                     <Link
                       to={`/events/${event.id}`}
-                      className="flex items-baseline gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                      className="flex items-start gap-3 py-3.5 transition hover:bg-black/[0.015] sm:gap-4"
                     >
-                      <span className="timestamp w-[7.5rem] shrink-0 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      <span className={`${homeListStampClass} min-w-[11rem] sm:min-w-[11.5rem]`}>
                         {formatHomeEventDateTime(event.date, event.time)}
                       </span>
-                      <span className="min-w-0 flex-1 text-[15px] text-[var(--ink)]">{event.name}</span>
+                      <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
+                        {event.name}
+                      </span>
                       {event.required && (
-                        <span className="tag text-[9px] font-semibold uppercase tracking-wider text-red-700">
+                        <span className="tag shrink-0 text-[9px] font-semibold uppercase tracking-wider text-red-700">
                           Req
                         </span>
                       )}

@@ -25,12 +25,12 @@ export type TileRegistryMeta = {
 
 export const TILE_REGISTRY: Record<DashboardTileId, TileRegistryMeta> = {
   dues: { label: 'Dues', icon: DollarSign, href: '/dues' },
-  attendance: { label: 'Attendance', icon: CalendarDays, href: '/calendar' },
+  attendance: { label: 'Attendance', icon: CalendarDays, href: '/attendance' },
   next_event: { label: 'Next event', icon: CalendarDays, href: '/calendar' },
   rush_pipeline: { label: 'Rush pipeline', icon: UserSearch, href: '/recruitment' },
   budget: { label: 'Budget', icon: PieChart, href: '/budgets' },
   study_hours: { label: 'Study hours', icon: BookOpen, href: '/library-hours' },
-  open_excuses: { label: 'Open excuses', icon: ClipboardCheck, href: '/excuses' },
+  open_excuses: { label: 'Open excuses', icon: ClipboardCheck, href: '/attendance' },
   action_items: { label: 'Action items', icon: ClipboardList, href: '/home' },
   minutes_pending: { label: 'Minutes', icon: ScrollText, href: '/calendar' },
   roster_changes: { label: 'Roster', icon: Users, href: '/members' },

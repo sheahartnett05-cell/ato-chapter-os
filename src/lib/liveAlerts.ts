@@ -65,7 +65,7 @@ export function buildLiveAlerts(input: {
       title: `${pendingExcuses.length} excuse${pendingExcuses.length === 1 ? '' : 's'} pending`,
       description: 'Awaiting exec review',
       priority: 'high',
-      link: '/excuses',
+      link: '/attendance?tab=excuses',
     })
   }
 
