@@ -52,11 +52,11 @@ import BudgetDetail from './pages/BudgetDetail'
 export default function App() {
   return (
     <CloudBootstrap>
+      <AuthProvider>
       <ChapterProvider>
         <MembersProvider>
           <ChapterPositionsProvider>
             <ChapterFeaturesProvider>
-              <AuthProvider>
                 <ChapterViewModeProvider>
                   <GovernanceProvider>
                   <CommunicationsProvider>
@@ -385,11 +385,11 @@ export default function App() {
                   </CommunicationsProvider>
                   </GovernanceProvider>
                 </ChapterViewModeProvider>
-              </AuthProvider>
             </ChapterFeaturesProvider>
           </ChapterPositionsProvider>
         </MembersProvider>
       </ChapterProvider>
+      </AuthProvider>
     </CloudBootstrap>
   )
 }

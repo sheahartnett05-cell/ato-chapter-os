@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section } from '../components/ui/Section'
 import { ExcuseApprovalsPanel } from '../components/attendance/ExcuseApprovalsPanel'
+import { QrCheckInPicker } from '../components/attendance/QrCheckInPicker'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useMembers } from '../context/MembersContext'
 import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
@@ -87,14 +88,6 @@ export default function AttendancePage() {
     [members]
   )
 
-  const latestMeeting = useMemo(() => {
-    return (
-      [...events]
-        .filter((e) => e.required && e.date <= today)
-        .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))[0] ?? null
-    )
-  }, [events, today])
-
   const pastEventsWithRoll = useMemo(() => {
     return events
       .filter((e) => e.date < today && getEventAttendance(e.id).length > 0)
@@ -154,18 +147,9 @@ export default function AttendancePage() {
       <PageShell>
         <TabPills active={tab} pendingCount={pendingCount} onChange={setTab} />
 
-        {tab === 'overview' && latestMeeting ? (
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link to={`/events/${latestMeeting.id}`} className="btn-ghost text-xs">
-              Roll call · {latestMeeting.name}
-            </Link>
-            <Link
-              to={`/events/${latestMeeting.id}`}
-              state={{ focus: 'checkin' }}
-              className="btn-primary text-xs"
-            >
-              QR check-in
-            </Link>
+        {tab === 'overview' ? (
+          <div className="mt-6">
+            <QrCheckInPicker initialEventId={focusEventId} />
           </div>
         ) : null}
 

@@ -164,19 +164,13 @@ export default function AttendanceTracker() {
             <Link to="/excuses?status=pending" className="btn-ghost text-xs">
               Excuses{pendingExcuses > 0 ? ` (${pendingExcuses})` : ''}
             </Link>
+            <Link to="/attendance" className="btn-primary text-xs">
+              <ClipboardCheck size={14} /> QR check-in
+            </Link>
             {latestMeeting && (
-              <>
-                <Link to={`/events/${latestMeeting.id}`} className="btn-ghost text-xs">
-                  <ClipboardCheck size={14} /> Roll call
-                </Link>
-                <Link
-                  to={`/events/${latestMeeting.id}`}
-                  state={{ focus: 'checkin' }}
-                  className="btn-primary text-xs"
-                >
-                  QR check-in
-                </Link>
-              </>
+              <Link to={`/events/${latestMeeting.id}`} className="btn-ghost text-xs">
+                Roll call
+              </Link>
             )}
           </div>
         }

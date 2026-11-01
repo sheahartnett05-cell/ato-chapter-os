@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { useAuth } from './AuthContext'
+import { useAuth, useAuthOptional } from './AuthContext'
 import {
   defaultViewModeForViewport,
   readStoredViewMode,
@@ -75,8 +75,8 @@ export function useChapterViewMode(): ChapterViewModeContextValue {
 /** Read view mode when provider is missing (e.g. stale bundle / HMR) — prefer context when present. */
 export function useResolvedChapterViewMode(): ChapterViewMode {
   const ctx = useChapterViewModeOptional()
-  const { userId, onboarding } = useAuth()
-  const resolvedUserId = userId ?? onboarding?.userId ?? 'local'
+  const auth = useAuthOptional()
+  const resolvedUserId = auth?.userId ?? auth?.onboarding?.userId ?? 'local'
 
   const [fallback, setFallback] = useState<ChapterViewMode>(() => {
     return readStoredViewMode(resolvedUserId) ?? defaultViewModeForViewport()
@@ -92,8 +92,8 @@ export function useResolvedChapterViewMode(): ChapterViewMode {
 
 export function useSetChapterViewMode() {
   const ctx = useChapterViewModeOptional()
-  const { userId, onboarding } = useAuth()
-  const resolvedUserId = userId ?? onboarding?.userId ?? 'local'
+  const auth = useAuthOptional()
+  const resolvedUserId = auth?.userId ?? auth?.onboarding?.userId ?? 'local'
 
   return useCallback(
     (mode: ChapterViewMode) => {

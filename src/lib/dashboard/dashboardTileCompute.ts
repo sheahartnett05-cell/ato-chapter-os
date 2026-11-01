@@ -140,7 +140,11 @@ export function computeDashboardTile(
       if (!meeting) {
         return {
           ...base,
-          empty: { message: 'No meeting recorded', linkLabel: 'Calendar', linkTo: '/calendar' },
+          empty: {
+            message: 'No meeting recorded',
+            linkLabel: 'Open attendance',
+            linkTo: '/attendance',
+          },
         }
       }
       const pct = meetingAttendancePct(s, meeting.id)
