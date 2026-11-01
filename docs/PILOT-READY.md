@@ -2,7 +2,8 @@
 
 **Production URL:** https://chapteramanager.com  
 **Canonical Supabase project:** `qfurjvkdbvjpvezsrddf`  
-**Branch:** `sprint-fixes`
+**Branch:** `sprint-fixes`  
+**Latest prod ship:** `d932a05` (QR check-in) → Vercel `dpl_3AgdnWtxCG5rGmQf71s6edcP72Ed`
 
 > Older refs to `oquqmoroihoksciiqwyt` are retired. Vercel `VITE_SUPABASE_URL` and `.env.local` must point at `qfurjvkdbvjpvezsrddf` only.
 
@@ -10,34 +11,57 @@
 
 | Item | Status |
 |------|--------|
-| Site live at chapteramanager.com | Yes (redeploy needed for latest `sprint-fixes`) |
+| Site live at chapteramanager.com | **Yes** — prod redeployed with `d932a05` |
+| `VITE_SUPABASE_URL` (local + Vercel prod) | `https://qfurjvkdbvjpvezsrddf.supabase.co` |
 | Migrations through Phase A (`20260401…`) | Applied to `qfurjvkdbvjpvezsrddf` |
-| Gate A (`npm run test:phase-a`) | **Blocked** — needs Docker local Supabase or `STAGING_*` (script refuses production) |
-| `verify-supabase` join RPCs | Pass (`CHAPTER-FOUNDER`, `sync_chapter_join_codes`) |
+| Gate A (`npm run test:phase-a`) | **Blocked** — Docker not installed; no `STAGING_*` (script refuses production) |
+| `verify-supabase` join RPCs | **Pass** (`CHAPTER-FOUNDER`, `sync_chapter_join_codes`) |
 | Auth Site URL | `https://chapteramanager.com` |
 | Chaptera Auth email templates + Resend SMTP | Configured on project |
-| Resend domain `chapteramanager.com` | **DNS not verified** — see `docs/CHAPTERA_DNS_RECORDS.md` |
+| Resend domain `chapteramanager.com` | **Pending / STOP-SHIP** — DNS wrong (see below) |
 | Guest demo Officer Home | Fixed in `36fc518` |
 | Attendance tracker `/attendance` | Shipped in `f41e93b` |
-| Vercel deploy token | Often missing — paste `VERCEL_TOKEN` or `vercel login` |
+| Chapter QR check-in | Shipped in `d932a05` — Event → QR check-in; `/check-in/:eventId` |
+| Founder / join smoke (OTP + 2nd device) | **Not proven** — blocked on Resend DNS |
+| Vercel deploy | Working via CLI login (`vercel whoami`) |
+
+## STOP-SHIP: Resend DNS
+
+Public DNS for the Resend hosts currently **CNAMEs to Porkbun parking** (`uixie.porkbun.com`), so verification cannot succeed:
+
+- `resend._domainkey.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **TXT** DKIM)
+- `send.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **MX** + **TXT** SPF)
+- `rsend.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **CNAME** `send.forge.rmta.net`)
+
+Root `chapteramanager.com` A records → Vercel are fine (`216.198.79.1`, `64.29.17.1`).
+
+**At Porkbun:** delete those parking aliases, then add exact records from [`CHAPTERA_DNS_RECORDS.md`](./CHAPTERA_DNS_RECORDS.md). Then:
+
+```bash
+npm run configure-resend-domain -- verify
+npm run configure-resend-domain
+npm run configure-pilot
+npm run configure-resend-domain -- --test you@real-inbox.com
+```
+
+OTP proof: https://chapteramanager.com/onboarding → Send login code.
 
 ## Must before inviting a real chapter
 
-1. Add Resend DNS for `chapteramanager.com` at the registrar, then:
+1. **Fix Resend DNS** (above) until domain status is `verified` and a real inbox receives OTP.
+2. **Gate A** on local or staging (not prod):
    ```bash
-   npm run configure-resend-domain -- verify
-   npm run configure-resend-domain
-   ```
-2. Run Gate A on **local or staging** (not prod):
-   ```bash
-   # Docker Desktop + local
+   # Path A — install Docker Desktop, then:
    npx supabase start
-   npm run apply-supabase-migrations   # against local if configured
+   # apply migrations to local, then:
    npm run test:phase-a
-   # OR set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY
+
+   # Path B — set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY
+   # apply migrations to staging only, then:
+   npm run test:phase-a
    ```
-3. Redeploy production with latest `sprint-fixes` (`npx vercel deploy --prod --yes`).
-4. Manual smoke: create chapter → OTP → second device join with invite code.
+3. **Manual smoke:** create chapter → OTP → second device join with invite code.
+4. Optional QR smoke: Event → Open QR check-in → second device scans `/check-in/...`.
 
 ## Founder / join smoke
 
@@ -45,6 +69,7 @@
 2. Create chapter as President
 3. Enter OTP from the Chaptera sign-in email
 4. Share the join code from Settings → Invites
+5. Second browser/phone: `/join/:code` as member
 
 ## Honest product limits
 
@@ -56,7 +81,7 @@
 
 ## Optional before wider pilot
 
-- [ ] Connect Vercel → GitHub for auto-deploy on push
+- [ ] Connect Vercel → GitHub for auto-deploy on push (`vercel git connect`)
 - [ ] Revoke any exposed API tokens
 - [ ] Cross-device invite-link test (phone + laptop)
-- [ ] Minimal CI (typecheck + test + build)
+- [x] Minimal CI (typecheck + test + build) — `.github/workflows/ci.yml`
