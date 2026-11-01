@@ -14,7 +14,8 @@
 | Site live at chapteramanager.com | **Yes** — prod redeployed with `d932a05` |
 | `VITE_SUPABASE_URL` (local + Vercel prod) | `https://qfurjvkdbvjpvezsrddf.supabase.co` |
 | Migrations through Phase A (`20260401…`) | Applied to `qfurjvkdbvjpvezsrddf` |
-| Gate A (`npm run test:phase-a`) | **Blocked** — Docker not installed; no `STAGING_*` (script refuses production) |
+| Gate A (`npm run test:phase-a`) | **Blocked** — Docker Desktop installer present; **WSL not installed** (needs admin `wsl --install` + reboot). No `STAGING_*`. Creating a staging project via Management API returned 403. Script refuses production. |
+| Full-feature human smoke prompt | [`HUMAN-FULL-SMOKE.md`](./HUMAN-FULL-SMOKE.md) (wipe via Settings → Wipe test chapter data) |
 | `verify-supabase` join RPCs | **Pass** (`CHAPTER-FOUNDER`, `sync_chapter_join_codes`) |
 | Auth Site URL | `https://chapteramanager.com` |
 | Chaptera Auth email templates + Resend SMTP | Configured on project |
@@ -51,17 +52,20 @@ OTP proof: https://chapteramanager.com/onboarding → Send login code.
 1. **Fix Resend DNS** (above) until domain status is `verified` and a real inbox receives OTP.
 2. **Gate A** on local or staging (not prod):
    ```bash
-   # Path A — install Docker Desktop, then:
+   # Path A — admin PowerShell once, then reboot if prompted:
+   wsl --install
+   # Open Docker Desktop, wait until engine is running, then:
    npx supabase start
    # apply migrations to local, then:
    npm run test:phase-a
 
    # Path B — set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY
+   # (Management API create-project needs org Admin token; current sbp_ got 403)
    # apply migrations to staging only, then:
    npm run test:phase-a
    ```
-3. **Manual smoke:** create chapter → OTP → second device join with invite code.
-4. Optional QR smoke: Event → Open QR check-in → second device scans `/check-in/...`.
+3. **Full human smoke** (every feature → wipe): paste prompt in [`HUMAN-FULL-SMOKE.md`](./HUMAN-FULL-SMOKE.md).
+4. **Founder smoke minimum:** create chapter → OTP → second device join; Event → QR check-in.
 
 ## Founder / join smoke
 
