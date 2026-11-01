@@ -49,6 +49,13 @@ const mainNav = [
     feature: 'roster' as const,
   },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, feature: 'calendar' as const },
+  {
+    to: '/attendance',
+    label: 'Attendance',
+    icon: ClipboardList,
+    perm: 'canAccessExecTools' as const,
+    feature: 'attendancePoints' as const,
+  },
   { to: '/excuses', label: 'Excuses', icon: ClipboardCheck, perm: 'canAccessExecTools' as const, feature: 'attendancePoints' as const },
   { to: '/library-hours', label: 'Library Hours', icon: BookOpen, perm: 'canVerifyStudyHours' as const, feature: 'studyHours' as const },
   {

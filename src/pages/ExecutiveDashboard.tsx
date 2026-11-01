@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Megaphone, BookOpen, Settings, ClipboardCheck, ChevronDown } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Megaphone,
+  BookOpen,
+  Settings,
+  ClipboardCheck,
+  ClipboardList,
+  ChevronDown,
+} from 'lucide-react'
 import { PageShell } from '../components/ui/Section'
 import { useChapter } from '../context/ChapterContext'
 import { useAuth } from '../context/AuthContext'
@@ -41,6 +49,7 @@ export default function ExecutiveDashboard() {
 
   const quickActions = [
     { label: 'Post', icon: Megaphone, to: '/announcements' },
+    { label: 'Attendance', icon: ClipboardList, to: '/attendance' },
     { label: 'Excuses', icon: ClipboardCheck, to: '/excuses', badge: pendingExcuses },
     { label: 'Library', icon: BookOpen, to: '/library-hours' },
     { label: 'Setup', icon: Settings, to: '/chapter-setup' },

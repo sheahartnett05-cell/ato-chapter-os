@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Mail, Phone, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useIsMemberShell } from '../hooks/useShellKind'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
+import { useChapterOps } from '../context/ChapterOpsContext'
 import { PhotoUpload } from '../components/ui/PhotoUpload'
 import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { roleLabel } from '../types/permissions'
@@ -14,14 +15,34 @@ import {
   memberStatusVariant,
   attendanceVariant,
 } from '../components/ui/StatusPill'
-import { formatAttendancePct } from '../lib/attendance/attendanceMath'
+import { formatAttendancePct, pointsFromEntry } from '../lib/attendance/attendanceMath'
 
 export default function MyProfile() {
   const { profile, role, onboarding, updateProfile, permissions } = useAuth()
   const isMemberShell = useIsMemberShell()
   const { getMemberById, updateMemberProfile } = useMembers()
   const { chapter } = useChapter()
+  const { events, getEventAttendance } = useChapterOps()
   const member = onboarding?.memberId ? getMemberById(onboarding.memberId) : undefined
+
+  const attendanceRows = useMemo(() => {
+    if (!member) return []
+    const rows: Array<{ eventId: string; event: string; date: string; status: string; pts: number }> =
+      []
+    for (const ev of events) {
+      const entry = getEventAttendance(ev.id).find((a) => a.memberId === member.id)
+      if (entry) {
+        rows.push({
+          eventId: ev.id,
+          event: ev.name,
+          date: ev.date,
+          status: entry.status,
+          pts: pointsFromEntry(entry, ev.points),
+        })
+      }
+    }
+    return rows.sort((a, b) => b.date.localeCompare(a.date))
+  }, [events, getEventAttendance, member])
 
   const [editing, setEditing] = useState(false)
   const [local, setLocal] = useState(profile)
@@ -256,6 +277,47 @@ export default function MyProfile() {
               >
                 Full roster profile →
               </Link>
+            )}
+          </section>
+        )}
+
+        {member && (
+          <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
+            <div className="mb-3 flex items-end justify-between gap-2">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                  Attendance history
+                </p>
+                <p className="mt-1 font-serif text-2xl tracking-tight text-[var(--ink)]">
+                  {formatAttendancePct(member.attendancePct)}
+                </p>
+              </div>
+            </div>
+            {attendanceRows.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">No meetings recorded yet.</p>
+            ) : (
+              <ul className="divide-y divide-[var(--rule)]">
+                {attendanceRows.slice(0, 12).map((row) => (
+                  <li key={row.eventId} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--ink)]">{row.event}</p>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                        {new Date(row.date + 'T12:00:00').toLocaleDateString()}
+                      </p>
+                    </div>
+                    <StatusPill
+                      label={row.status}
+                      variant={
+                        row.status === 'Present'
+                          ? 'present'
+                          : row.status === 'Excused'
+                            ? 'maybe'
+                            : 'absent'
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
         )}

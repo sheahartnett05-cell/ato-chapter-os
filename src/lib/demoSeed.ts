@@ -240,7 +240,7 @@ const EXTRA_SESSION_KEYS = [
 const VIEW_MODE_PREFIX = 'chapter-os-view-mode-'
 
 function listExtraSessionKeys(): string[] {
-  const keys = [...EXTRA_SESSION_KEYS]
+  const keys: string[] = [...EXTRA_SESSION_KEYS]
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)

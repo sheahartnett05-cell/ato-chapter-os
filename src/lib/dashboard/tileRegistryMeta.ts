@@ -25,7 +25,7 @@ export type TileRegistryMeta = {
 
 export const TILE_REGISTRY: Record<DashboardTileId, TileRegistryMeta> = {
   dues: { label: 'Dues', icon: DollarSign, href: '/dues' },
-  attendance: { label: 'Attendance', icon: CalendarDays, href: '/calendar' },
+  attendance: { label: 'Attendance', icon: ClipboardCheck, href: '/attendance' },
   next_event: { label: 'Next event', icon: CalendarDays, href: '/calendar' },
   rush_pipeline: { label: 'Rush pipeline', icon: UserSearch, href: '/recruitment' },
   budget: { label: 'Budget', icon: PieChart, href: '/budgets' },
@@ -36,7 +36,7 @@ export const TILE_REGISTRY: Record<DashboardTileId, TileRegistryMeta> = {
   roster_changes: { label: 'Roster', icon: Users, href: '/members' },
   good_standing: { label: 'Good standing', icon: Users, href: '/members' },
   standards_cases: { label: 'Standards', icon: Scale, href: '/standards' },
-  repeat_absences: { label: 'Absences', icon: CalendarDays, href: '/members' },
+  repeat_absences: { label: 'Absences', icon: CalendarDays, href: '/attendance?filter=at_risk' },
   nm_class: { label: 'NM class', icon: Users, href: '/members' },
   nm_behind: { label: 'NM progress', icon: Users, href: '/members' },
   risk_forms: { label: 'Risk forms', icon: ClipboardList, href: '/calendar' },

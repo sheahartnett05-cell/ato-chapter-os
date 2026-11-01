@@ -106,7 +106,7 @@ export function buildActionLedgerTasks(input: {
       description:
         lowAtt.length > 1 ? `+${lowAtt.length - 1} more below 70%` : '',
       priority: 'high',
-      link: '/members?filter=attendance',
+      link: '/attendance?filter=at_risk',
       functions: ['scholarship', 'internal_vp_standards', 'president'],
     })
   }
