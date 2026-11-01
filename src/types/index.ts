@@ -108,7 +108,7 @@ export interface AttendanceEntry {
   /** ISO timestamp; corrections replace the prior row for member×event */
   recordedAt?: string
   /** Last writer; used for excuse approve/reject revert rules */
-  source?: 'roll_call' | 'excuse'
+  source?: 'roll_call' | 'excuse' | 'check_in'
   /** Roll-call status preserved when an approved excuse overwrote it */
   rollCallStatus?: AttendanceStatus
 }

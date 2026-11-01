@@ -28,7 +28,8 @@
     "crests:generate": "node scripts/generate-org-crests.mjs",
     "crests:wikimedia": "node scripts/enrich-org-crests-wikimedia.mjs --manual",
     "crests:fetch": "node scripts/fetch-org-crests-wikipedia.mjs",
-    "crests:fetch:resume": "node scripts/fetch-org-crests-wikipedia.mjs --resume"
+    "crests:fetch:resume": "node scripts/fetch-org-crests-wikipedia.mjs --resume",
+    "video:render": "node marketing/video/scripts/render-all.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -36,6 +37,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.112.3",
     "lucide-react": "^1.33.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",

@@ -50,7 +50,8 @@
 
 - Dues: balances + pay **links** — not a card processor
 - Announcement polls ≠ binding chapter votes
-- No QR check-in, no push notification delivery yet
+- QR check-in: chapter-scoped rotating codes per event (Event → QR check-in). Cloud multi-device uses shared chapter storage; no geofence yet.
+- No push notification delivery yet
 - Guest demo is local-only sample data
 
 ## Optional before wider pilot

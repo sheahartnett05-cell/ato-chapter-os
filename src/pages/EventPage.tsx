@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -20,7 +20,10 @@ import { useChapterOps } from '../context/ChapterOpsContext'
 import { useChapterTables } from '../context/ChapterTablesContext'
 import { useAuth, usePermissions } from '../context/AuthContext'
 import { useMembers } from '../context/MembersContext'
+import { useChapter } from '../context/ChapterContext'
 import { useChapterFeatures } from '../context/ChapterFeaturesContext'
+import { CheckInQrPanel } from '../components/attendance/CheckInQrPanel'
+import { chapterAttendanceKey } from '../lib/attendance/checkInSession'
 import { useStandardsModuleConfig } from '../hooks/useStandardsModuleConfig'
 import { pointsFromEntry } from '../lib/attendance/attendanceMath'
 import {
@@ -38,6 +41,7 @@ import {
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
   const {
     events: chapterEvents,
     getEventAttendance,
@@ -56,9 +60,14 @@ export default function EventPage() {
       permissions.canEditEventPoints ||
       canMemberEdit('editAttendance', memberId))
   const { getMemberById, members } = useMembers()
+  const { chapter, selectedOrgId } = useChapter()
   const { config } = useStandardsModuleConfig()
   const excusePolicy = config.excuse_policy
   const event = chapterEvents.find((e) => e.id === id)
+  const chapterKey = chapterAttendanceKey(
+    selectedOrgId || chapter.id,
+    chapter.chapterDesignation
+  )
   const eventTable = id ? getTableForEvent(id) : undefined
   const resolvedMemberId = memberId ?? ''
   const resolvedMember = resolvedMemberId ? getMemberById(resolvedMemberId) : undefined
@@ -70,13 +79,25 @@ export default function EventPage() {
   const myFormRsvp = eventFormRsvps.find((r) => r.memberId === resolvedMemberId)
   const myRsvp = myFormRsvp ? normalizeFormRsvp(myFormRsvp.rsvp) : null
 
-  const [activeSection, setActiveSection] = useState<'rsvp' | 'attendance' | 'points'>('rsvp')
+  const [activeSection, setActiveSection] = useState<
+    'rsvp' | 'attendance' | 'checkin' | 'points'
+  >('rsvp')
 
   useEffect(() => {
-    if (!attendanceOn && (activeSection === 'attendance' || activeSection === 'points')) {
+    if (
+      !attendanceOn &&
+      (activeSection === 'attendance' ||
+        activeSection === 'checkin' ||
+        activeSection === 'points')
+    ) {
       setActiveSection('rsvp')
     }
   }, [attendanceOn, activeSection])
+
+  useEffect(() => {
+    const focus = (location.state as { focus?: string } | null)?.focus
+    if (focus === 'checkin' && attendanceOn) setActiveSection('checkin')
+  }, [location.state, attendanceOn])
   const [showExcuseModal, setShowExcuseModal] = useState(false)
   const [excuseCategory, setExcuseCategory] = useState(excusePolicy.categories[0] ?? '')
   const [excuseReason, setExcuseReason] = useState('')
@@ -301,7 +322,7 @@ export default function EventPage() {
         <div className="flex gap-1 border-b border-black/5">
           {(
             attendanceOn
-              ? (['rsvp', 'attendance', 'points'] as const)
+              ? (['rsvp', 'attendance', 'checkin', 'points'] as const)
               : (['rsvp'] as const)
           ).map((section) => (
             <button
@@ -314,12 +335,20 @@ export default function EventPage() {
                   : 'border-transparent text-neutral-500 hover:text-neutral-900'
               }`}
             >
-              {section}
+              {section === 'checkin' ? 'QR check-in' : section}
             </button>
           ))}
         </div>
 
-        <Section title={activeSection === 'rsvp' ? 'RSVPs' : activeSection}>
+        <Section
+          title={
+            activeSection === 'rsvp'
+              ? 'RSVPs'
+              : activeSection === 'checkin'
+                ? 'QR check-in'
+                : activeSection
+          }
+        >
           <div className="divide-y divide-black/5 rounded-2xl bg-neutral-50/60">
             {activeSection === 'rsvp' &&
               (eventFormRsvps.length === 0 ? (
@@ -442,6 +471,25 @@ export default function EventPage() {
                   )
                 })
               })()}
+
+            {activeSection === 'checkin' && (
+              <div className="p-2">
+                <CheckInQrPanel
+                  eventId={event.id}
+                  eventName={event.name}
+                  chapterKey={chapterKey}
+                  canManage={canTakeRoll}
+                  checkedInCount={
+                    eventAttendance.filter((a) => a.status === 'Present').length
+                  }
+                  rosterCount={
+                    members.filter((m) => m.status === 'Active' || m.status === 'New Member')
+                      .length
+                  }
+                  openedBy={`${profile.firstName} ${profile.lastName}`.trim() || undefined}
+                />
+              </div>
+            )}
 
             {activeSection === 'points' &&
               (eventAttendance.length === 0 ? (

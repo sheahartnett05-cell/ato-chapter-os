@@ -68,7 +68,7 @@ export interface ChapterOpsContextValue {
     memberId: string,
     status: AttendanceEntry['status'],
     pointsEarned?: number,
-    opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
+    opts?: { source?: 'roll_call' | 'excuse' | 'check_in'; recordedAt?: string }
   ) => void
   clearAttendanceEntry: (eventId: string, memberId: string) => void
   applyExcuseAttendanceDecision: (
@@ -303,15 +303,18 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       memberId: string,
       status: AttendanceEntry['status'],
       pointsEarned = 0,
-      opts?: { source?: 'roll_call' | 'excuse'; recordedAt?: string }
+      opts?: { source?: 'roll_call' | 'excuse' | 'check_in'; recordedAt?: string }
     ) => {
       const recordedAt = opts?.recordedAt ?? new Date().toISOString()
       const source = opts?.source ?? 'roll_call'
       persistAttendance((prev) => {
         const list = normalizeAttendanceEntries(prev[eventId] ?? [])
         const entry =
-          source === 'roll_call'
-            ? buildRollCallEntry(memberId, status, pointsEarned, recordedAt)
+          source === 'roll_call' || source === 'check_in'
+            ? {
+                ...buildRollCallEntry(memberId, status, pointsEarned, recordedAt),
+                source,
+              }
             : {
                 memberId,
                 status,

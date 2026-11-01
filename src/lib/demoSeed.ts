@@ -92,6 +92,7 @@ export const STORAGE_KEYS = {
   chapterMeeting: 'chapter-os-chapter-meeting',
   dashboardFunction: 'chapter-os-dashboard-function',
   rushCycles: 'chapter-os-rush-cycles',
+  checkInSessions: 'chapter-os-checkin-sessions',
 } as const
 
 function write(key: string, value: unknown) {

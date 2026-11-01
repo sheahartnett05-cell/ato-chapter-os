@@ -8,7 +8,7 @@ import type { AttendanceEntry, AttendanceStatus, Member } from '../../types'
  *   pending excuse with no Excused row marks Absent (unexcused).
  */
 
-export type AttendanceSource = 'roll_call' | 'excuse'
+export type AttendanceSource = 'roll_call' | 'excuse' | 'check_in'
 
 export type ExcuseAttendanceDecision = 'approved' | 'denied' | 'reopened'
 

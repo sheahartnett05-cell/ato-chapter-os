@@ -33,6 +33,7 @@ import MemberDashboard from './pages/MemberDashboard'
 import Announcements from './pages/Announcements'
 import ExcuseApprovals from './pages/ExcuseApprovals'
 import AttendanceTracker from './pages/AttendanceTracker'
+import CheckInPage from './pages/CheckIn'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
 import ChapterMeetingPage from './pages/ChapterMeeting'
@@ -72,6 +73,7 @@ export default function App() {
                                   <Route path="/preview" element={<PreviewPage />} />
                                   <Route path="/login" element={<PreviewPage />} />
                                   <Route path="/demo" element={<DemoPage />} />
+                                  <Route path="/check-in/:eventId" element={<CheckInPage />} />
                                   <Route path="/join" element={<JoinPage />} />
                                   <Route path="/join/:code" element={<JoinPage />} />
                                   <Route path="/onboarding" element={<OnboardingPage />} />
