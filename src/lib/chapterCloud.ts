@@ -54,7 +54,14 @@ function readMeta(): { chapterDesignation?: string; university?: string; semeste
 
 function readOrgId(): string | null {
   try {
-    return localStorage.getItem('chapter-os-selected-org')
+    const raw = localStorage.getItem('chapter-os-selected-org')
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      return typeof parsed === 'string' ? parsed : raw
+    } catch {
+      return raw
+    }
   } catch {
     return null
   }

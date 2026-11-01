@@ -1,7 +1,24 @@
-import type { OfficerFunction } from '../../types/officerFunction'
+import { OFFICER_FUNCTIONS, type OfficerFunction } from '../../types/officerFunction'
 import type { ChapterDashboardLayouts } from '../../types/dashboardStubs'
 import type { DashboardTileId } from './tileIds'
 import { defaultTilesForFunction } from './functionTileDefaults'
+
+function parseOfficerFunction(raw: string | null): OfficerFunction | null {
+  if (!raw) return null
+  let value = raw.trim()
+  // Older demo entry wrote JSON.stringify(fn) → `"president"` with quotes.
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    try {
+      value = JSON.parse(value) as string
+    } catch {
+      value = value.slice(1, -1)
+    }
+  }
+  return (OFFICER_FUNCTIONS as string[]).includes(value) ? (value as OfficerFunction) : null
+}
 
 const LAYOUTS_KEY = 'chapter-os-dashboard-layouts'
 export const ACTIVE_FUNCTION_KEY = 'chapter-os-dashboard-function'
@@ -26,9 +43,7 @@ export function writeChapterDashboardLayouts(layouts: ChapterDashboardLayouts) {
 
 export function readActiveDashboardFunction(): OfficerFunction | null {
   try {
-    const raw = localStorage.getItem(ACTIVE_FUNCTION_KEY)
-    if (!raw) return null
-    return raw as OfficerFunction
+    return parseOfficerFunction(localStorage.getItem(ACTIVE_FUNCTION_KEY))
   } catch {
     return null
   }
@@ -36,7 +51,8 @@ export function readActiveDashboardFunction(): OfficerFunction | null {
 
 export function writeActiveDashboardFunction(fn: OfficerFunction) {
   try {
-    localStorage.setItem(ACTIVE_FUNCTION_KEY, fn)
+    // JSON string so chapter_kv cloud push (JSON.parse) keeps the active seat.
+    localStorage.setItem(ACTIVE_FUNCTION_KEY, JSON.stringify(fn))
   } catch {
     /* storage unavailable */
   }

@@ -22,5 +22,6 @@ export const FUNCTION_TILE_DEFAULTS: Record<OfficerFunction, DashboardTileId[]> 
 }
 
 export function defaultTilesForFunction(fn: OfficerFunction): DashboardTileId[] {
-  return [...FUNCTION_TILE_DEFAULTS[fn]]
+  const tiles = FUNCTION_TILE_DEFAULTS[fn] ?? FUNCTION_TILE_DEFAULTS.other
+  return [...tiles]
 }

@@ -49,6 +49,14 @@ export function positionPermissionBoost(
   )
   const isRecruitmentSeat = has((t) => t.includes('recruitment') || t.includes('rush'))
   const isScholarshipSeat = has((t) => t.includes('scholarship') || t.includes('academic'))
+  const isNmeSeat = has(
+    (t) =>
+      t.includes('new member educator') ||
+      t.includes('membership educator') ||
+      t.includes('pledge educator') ||
+      t.includes('candidate educator') ||
+      /\bnme\b/.test(t)
+  )
 
   const isExecSeat =
     isVp ||
@@ -63,7 +71,8 @@ export function positionPermissionBoost(
     isTreasurerSeat ||
     isStandardsSeat ||
     isRecruitmentSeat ||
-    isScholarshipSeat
+    isScholarshipSeat ||
+    isNmeSeat
 
   return {
     isVp,
@@ -84,16 +93,8 @@ export function applyPositionBoost(
 ): PermissionFlags {
   return {
     ...perms,
-    canAccessExecTools:
-      perms.canAccessExecTools ||
-      boost.isVp ||
-      boost.isSecretary ||
-      boost.isSocial ||
-      boost.isPhilanthropy ||
-      boost.isHouse ||
-      boost.isRisk ||
-      boost.isHistorian ||
-      boost.isChaplain,
+    // Any recognized exec seat must unlock Officer Home / ExecShell.
+    canAccessExecTools: perms.canAccessExecTools || boost.isExecSeat,
     canManageRoster: perms.canManageRoster || boost.isVp || boost.isSecretary,
     canManageInvites: perms.canManageInvites || boost.isVp || boost.isSecretary,
     canVerifyStudyHours: perms.canVerifyStudyHours || boost.isSecretary,

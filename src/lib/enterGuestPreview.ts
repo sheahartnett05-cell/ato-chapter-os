@@ -8,6 +8,7 @@ import {
   type GuestExecFunctionPreset,
   type GuestPreviewMode,
 } from './guestPreview'
+import { writeActiveDashboardFunction } from './dashboard/resolveDashboard'
 import { writeJson } from './persist'
 import { viewModeStorageKey } from './chapterViewMode'
 
@@ -66,7 +67,7 @@ export function enterGuestPreview(mode: GuestPreviewMode, execPreset?: GuestExec
       )
       localStorage.setItem(viewModeStorageKey(userId), 'operations')
       if (execPreset) {
-        localStorage.setItem('chapter-os-dashboard-function', JSON.stringify(execPreset.function))
+        writeActiveDashboardFunction(execPreset.function)
       }
     } else {
       localStorage.setItem(viewModeStorageKey(userId), 'chapter-room')

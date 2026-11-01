@@ -127,7 +127,7 @@ export function seedGuestDemo() {
       ...p,
       function: inferFunctionFromTitle(p.title),
       assignedMemberId:
-        p.id === 'p6' ? 'm5' : p.id === 'p5' ? 'm9' : p.id === 'p6b' ? 'm7' : p.assignedMemberId,
+        p.id === 'p6' ? 'm5' : p.id === 'p5' ? 'm9' : p.id === 'p6b' ? 'm8' : p.assignedMemberId,
     })),
     {
       id: 'p-house',
@@ -139,7 +139,7 @@ export function seedGuestDemo() {
     {
       id: 'p-nme',
       title: 'New Member Educator',
-      assignedMemberId: 'm10',
+      assignedMemberId: 'm8',
       isCustom: false,
       function: 'new_member_educator' as const,
     },
@@ -227,15 +227,30 @@ export function seedGuestDemo() {
 
 export const SESSION_BACKUP_KEY = 'chapter-os-session-backup'
 
-/** Session keys cleared with demo data ? never include the backup key itself. */
+/** Session keys cleared with demo data — never include the backup key itself. */
 const EXTRA_SESSION_KEYS = [
   'chapter-os-onboarding',
   'chapter-os-selected-org',
   'chapter-os-budgets',
   'chapter-os-user-id',
   'chapter-os-supabase-chapter-id',
-  'chapter-os-view-mode',
+  'chapter-os-dashboard-layouts',
 ] as const
+
+const VIEW_MODE_PREFIX = 'chapter-os-view-mode-'
+
+function listExtraSessionKeys(): string[] {
+  const keys = [...EXTRA_SESSION_KEYS]
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith(VIEW_MODE_PREFIX)) keys.push(k)
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  return keys
+}
 
 /** Snapshot real chapter data before guest preview wipes storage. */
 export function backupRealSession() {
@@ -246,7 +261,7 @@ export function backupRealSession() {
       const v = localStorage.getItem(key)
       if (v != null) bag[key] = v
     }
-    for (const key of EXTRA_SESSION_KEYS) {
+    for (const key of listExtraSessionKeys()) {
       const v = localStorage.getItem(key)
       if (v != null) bag[key] = v
     }
@@ -279,7 +294,7 @@ export function restoreRealSession(): boolean {
 /** Clear demo / chapter operational storage. Does not remove the real-session backup. */
 export function clearDemoData() {
   Object.values(STORAGE_KEYS).forEach(remove)
-  for (const key of EXTRA_SESSION_KEYS) {
+  for (const key of listExtraSessionKeys()) {
     try {
       localStorage.removeItem(key)
     } catch {

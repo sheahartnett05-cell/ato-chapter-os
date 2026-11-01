@@ -96,7 +96,7 @@ export const GUEST_EXEC_FUNCTION_PRESETS: GuestExecFunctionPreset[] = [
   {
     function: 'new_member_educator',
     role: 'ActiveMember',
-    memberId: 'm10',
+    memberId: 'm8',
     label: 'New member educator',
     hint: 'NM class progress, requirements',
   },
@@ -110,7 +110,7 @@ export const GUEST_EXEC_FUNCTION_PRESETS: GuestExecFunctionPreset[] = [
   {
     function: 'other',
     role: 'ActiveMember',
-    memberId: 'm2',
+    memberId: 'm9',
     label: 'Other exec (VP)',
     hint: 'Default officer dashboard',
   },

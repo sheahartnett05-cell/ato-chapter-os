@@ -63,8 +63,8 @@ export function buildDashboardStubSeed(eventIds: {
       donationsThisTerm: 4200,
     },
     nmRequirements: [
-      { memberId: 'm10', completedCount: 4, totalCount: 8 },
-      { memberId: 'm8', completedCount: 6, totalCount: 8 },
+      { memberId: 'm7', completedCount: 4, totalCount: 8 },
+      { memberId: 'm24', completedCount: 6, totalCount: 8 },
     ],
     eventRisk: eventIds.upcomingIds.map((eventId, i) => ({
       eventId,
