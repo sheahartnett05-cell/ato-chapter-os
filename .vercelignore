@@ -1,0 +1,10 @@
+marketing
+marketing/**
+**/node_modules
+**/pw-browsers
+**/.git
+supabase/.temp
+*.webm
+*.mp4
+.env
+.env.*
