@@ -1,0 +1,22 @@
+{
+  "name": "chaptera-marketing-video",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "capture": "playwright test -c capture/playwright.config.ts",
+    "remotion:studio": "remotion studio remotion/src/index.ts",
+    "remotion:render": "node scripts/remotion-render.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@remotion/cli": "^4.0.286",
+    "@remotion/renderer": "^4.0.286",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.286",
+    "typescript": "^5.8.2"
+  }
+}

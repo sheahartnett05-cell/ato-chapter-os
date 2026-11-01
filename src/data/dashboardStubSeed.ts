@@ -92,3 +92,29 @@ export const EMPTY_DASHBOARD_STUBS: DashboardStubBundle = {
   eventRisk: [],
   recruitmentMeta: { bidDayDate: localTodayIso() },
 }
+
+/** Merge partial / corrupt localStorage with safe defaults (arrays always iterable). */
+export function normalizeDashboardStubs(
+  partial: Partial<DashboardStubBundle> | null | undefined
+): DashboardStubBundle {
+  const base = EMPTY_DASHBOARD_STUBS
+  if (!partial || typeof partial !== 'object') return base
+  return {
+    meetingMinutes: Array.isArray(partial.meetingMinutes) ? partial.meetingMinutes : base.meetingMinutes,
+    rosterChanges: Array.isArray(partial.rosterChanges) ? partial.rosterChanges : base.rosterChanges,
+    complianceDeadlines: Array.isArray(partial.complianceDeadlines)
+      ? partial.complianceDeadlines
+      : base.complianceDeadlines,
+    serviceHours: partial.serviceHours ?? base.serviceHours,
+    philanthropy: partial.philanthropy ?? base.philanthropy,
+    houseBills: Array.isArray(partial.houseBills) ? partial.houseBills : base.houseBills,
+    maintenance: Array.isArray(partial.maintenance) ? partial.maintenance : base.maintenance,
+    chores: partial.chores ?? base.chores,
+    alumni: partial.alumni ?? base.alumni,
+    nmRequirements: Array.isArray(partial.nmRequirements)
+      ? partial.nmRequirements
+      : base.nmRequirements,
+    eventRisk: Array.isArray(partial.eventRisk) ? partial.eventRisk : base.eventRisk,
+    recruitmentMeta: partial.recruitmentMeta ?? base.recruitmentMeta,
+  }
+}

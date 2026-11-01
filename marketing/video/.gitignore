@@ -1,0 +1,9 @@
+node_modules/
+pw-browsers/
+raw/
+out/
+public/raw/
+captions/*.srt
+*.log
+test-results/
+playwright-report/

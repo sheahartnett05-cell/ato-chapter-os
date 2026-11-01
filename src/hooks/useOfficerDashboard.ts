@@ -12,6 +12,7 @@ import type { OfficerFunction } from '../types/officerFunction'
 import { officerFunctionLabel } from '../types/officerFunction'
 import type { ChapterPosition } from '../types/features'
 import {
+  ACTIVE_FUNCTION_KEY,
   readActiveDashboardFunction,
   resolveTileSet,
   writeActiveDashboardFunction,
@@ -25,7 +26,8 @@ import { localTodayIso } from '../lib/liveAlerts'
 import { readJson } from '../lib/persist'
 import { STORAGE_KEYS } from '../lib/demoSeed'
 import type { DashboardStubBundle } from '../types/dashboardStubs'
-import { EMPTY_DASHBOARD_STUBS } from '../data/dashboardStubSeed'
+import { normalizeDashboardStubs } from '../data/dashboardStubSeed'
+import { coerceOfficerFunction } from '../types/officerFunction'
 import type { StatTileViewModel } from '../lib/dashboard/dashboardTypes'
 import { filterDisplayableTiles } from '../lib/dashboard/displayTiles'
 
@@ -47,7 +49,9 @@ export function useOfficerDashboard() {
 
   const stubs = useMemo(
     () =>
-      readJson<DashboardStubBundle>(STORAGE_KEYS.dashboardStubs, EMPTY_DASHBOARD_STUBS),
+      normalizeDashboardStubs(
+        readJson<Partial<DashboardStubBundle> | null>(STORAGE_KEYS.dashboardStubs, null)
+      ),
     []
   )
 
@@ -81,13 +85,23 @@ export function useOfficerDashboard() {
 
   const [activeFunction, setActiveFunctionState] = useState<OfficerFunction>(() => {
     const stored = readActiveDashboardFunction()
-    if (stored) return stored
+    if (stored) return coerceOfficerFunction(stored, defaultFunction)
     return defaultFunction
   })
 
   useEffect(() => {
     const stored = readActiveDashboardFunction()
-    if (!stored) setActiveFunctionState(defaultFunction)
+    if (!stored) {
+      setActiveFunctionState(defaultFunction)
+      return
+    }
+    setActiveFunctionState(stored)
+    try {
+      const raw = localStorage.getItem(ACTIVE_FUNCTION_KEY)
+      if (raw && raw !== stored) writeActiveDashboardFunction(stored)
+    } catch {
+      /* storage unavailable */
+    }
   }, [defaultFunction])
 
   const setActiveFunction = useCallback((fn: OfficerFunction) => {
@@ -116,7 +130,7 @@ export function useOfficerDashboard() {
   )
 
   const tiles = useMemo((): StatTileViewModel[] => {
-    const tileIds = resolveTileSet(activeFunction)
+    const tileIds = resolveTileSet(coerceOfficerFunction(activeFunction))
     const snapshot = {
       today,
       members,

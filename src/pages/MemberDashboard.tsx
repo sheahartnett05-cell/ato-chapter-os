@@ -14,6 +14,8 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { Logo } from '../components/layout/Logo'
+import { GoToDashboardButton } from '../components/layout/ChapterModeNav'
+import { userIsExecCapable } from '../lib/access/can'
 import { CollapsibleSection } from '../components/ui/CollapsibleSection'
 import { Modal } from '../components/ui/Modal'
 import { formatAttendancePct } from '../lib/attendance/attendanceMath'
@@ -268,6 +270,7 @@ export default function MemberDashboard() {
   }
 
   const displayName = profile.firstName || member?.firstName || 'Member'
+  const showDashboardLink = userIsExecCapable(role, permissions)
 
   const initials =
     profile.avatar ||
@@ -312,14 +315,17 @@ export default function MemberDashboard() {
 
           <Logo compact />
 
-          <Link
-            to="/profile"
-            aria-label="Your profile"
-            className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
-          >
-            {initials}
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            {showDashboardLink && <GoToDashboardButton variant="hero" />}
+            <Link
+              to="/profile"
+              aria-label="Your profile"
+              className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20"
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
+            >
+              {initials}
+            </Link>
+          </div>
 
         </div>
 
@@ -574,79 +580,6 @@ export default function MemberDashboard() {
             </ul>
           </ChapterRoomSection>
         )}
-
-        <CollapsibleSection eyebrow="Navigate" title="Quick access" defaultOpen>
-          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {[
-              { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-              {
-                to: '/announcements',
-                label: 'Buzz',
-                icon: Megaphone,
-                badge: permissions.canPostAnnouncements ? 'Post' : undefined,
-              },
-              {
-                to: '/committees',
-                label: 'Groups',
-                icon: UsersRound,
-                badge: myCommittees.length > 0 ? String(myCommittees.length) : undefined,
-              },
-              {
-                to: '#study-hours',
-                label: 'Study',
-                icon: BookOpen,
-                badge: studyHoursTarget === null ? '—' : `${studyPct}%`,
-                anchor: true,
-              },
-              {
-                to: billHighway.enabled ? billHighway.payUrl : '/dues',
-                label: 'Dues',
-                icon: DollarSign,
-                external: billHighway.enabled,
-              },
-              { to: '/profile', label: 'Profile', icon: User },
-              { to: '/settings', label: 'Settings', icon: Settings },
-            ].map(({ to, label, icon: Icon, badge, external, anchor }) => {
-              const chipClass =
-                'flex w-full items-center justify-between gap-2 border border-[var(--rule)] bg-[var(--surface-card)] px-3 py-2.5 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]/40 hover:bg-white sm:justify-start'
-
-              const inner = (
-                <>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Icon size={16} className="shrink-0 text-[var(--primary)]" strokeWidth={1.75} />
-                    <span>{label}</span>
-                  </span>
-                  {(badge || external) && (
-                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">
-                      {badge}
-                      {external && <ExternalLink size={12} className="text-[var(--muted)]" />}
-                    </span>
-                  )}
-                </>
-              )
-
-              if (external) {
-                return (
-                  <a key={label} href={to} target="_blank" rel="noreferrer" className={chipClass}>
-                    {inner}
-                  </a>
-                )
-              }
-              if (anchor) {
-                return (
-                  <a key={label} href={to} className={chipClass}>
-                    {inner}
-                  </a>
-                )
-              }
-              return (
-                <Link key={label} to={to} className={chipClass}>
-                  {inner}
-                </Link>
-              )
-            })}
-          </div>
-        </CollapsibleSection>
 
         {/* Today */}
 
@@ -904,6 +837,79 @@ export default function MemberDashboard() {
         <ChapterRoomSection eyebrow="Academics" title="Study hours" id="study-hours-wrap">
           <MemberStudyHoursPanel memberId={resolvedMemberId} embedded />
         </ChapterRoomSection>
+
+        <CollapsibleSection eyebrow="Navigate" title="Quick access" defaultOpen={false}>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {[
+              { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+              {
+                to: '/announcements',
+                label: 'Buzz',
+                icon: Megaphone,
+                badge: permissions.canPostAnnouncements ? 'Post' : undefined,
+              },
+              {
+                to: '/committees',
+                label: 'Groups',
+                icon: UsersRound,
+                badge: myCommittees.length > 0 ? String(myCommittees.length) : undefined,
+              },
+              {
+                to: '#study-hours',
+                label: 'Study',
+                icon: BookOpen,
+                badge: studyHoursTarget === null ? '—' : `${studyPct}%`,
+                anchor: true,
+              },
+              {
+                to: billHighway.enabled ? billHighway.payUrl : '/dues',
+                label: 'Dues',
+                icon: DollarSign,
+                external: billHighway.enabled,
+              },
+              { to: '/profile', label: 'Profile', icon: User },
+              { to: '/settings', label: 'Settings', icon: Settings },
+            ].map(({ to, label, icon: Icon, badge, external, anchor }) => {
+              const chipClass =
+                'flex w-full items-center justify-between gap-2 border border-[var(--rule)] bg-[var(--surface-card)] px-3 py-2 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]/40 hover:bg-white sm:justify-start'
+
+              const inner = (
+                <>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Icon size={16} className="shrink-0 text-[var(--primary)]" strokeWidth={1.75} />
+                    <span>{label}</span>
+                  </span>
+                  {(badge || external) && (
+                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">
+                      {badge}
+                      {external && <ExternalLink size={12} className="text-[var(--muted)]" />}
+                    </span>
+                  )}
+                </>
+              )
+
+              if (external) {
+                return (
+                  <a key={label} href={to} target="_blank" rel="noreferrer" className={chipClass}>
+                    {inner}
+                  </a>
+                )
+              }
+              if (anchor) {
+                return (
+                  <a key={label} href={to} className={chipClass}>
+                    {inner}
+                  </a>
+                )
+              }
+              return (
+                <Link key={label} to={to} className={chipClass}>
+                  {inner}
+                </Link>
+              )
+            })}
+          </div>
+        </CollapsibleSection>
 
       </main>
 

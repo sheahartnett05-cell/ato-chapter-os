@@ -59,6 +59,19 @@ export const FUNCTION_PRECEDENCE: OfficerFunction[] = [
   'other',
 ]
 
+export function isOfficerFunction(value: string): value is OfficerFunction {
+  return (OFFICER_FUNCTIONS as readonly string[]).includes(value)
+}
+
+/** Safe parse for localStorage / query params — never spread undefined tile defaults. */
+export function coerceOfficerFunction(
+  value: string | null | undefined,
+  fallback: OfficerFunction = 'president'
+): OfficerFunction {
+  if (value && isOfficerFunction(value)) return value
+  return fallback
+}
+
 export function officerFunctionLabel(fn: OfficerFunction): string {
   const labels: Record<OfficerFunction, string> = {
     president: 'President',

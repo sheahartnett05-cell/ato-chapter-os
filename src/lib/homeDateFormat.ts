@@ -4,7 +4,7 @@ import { daysUntil } from './dashboard/dashboardTypes'
 export function normalizeEventTime(time: string): string {
   const t = time.trim()
   if (!t) return ''
-  return t
+  return t.replace(/\s+(AM|PM)\b/i, '\u00a0$1')
 }
 
 /** e.g. "Sat, Oct 17 · 6:00 PM" */

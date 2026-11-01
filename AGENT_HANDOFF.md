@@ -32,6 +32,32 @@ Shared running notes for **async work** on this repo. Both collaborators (and th
 
 *(Newest entries at the top.)*
 
+### 2026-10-30 — Agent (merge `sprint-fixes` + demo crash fix)
+
+**Summary:** Merged partner **Chaptera** / **chapteramanager.com** work into `main` and fixed demo Home crash (`enterGuestPreview` no longer JSON-stringifies dashboard function; parse fallback kept).
+
+**Changes:**
+- **Merge:** `origin/sprint-fixes` — Landing, `/demo`, identity/cloud, rush cycles, etc.
+- **Demo fix:** `enterGuestPreview.ts` → `writeActiveDashboardFunction`; `resolveDashboard.ts` parse + coerce (from prior commits).
+- **Live URL:** https://chapteramanager.com — see `docs/DOMAIN-SETUP.md`. Vercel project `ato-chapter-os`.
+
+**Verify:**
+- `/demo` → Officer → President → **Open the demo** → `/home` loads (no “is not iterable”).
+- `npm run build` passes after merge.
+
+**Follow-ups:**
+- Redeploy Vercel from `main` after this merge; confirm DNS at Porkbun if domain not resolving.
+
+---
+
+### 2026-10-30 — Agent (demo Home crash, Vercel deploy gap)
+
+**Summary:** Officer Home no longer crashes when `chapter-os-dashboard-function` is invalid or JSON-wrapped (`"president"`).
+
+**Changes:** `resolveDashboard.ts`, `functionTileDefaults.ts`, `useOfficerDashboard.ts`, `demoSeed.ts`, `vercel.json`.
+
+---
+
 ### 2026-10-29 — Partner → Shea (git handoff on `sprint-fixes`)
 
 **Summary:** Working tree committed for Shea’s agent: `origin/main` merge into `sprint-fixes` + Combined A→H product pass + Launch-ready Phase A identity work (migrations **unapplied**). Branch was ahead of `origin/sprint-fixes`; push not done unless Shea wants it.

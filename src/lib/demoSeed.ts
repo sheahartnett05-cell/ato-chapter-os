@@ -235,7 +235,10 @@ const EXTRA_SESSION_KEYS = [
   'chapter-os-budgets',
   'chapter-os-user-id',
   'chapter-os-supabase-chapter-id',
+  'chapter-os-view-mode',
+  'chapter-os-dashboard-function',
   'chapter-os-dashboard-layouts',
+  'chapter-os-chapter-meeting',
 ] as const
 
 const VIEW_MODE_PREFIX = 'chapter-os-view-mode-'

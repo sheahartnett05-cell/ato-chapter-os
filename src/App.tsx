@@ -32,7 +32,7 @@ import PNMProfile from './pages/PNMProfile'
 import MemberDashboard from './pages/MemberDashboard'
 import Announcements from './pages/Announcements'
 import ExcuseApprovals from './pages/ExcuseApprovals'
-import AttendanceTracker from './pages/AttendanceTracker'
+import AttendancePage from './pages/AttendancePage'
 import CheckInPage from './pages/CheckIn'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
@@ -140,7 +140,7 @@ export default function App() {
                                     element={
                                       <ExecShell>
                                         <FeatureRoute feature="attendancePoints">
-                                          <AttendanceTracker />
+                                          <AttendancePage />
                                         </FeatureRoute>
                                       </ExecShell>
                                     }

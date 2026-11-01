@@ -230,8 +230,7 @@ export function computeDashboardTile(
         ...base,
         value: String(pending),
         context: pending === 1 ? 'Awaiting review' : 'Awaiting review',
-        href: '/excuses',
-        search: '?status=pending',
+        search: '?tab=excuses&status=pending',
       }
     }
     case 'action_items': {
