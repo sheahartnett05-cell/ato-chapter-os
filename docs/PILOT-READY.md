@@ -1,34 +1,43 @@
 # Pilot readiness
 
 **Production URL:** https://chapteramanager.com  
-**Supabase project:** `oquqmoroihoksciiqwyt` (confirm in dashboard)
+**Canonical Supabase project:** `qfurjvkdbvjpvezsrddf`  
+**Branch:** `sprint-fixes`
 
-## Done
+> Older refs to `oquqmoroihoksciiqwyt` are retired. Vercel `VITE_SUPABASE_URL` and `.env.local` must point at `qfurjvkdbvjpvezsrddf` only.
 
-- [x] Supabase migrations (join codes, invite sync RPC)
-- [x] Chaptera auth email templates + Resend SMTP (templates in repo)
-- [x] Auth rate limits raised (100/hr email + OTP)
-- [ ] Site URL → `https://chapteramanager.com`
-- [ ] Vercel domain `chapteramanager.com` + `VITE_SUPABASE_*` env vars
-- [x] Sprint fixes in `sprint-fixes` branch
+## Status (2026-11-01)
 
-## Domain cutover
+| Item | Status |
+|------|--------|
+| Site live at chapteramanager.com | Yes (redeploy needed for latest `sprint-fixes`) |
+| Migrations through Phase A (`20260401…`) | Applied to `qfurjvkdbvjpvezsrddf` |
+| Gate A (`npm run test:phase-a`) | **Blocked** — needs Docker local Supabase or `STAGING_*` (script refuses production) |
+| `verify-supabase` join RPCs | Pass (`CHAPTER-FOUNDER`, `sync_chapter_join_codes`) |
+| Auth Site URL | `https://chapteramanager.com` |
+| Chaptera Auth email templates + Resend SMTP | Configured on project |
+| Resend domain `chapteramanager.com` | **DNS not verified** — see `docs/CHAPTERA_DNS_RECORDS.md` |
+| Guest demo Officer Home | Fixed in `36fc518` |
+| Attendance tracker `/attendance` | Shipped in `f41e93b` |
+| Vercel deploy token | Often missing — paste `VERCEL_TOKEN` or `vercel login` |
 
-See [`docs/DOMAIN-SETUP.md`](./DOMAIN-SETUP.md) and [`docs/CUSTOMER-EMAILS.md`](./CUSTOMER-EMAILS.md).
+## Must before inviting a real chapter
 
-```bash
-# .env.local
-RESEND_DOMAIN=chapteramanager.com
-RESEND_FROM_EMAIL=auth@chapteramanager.com
-RESEND_FROM_NAME=Chaptera
-PILOT_SITE_URL=https://chapteramanager.com
-
-npm run configure-resend-domain -- add
-npm run configure-resend-domain -- verify
-npm run configure-resend-domain
-npm run configure-pilot
-npm run configure-chaptera-emails
-```
+1. Add Resend DNS for `chapteramanager.com` at the registrar, then:
+   ```bash
+   npm run configure-resend-domain -- verify
+   npm run configure-resend-domain
+   ```
+2. Run Gate A on **local or staging** (not prod):
+   ```bash
+   # Docker Desktop + local
+   npx supabase start
+   npm run apply-supabase-migrations   # against local if configured
+   npm run test:phase-a
+   # OR set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY
+   ```
+3. Redeploy production with latest `sprint-fixes` (`npx vercel deploy --prod --yes`).
+4. Manual smoke: create chapter → OTP → second device join with invite code.
 
 ## Founder / join smoke
 
@@ -37,9 +46,16 @@ npm run configure-chaptera-emails
 3. Enter OTP from the Chaptera sign-in email
 4. Share the join code from Settings → Invites
 
+## Honest product limits
+
+- Dues: balances + pay **links** — not a card processor
+- Announcement polls ≠ binding chapter votes
+- No QR check-in, no push notification delivery yet
+- Guest demo is local-only sample data
+
 ## Optional before wider pilot
 
-- [ ] Customer emails verified on `chapteramanager.com` in Resend
+- [ ] Connect Vercel → GitHub for auto-deploy on push
 - [ ] Revoke any exposed API tokens
-- [ ] Connect Vercel to GitHub for auto-deploy on push
-- [ ] Run manual cross-device test (phone + laptop) with invite link
+- [ ] Cross-device invite-link test (phone + laptop)
+- [ ] Minimal CI (typecheck + test + build)

@@ -51,11 +51,12 @@ npm run configure-resend-domain -- --test you@gmail.com
 
 Open https://chapteramanager.com/onboarding → Send login code.
 
-## Status (2026-10-29)
+## Status (2026-11-01)
 
-- [x] Domain added to Resend (`chapteramanager.com`) — pending DNS
-- [ ] DNS records at registrar — see [`CHAPTERA_DNS_RECORDS.md`](./CHAPTERA_DNS_RECORDS.md)
-- [x] Domain attached on Vercel → project `ato-chapter-os` (NS still Porkbun; A/CNAME or switch NS needed)
-- [x] New Supabase project `qfurjvkdbvjpvezsrddf` — migrations applied + Chaptera email templates + Resend SMTP
+- [x] Domain added to Resend (`chapteramanager.com`) — **DNS still failing verification** (add records in [`CHAPTERA_DNS_RECORDS.md`](./CHAPTERA_DNS_RECORDS.md))
+- [x] Domain attached on Vercel → project `ato-chapter-os`
+- [x] Canonical Supabase project `qfurjvkdbvjpvezsrddf` — migrations through Phase A + Chaptera email templates + Resend SMTP
 - [x] Supabase `site_url` → https://chapteramanager.com
-- [ ] App live at https://chapteramanager.com (needs Porkbun DNS)
+- [x] App live at https://chapteramanager.com
+- [ ] Redeploy latest `sprint-fixes` (Attendance + demo crash fix) when `VERCEL_TOKEN` is available
+- See also [`PILOT-READY.md`](./PILOT-READY.md)
