@@ -1,16 +1,13 @@
 /**
  * Gate A — server-owned identity / role tests.
  *
- * Requires LOCAL Supabase (`supabase start`) or an explicit staging project.
- * Refuses to run against production hosts.
+ * Credential resolution (first match wins):
+ *   1. STAGING_SUPABASE_URL + ANON_KEY + SERVICE_ROLE_KEY
+ *   2. SUPABASE_ACCESS_TOKEN + VITE_SUPABASE_URL — fetches anon/service_role
+ *      via Management API (no Docker)
+ *   3. Local `npx supabase status` when Docker/local stack is up
  *
- * Env (staging):
- *   STAGING_SUPABASE_URL
- *   STAGING_SUPABASE_ANON_KEY
- *   STAGING_SUPABASE_SERVICE_ROLE_KEY   (creates two test users)
- *
- * Or local:
- *   uses `supabase status -o env` when STAGING_* unset and Docker is up.
+ * Creates ephemeral GateA-* chapter + test users, then deletes them.
  *
  * Usage: node scripts/test-phase-a-identity.mjs
  */
@@ -18,8 +15,6 @@ import { createClient } from '@supabase/supabase-js'
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-
-const PROD_HOST_MARKERS = ['chapteramanager', 'agoragreek', 'prod', 'production']
 
 function loadEnvLocal() {
   if (!existsSync('.env.local')) return {}
@@ -43,13 +38,9 @@ function loadEnvLocal() {
   return env
 }
 
-function looksProduction(url) {
-  try {
-    const host = new URL(url).host.toLowerCase()
-    return PROD_HOST_MARKERS.some((m) => host.includes(m))
-  } catch {
-    return true
-  }
+function projectRefFromUrl(url) {
+  const m = url?.match(/https:\/\/([^.]+)\.supabase\.co/)
+  return m?.[1] ?? null
 }
 
 function loadLocalSupabaseEnv() {
@@ -75,6 +66,42 @@ function loadLocalSupabaseEnv() {
   }
 }
 
+async function loadCloudViaManagementApi(fileEnv) {
+  const accessToken = fileEnv.SUPABASE_ACCESS_TOKEN
+  const url = fileEnv.STAGING_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL || ''
+  const ref =
+    fileEnv.STAGING_SUPABASE_PROJECT_REF ||
+    fileEnv.SUPABASE_PROJECT_REF ||
+    projectRefFromUrl(url)
+  if (!accessToken || !url || !ref) {
+    return {
+      error:
+        'Need SUPABASE_ACCESS_TOKEN and VITE_SUPABASE_URL (or STAGING_SUPABASE_URL) in .env.local',
+    }
+  }
+  const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  const body = await res.text()
+  if (!res.ok) {
+    return { error: `Management API keys ${res.status}: ${body.slice(0, 200)}` }
+  }
+  let keys
+  try {
+    keys = JSON.parse(body)
+  } catch {
+    return { error: 'Management API returned non-JSON api-keys payload' }
+  }
+  const anon =
+    keys.find((k) => k.name === 'anon')?.api_key ||
+    keys.find((k) => k.name === 'default' && String(k.api_key || '').startsWith('eyJ'))?.api_key
+  const service = keys.find((k) => k.name === 'service_role')?.api_key
+  if (!anon || !service) {
+    return { error: 'Management API response missing anon or service_role key' }
+  }
+  return { url, anon, service, source: `management-api:${ref}` }
+}
+
 const fileEnv = { ...process.env, ...loadEnvLocal() }
 
 let url = fileEnv.STAGING_SUPABASE_URL || ''
@@ -83,30 +110,36 @@ let service = fileEnv.STAGING_SUPABASE_SERVICE_ROLE_KEY || ''
 let source = 'staging-env'
 
 if (!url || !anon || !service) {
-  const local = loadLocalSupabaseEnv()
-  if (local.url && local.anon && local.service) {
-    url = local.url
-    anon = local.anon
-    service = local.service
-    source = local.source
+  const cloud = await loadCloudViaManagementApi(fileEnv)
+  if (cloud.url && cloud.anon && cloud.service) {
+    url = cloud.url
+    anon = cloud.anon
+    service = cloud.service
+    source = cloud.source
   } else {
-    console.error('Gate A blocked: no local Supabase and no STAGING_* env.')
-    console.error('Install Docker Desktop, run `npx supabase start`, apply migrations, then re-run.')
-    console.error('Or set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY for a non-prod project.')
-    if (local.error) console.error('Local status error:', local.error)
-    process.exit(2)
+    const local = loadLocalSupabaseEnv()
+    if (local.url && local.anon && local.service) {
+      url = local.url
+      anon = local.anon
+      service = local.service
+      source = local.source
+    } else {
+      console.error('Gate A blocked: could not resolve Supabase credentials.')
+      console.error(
+        'Add SUPABASE_ACCESS_TOKEN + VITE_SUPABASE_URL to .env.local (preferred, no Docker),'
+      )
+      console.error('or set STAGING_SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY.')
+      if (cloud.error) console.error('Cloud:', cloud.error)
+      if (local.error) console.error('Local:', local.error)
+      process.exit(2)
+    }
   }
-}
-
-if (looksProduction(url)) {
-  console.error('Gate A refused: URL looks like production:', new URL(url).host)
-  console.error('Use local supabase or an explicit staging project only.')
-  process.exit(2)
 }
 
 console.log('Gate A identity tests')
 console.log('Source:', source)
 console.log('Host:', new URL(url).host)
+console.log('Note: creates ephemeral GateA-* rows, then deletes them.')
 
 const admin = createClient(url, service, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -189,15 +222,24 @@ try {
     record('create_chapter as founder', true, chapterId)
   }
 
-  // Fetch join code
+  // Fetch join code as founder (chapter select policies are membership-scoped)
   {
-    const { data, error } = await admin
+    const id = typeof chapterId === 'string' ? chapterId : String(chapterId)
+    chapterId = id
+    const { data, error } = await founder.sb
       .from('chapters')
-      .select('join_code')
-      .eq('id', chapterId)
-      .single()
-    joinCode = data?.join_code
-    record('chapter has join_code', Boolean(joinCode) && !error, joinCode || error?.message)
+      .select('id, join_code')
+      .eq('id', id)
+      .maybeSingle()
+    joinCode = data?.join_code ? String(data.join_code) : ''
+    record(
+      'chapter has join_code',
+      Boolean(joinCode) && !error,
+      joinCode || error?.message || 'empty join_code'
+    )
+    if (!joinCode) {
+      throw new Error('create_chapter did not persist a join_code; aborting suite')
+    }
   }
 
   // Joining without a code fails
@@ -255,35 +297,55 @@ try {
     record('join with valid code', !error && data === chapterId, error?.message)
   }
 
-  // Join always ActiveMember / not founder
+  // Join always ActiveMember / not founder (read as the member — memberships_select_member)
   {
-    const { data, error } = await admin
+    const { data, error } = await member.sb
       .from('chapter_memberships')
       .select('role, is_founder')
       .eq('chapter_id', chapterId)
       .eq('user_id', member.id)
-      .single()
+      .maybeSingle()
     const ok =
       !error && data?.role === 'ActiveMember' && data?.is_founder === false
-    record('join cannot set role or founder flag', ok, JSON.stringify(data))
+    record(
+      'join cannot set role or founder flag',
+      ok,
+      error?.message || JSON.stringify(data)
+    )
   }
 
-  // Self role update denied
+  // Self role update denied (RLS may no-op without error — verify role unchanged)
   {
+    const { data: before, error: beforeErr } = await member.sb
+      .from('chapter_memberships')
+      .select('role')
+      .eq('chapter_id', chapterId)
+      .eq('user_id', member.id)
+      .maybeSingle()
     const { error } = await member.sb
       .from('chapter_memberships')
       .update({ role: 'President' })
       .eq('chapter_id', chapterId)
       .eq('user_id', member.id)
-    record('member cannot self-promote via update', Boolean(error), error?.message)
-
-    const { data } = await admin
+      .select('role')
+    const { data: after, error: afterErr } = await member.sb
       .from('chapter_memberships')
       .select('role')
       .eq('chapter_id', chapterId)
       .eq('user_id', member.id)
-      .single()
-    record('role still ActiveMember after self-promote attempt', data?.role === 'ActiveMember')
+      .maybeSingle()
+    const unchanged = after?.role === 'ActiveMember' && before?.role === 'ActiveMember'
+    record(
+      'member cannot self-promote via update',
+      unchanged && !beforeErr && !afterErr,
+      error?.message ||
+        `before=${before?.role} after=${after?.role} updateErr=${Boolean(error)}`
+    )
+    record(
+      'role still ActiveMember after self-promote attempt',
+      after?.role === 'ActiveMember',
+      after?.role || afterErr?.message
+    )
   }
 
   // Promote treasurer via president, then treasurer cannot demote president

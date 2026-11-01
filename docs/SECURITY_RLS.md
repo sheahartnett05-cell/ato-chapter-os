@@ -1,10 +1,10 @@
 # Agora Supabase RLS — exposure and remediation plan
 
-**Status:** Production blocker until Phase A identity migration is applied and Gate A passes.  
+**Status:** Phase A applied; Gate A **PASS** (see `docs/PILOT-READY.md`).  
 **Prepared migrations (local only, not applied):**
 - `supabase/migrations/20260331000000_harden_membership_and_kv_rls.sql` (superseded by Phase A for membership writes)
 - `supabase/migrations/20260401000000_server_owned_identity_roles.sql` (**Phase A** — roles enum, officer seats, create/join/role/seat RPCs)
-**Gate A test:** `npm run test:phase-a` → `scripts/test-phase-a-identity.mjs` (local Supabase or `STAGING_*` only; refuses production hosts)
+**Gate A test:** `npm run test:phase-a` → `scripts/test-phase-a-identity.mjs` (`SUPABASE_ACCESS_TOKEN` + project URL via Management API, or `STAGING_*`, or local Supabase). Creates ephemeral GateA-* rows and deletes them.
 
 ## Verified exposure (current policies)
 
