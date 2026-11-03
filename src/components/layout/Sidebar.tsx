@@ -109,8 +109,8 @@ const adminNav = [
     perm: 'canAccessAdminSettings' as const,
   },
   {
-    to: '/exec-slides',
-    label: 'Exec Slides',
+    to: '/chapter-meeting',
+    label: 'Chapter meeting',
     icon: Presentation,
     perm: 'canAccessExecTools' as const,
     feature: 'execSlides' as const,

@@ -49,6 +49,18 @@ export function cloudIdentityEnabled(): boolean {
   return Boolean(getSupabase() && getSupabaseUser()) && !isGuestSession()
 }
 
+/** Map RPC membership exclusivity errors to user-facing copy. */
+export function humanizeChapterMembershipError(message: string): string {
+  const m = message.toLowerCase()
+  if (m.includes('already a member')) {
+    return 'You already belong to a chapter. Open Profile → Leave chapter before joining or creating another (one chapter per account).'
+  }
+  if (m.includes('last president') || m.includes('transfer')) {
+    return 'Transfer the presidency before leaving this chapter.'
+  }
+  return message
+}
+
 export async function rpcCreateChapter(input: {
   orgId: string
   designation: string
@@ -87,7 +99,7 @@ export async function rpcCreateChapter(input: {
     p_phone: input.phone ?? null,
   })
 
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeChapterMembershipError(error.message) }
   const chapterId = typeof data === 'string' ? data : null
   if (!chapterId) return { ok: false, error: 'create_chapter returned no id' }
   setCachedCloudChapterId(chapterId)
@@ -114,7 +126,7 @@ export async function rpcJoinChapter(input: {
     p_phone: input.phone ?? null,
   })
 
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeChapterMembershipError(error.message) }
   const chapterId = typeof data === 'string' ? data : null
   if (!chapterId) return { ok: false, error: 'join_chapter returned no id' }
   setCachedCloudChapterId(chapterId)

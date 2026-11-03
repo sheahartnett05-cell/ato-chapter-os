@@ -49,6 +49,18 @@ export function CloudBootstrap({ children }: { children: ReactNode }) {
           setError(result.error)
         }
 
+        // Rebuild user-owned profile session if membership exists (sign-back-in)
+        try {
+          const { isOnboardingCompleteInStorage } = await import('../../lib/onboardingStorage')
+          if (!isOnboardingCompleteInStorage()) {
+            setStatus('Restoring your profile…')
+            const { restoreSessionAfterAuth } = await import('../../lib/restoreSession')
+            await restoreSessionAfterAuth()
+          }
+        } catch {
+          /* local-only ok */
+        }
+
         if (readJson<ChapterLock | null>('chapter-os-chapter-lock', null)) {
           const published = await publishInviteCodesToCloud()
           if (!published.ok && published.error !== 'cloud sync unavailable') {

@@ -74,6 +74,8 @@ export default function Onboarding() {
     emailVerified,
     sendEmailOtp,
     verifyEmailOtp,
+    signUpWithPassword,
+    updatePassword,
   } = useAuth()
   const { orgDirectory, setSelectedOrg, setChapterMeta } = useChapter()
   const { chapterLock, validateInvite, redeemInvite, registerMember } = useMembers()
@@ -140,6 +142,9 @@ export default function Onboarding() {
   const [otpSent, setOtpSent] = useState(false)
   const [otpError, setOtpError] = useState('')
   const [otpBusy, setOtpBusy] = useState(false)
+  const [accountPassword, setAccountPassword] = useState('')
+  const [accountPassword2, setAccountPassword2] = useState('')
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password')
   const stepKey = steps[step]
   const selectedOrg = orgDirectory.find((o) => o.id === orgId) ?? null
   useEffect(() => {
@@ -298,7 +303,9 @@ export default function Onboarding() {
       })
       navigate(home, { replace: true })
     } catch (e) {
-      setInviteError(e instanceof Error ? e.message : 'Could not create account')
+      const raw = e instanceof Error ? e.message : 'Could not create account'
+      const { humanizeChapterMembershipError } = await import('../lib/cloudIdentity')
+      setInviteError(humanizeChapterMembershipError(raw))
     }
   }
   const goNext = () => {
@@ -449,14 +456,103 @@ export default function Onboarding() {
                 {needsAuth && (
                   <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      Verify email {emailVerified ? '· signed in' : '· optional'}
+                      Account {emailVerified ? '· signed in' : ''}
                     </p>
                     <p className="text-xs leading-relaxed text-[var(--muted)]">
                       {emailVerified
-                        ? 'This browser is signed in. Continue to finish your profile.'
-                        : 'Send a login code if you want cloud sign-in. You can still continue and create your chapter account if the email only has a confirm link.'}
+                        ? 'Signed in — add or update a password so you can return without a code.'
+                        : 'Create a password for this email (recommended), or use a one-time login code.'}
                     </p>
                     {!emailVerified && (
+                      <div className="flex gap-1 rounded-sm border border-[var(--rule)] p-0.5">
+                        <button
+                          type="button"
+                          className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
+                            authMethod === 'password' ? 'theme-pill-active' : 'theme-pill-muted'
+                          }`}
+                          onClick={() => setAuthMethod('password')}
+                        >
+                          Password
+                        </button>
+                        <button
+                          type="button"
+                          className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
+                            authMethod === 'otp' ? 'theme-pill-active' : 'theme-pill-muted'
+                          }`}
+                          onClick={() => setAuthMethod('otp')}
+                        >
+                          Email code
+                        </button>
+                      </div>
+                    )}
+                    {(emailVerified || authMethod === 'password') && (
+                      <>
+                        <label className="block">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                            Password
+                          </span>
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            className="input-editorial mt-1 min-h-11"
+                            value={accountPassword}
+                            onChange={(e) => setAccountPassword(e.target.value)}
+                            placeholder="At least 8 characters"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                            Confirm password
+                          </span>
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            className="input-editorial mt-1 min-h-11"
+                            value={accountPassword2}
+                            onChange={(e) => setAccountPassword2(e.target.value)}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={
+                            otpBusy ||
+                            !profile.email?.trim() ||
+                            accountPassword.length < 8 ||
+                            accountPassword !== accountPassword2
+                          }
+                          onClick={async () => {
+                            setOtpBusy(true)
+                            setOtpError('')
+                            if (accountPassword !== accountPassword2) {
+                              setOtpError('Passwords do not match')
+                              setOtpBusy(false)
+                              return
+                            }
+                            const res = emailVerified
+                              ? await updatePassword(accountPassword)
+                              : await signUpWithPassword(profile.email ?? '', accountPassword)
+                            setOtpBusy(false)
+                            if (!res.ok) {
+                              setOtpError(res.error ?? 'Could not save password')
+                              return
+                            }
+                            if ('needsEmailConfirm' in res && res.needsEmailConfirm) {
+                              setOtpError(
+                                'Check your email to confirm the account, then sign in from Login.'
+                              )
+                              return
+                            }
+                            setOtpError('')
+                            setAccountPassword('')
+                            setAccountPassword2('')
+                          }}
+                          className="btn-primary w-full disabled:opacity-40"
+                        >
+                          {emailVerified ? 'Save password' : 'Create account with password'}
+                        </button>
+                      </>
+                    )}
+                    {!emailVerified && authMethod === 'otp' && (
                       <>
                         <button
                           type="button"
@@ -480,7 +576,9 @@ export default function Onboarding() {
                             </span>
                             <input
                               value={otpCode}
-                              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              onChange={(e) =>
+                                setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                              }
                               placeholder="123456"
                               className="input-editorial mt-1 tracking-[0.3em]"
                               inputMode="numeric"
@@ -506,6 +604,9 @@ export default function Onboarding() {
                       </>
                     )}
                     {otpError && <p className="text-xs text-red-600">{otpError}</p>}
+                    {emailVerified && !otpError && (
+                      <p className="text-xs text-emerald-800">Signed in — continue below.</p>
+                    )}
                   </div>
                 )}
                 <label className="block">

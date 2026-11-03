@@ -18,12 +18,28 @@ import {
 import { formatAttendancePct, pointsFromEntry } from '../lib/attendance/attendanceMath'
 
 export default function MyProfile() {
-  const { profile, role, onboarding, updateProfile, permissions } = useAuth()
+  const {
+    profile,
+    role,
+    onboarding,
+    updateProfile,
+    permissions,
+    authEmail,
+    emailVerified,
+    signOut,
+    requiresSupabaseAuth,
+    updatePassword,
+  } = useAuth()
   const isMemberShell = useIsMemberShell()
   const { getMemberById, updateMemberProfile } = useMembers()
   const { chapter } = useChapter()
   const { events, getEventAttendance } = useChapterOps()
   const member = onboarding?.memberId ? getMemberById(onboarding.memberId) : undefined
+  const [leaving, setLeaving] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [newPassword2, setNewPassword2] = useState('')
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null)
 
   const attendanceRows = useMemo(() => {
     if (!member) return []
@@ -100,6 +116,122 @@ export default function MyProfile() {
       </header>
 
       <main className="mx-auto max-w-lg space-y-5 px-4 py-6">
+        {requiresSupabaseAuth ? (
+          <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              Account
+            </p>
+            {emailVerified && authEmail ? (
+              <>
+                <p className="mt-2 text-sm text-[var(--ink)]">
+                  Signed in as <span className="font-medium">{authEmail}</span>
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  One chapter at a time — {chapter.chapterDesignation || 'this chapter'} on this
+                  profile. Sign out on this device, or leave the chapter before joining another.
+                </p>
+                <div className="mt-4 space-y-2 border-t border-[var(--rule)] pt-3">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                    Password
+                  </p>
+                  <p className="text-xs text-[var(--muted)]">
+                    Set a password so you can sign in on any phone without waiting for a code.
+                  </p>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    className="input-editorial min-h-11"
+                    placeholder="New password (8+ characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    className="input-editorial min-h-11"
+                    placeholder="Confirm password"
+                    value={newPassword2}
+                    onChange={(e) => setNewPassword2(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary min-h-11 w-full text-xs disabled:opacity-40"
+                    disabled={
+                      passwordBusy ||
+                      newPassword.length < 8 ||
+                      newPassword !== newPassword2
+                    }
+                    onClick={() => {
+                      setPasswordMsg(null)
+                      setPasswordBusy(true)
+                      void updatePassword(newPassword).then((res) => {
+                        setPasswordBusy(false)
+                        if (!res.ok) {
+                          setPasswordMsg(res.error ?? 'Could not save password')
+                          return
+                        }
+                        setNewPassword('')
+                        setNewPassword2('')
+                        setPasswordMsg('Password saved — use it next time on Login.')
+                      })
+                    }}
+                  >
+                    {passwordBusy ? 'Saving…' : 'Save password'}
+                  </button>
+                  {passwordMsg ? (
+                    <p className="text-xs text-[var(--muted)]">{passwordMsg}</p>
+                  ) : null}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn-ghost min-h-11 text-xs"
+                    onClick={() => void signOut().then(() => window.location.assign('/login'))}
+                  >
+                    Sign out
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost min-h-11 text-xs text-red-800"
+                    disabled={leaving}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          'Leave this chapter? You can join or create another after. Officers who are the last president must transfer first.'
+                        )
+                      ) {
+                        return
+                      }
+                      setLeaving(true)
+                      void import('../lib/chapterCloud')
+                        .then(({ wipeLocalAndLeaveCloudChapters }) =>
+                          wipeLocalAndLeaveCloudChapters()
+                        )
+                        .then(() => signOut())
+                        .then(() => window.location.assign('/login'))
+                        .finally(() => setLeaving(false))
+                    }}
+                  >
+                    {leaving ? 'Leaving…' : 'Leave chapter'}
+                  </button>
+                  <Link to="/settings" className="btn-ghost min-h-11 text-xs">
+                    Notification settings
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-[var(--ink)]">
+                  Sign in to restore this profile on any phone.
+                </p>
+                <Link to="/login" className="btn-primary mt-3 inline-flex min-h-11 items-center text-xs">
+                  Sign in to my profile
+                </Link>
+              </>
+            )}
+          </section>
+        ) : null}
+
         {member && (
           <div className="flex flex-wrap gap-2">
             <StatusPill label={member.status} variant={memberStatusVariant(member.status)} />

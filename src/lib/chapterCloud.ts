@@ -20,13 +20,22 @@ export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId 
 
 export const CLOUD_SYNC_KEYS: string[] = [
   ...Object.values(STORAGE_KEYS).filter((k) => k !== STORAGE_KEYS.demoSeeded),
-  'chapter-os-onboarding',
+  // User session (`chapter-os-onboarding`) is local + rebuilt from membership — not chapter-shared.
   'chapter-os-selected-org',
   'chapter-os-chapter-lock',
   'chapter-os-invite-codes',
   'chapter-os-member-accounts',
   'chapter-os-roster-members',
 ]
+
+/** Keys that must never overwrite the signed-in user's local session. */
+const HYDRATE_SKIP_KEYS = new Set([
+  'chapter-os-onboarding',
+  'chapter-os-guest-preview',
+  'chapter-os-notify-prefs',
+  'chapter-os-location-prefs',
+  STORAGE_KEYS.demoSeeded,
+])
 
 const pending = new Map<string, unknown>()
 let flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -222,6 +231,8 @@ export function queueChapterKvWrite(key: string, value: unknown) {
   if (!canSyncToCloud()) return
   if (!CLOUD_SYNC_KEYS.includes(key) && !key.startsWith('chapter-os-')) return
   if (key === STORAGE_KEYS.demoSeeded || key === 'chapter-os-guest-preview') return
+  if (key === 'chapter-os-onboarding') return
+  if (key === 'chapter-os-notify-prefs' || key === 'chapter-os-location-prefs') return
   if (key === 'chapter-os-user-id') return
   if (key === CLOUD_CHAPTER_ID_KEY) return
 
@@ -284,7 +295,7 @@ export async function hydrateFromCloud(): Promise<{ ok: boolean; keys: number; e
 
   let n = 0
   for (const row of data ?? []) {
-    if (!row.key || row.key === STORAGE_KEYS.demoSeeded) continue
+    if (!row.key || HYDRATE_SKIP_KEYS.has(row.key)) continue
     try {
       if (row.value === null) {
         localStorage.removeItem(row.key)

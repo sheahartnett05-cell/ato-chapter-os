@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
   List,
   LayoutGrid,
-  MapPin,
-  Clock,
-  Star,
-  Users,
 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell } from '../components/ui/Section'
@@ -52,14 +48,6 @@ function parseEventDate(iso: string) {
 
 function monthLabel(d: Date) {
   return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function formatDay(iso: string) {
-  return parseEventDate(iso).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 function TypePill({ type }: { type: string }) {
@@ -154,80 +142,6 @@ function EventListItem({
   )
 }
 
-function EventDetailsContent({
-  event,
-  canEditPoints,
-  onEditPoints,
-}: {
-  event: Event
-  canEditPoints: boolean
-  onEditPoints: (e: Event) => void
-}) {
-  const color = eventTypeColor(event.type)
-  return (
-    <>
-      <div
-        className="border-b border-[var(--rule)] pb-4"
-        style={{ borderLeftWidth: 4, borderLeftColor: color, paddingLeft: '1rem' }}
-      >
-        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-          {formatDay(event.date)} · {event.time}
-        </p>
-        <h3 className="mt-1 font-serif text-2xl tracking-tight text-[var(--ink)]">{event.name}</h3>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <TypePill type={event.type} />
-          {event.required && (
-            <span className="font-mono text-[9px] uppercase tracking-wider text-red-700">Required</span>
-          )}
-          {event.rsvpRequired && (
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--primary)]">
-              RSVP required
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-5">
-        {event.description && (
-          <p className="text-sm leading-relaxed text-[var(--muted)]">{event.description}</p>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { icon: Clock, label: 'Time', value: event.time },
-            { icon: MapPin, label: 'Location', value: event.location },
-            { icon: Star, label: 'Points', value: `${event.points} pts` },
-            { icon: Users, label: 'Dress', value: event.dressCode },
-          ].map(({ icon: Icon, label, value }) => (
-            <div key={label} className="border border-[var(--rule)] px-3 py-3">
-              <div className="flex items-center gap-1.5 text-[var(--muted)]">
-                <Icon size={14} />
-                <span className="font-mono text-[9px] uppercase tracking-wider">{label}</span>
-              </div>
-              <p className="mt-1 text-sm font-medium text-[var(--ink)]">{value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--rule)] pt-4">
-          <Link to={`/events/${event.id}`} className="btn-primary text-xs">
-            Open full page · RSVP & attendance
-          </Link>
-          {canEditPoints && (
-            <button
-              type="button"
-              onClick={() => onEditPoints(event)}
-              className="btn-ghost text-xs"
-            >
-              Edit points ({event.points})
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  )
-}
-
 function ColorLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-[var(--rule)] bg-[var(--surface-card)] px-4 py-3">
@@ -250,7 +164,6 @@ function ColorLegend() {
 export default function CalendarPage() {
   const {
     events,
-    updateEventPoints,
     addEvent,
     getMemberRsvp,
     setRsvp,
@@ -268,9 +181,6 @@ export default function CalendarPage() {
   const [view, setView] = useState<ViewMode>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(todayIso)
   const [dayModalDate, setDayModalDate] = useState<string | null>(null)
-  const [eventModalId, setEventModalId] = useState<string | null>(null)
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-  const [pointsDraft, setPointsDraft] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
   const [returnToFormsAfterCreate, setReturnToFormsAfterCreate] = useState(false)
   const [newEvent, setNewEvent] = useState({
@@ -343,11 +253,6 @@ export default function CalendarPage() {
     [sortedEvents, todayIso]
   )
 
-  const eventModalEvent = useMemo(
-    () => (eventModalId ? sortedEvents.find((e) => e.id === eventModalId) ?? null : null),
-    [eventModalId, sortedEvents]
-  )
-
   const dayModalEvents = dayModalDate ? byDate[dayModalDate] ?? [] : []
 
   const cells = useMemo(() => {
@@ -377,9 +282,10 @@ export default function CalendarPage() {
     setDayModalDate(iso)
   }
 
-  const openEventModal = (eventId: string, dateIso?: string) => {
+  const openEvent = (eventId: string, dateIso?: string) => {
     if (dateIso) setSelectedDate(dateIso)
-    setEventModalId(eventId)
+    setDayModalDate(null)
+    navigate(`/events/${eventId}`)
   }
 
   const pickDate = (iso: string) => {
@@ -389,19 +295,7 @@ export default function CalendarPage() {
   const pickEventFromGrid = (e: ReactMouseEvent, eventId: string, dateIso: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setDayModalDate(null)
-    openEventModal(eventId, dateIso)
-  }
-
-  const openPointsEditor = (event: Event) => {
-    setEditingEvent(event)
-    setPointsDraft(event.points)
-  }
-
-  const savePoints = () => {
-    if (!editingEvent) return
-    updateEventPoints(editingEvent.id, pointsDraft)
-    setEditingEvent(null)
+    openEvent(eventId, dateIso)
   }
 
   const create = () => {
@@ -437,11 +331,7 @@ export default function CalendarPage() {
       })
       return
     }
-    setSelectedDate(newEvent.date)
-    setEventModalId(id)
     setDayModalDate(null)
-    setCursor(startOfMonth(parseEventDate(newEvent.date)))
-    setView('month')
     setNewEvent({
       name: '',
       type: 'Chapter',
@@ -453,6 +343,7 @@ export default function CalendarPage() {
       required: false,
       rsvpRequired: true,
     })
+    navigate(`/events/${id}`)
   }
 
   const dayModalTitle = dayModalDate
@@ -653,8 +544,8 @@ export default function CalendarPage() {
                   <EventListItem
                     key={event.id}
                     event={event}
-                    selected={eventModalId === event.id}
-                    onSelect={() => openEventModal(event.id, event.date)}
+                    selected={false}
+                    onSelect={() => openEvent(event.id, event.date)}
                     {...listItemProps(event)}
                   />
                 ))}
@@ -697,11 +588,8 @@ export default function CalendarPage() {
                 <EventListItem
                   key={event.id}
                   event={event}
-                  selected={eventModalId === event.id}
-                  onSelect={() => {
-                    setDayModalDate(null)
-                    openEventModal(event.id, event.date)
-                  }}
+                  selected={false}
+                  onSelect={() => openEvent(event.id, event.date)}
                   {...listItemProps(event)}
                 />
               ))}
@@ -721,47 +609,6 @@ export default function CalendarPage() {
             )}
           </>
         )}
-      </Modal>
-
-      <Modal
-        open={eventModalEvent != null}
-        onClose={() => setEventModalId(null)}
-        title="Event details"
-        size="lg"
-      >
-        {eventModalEvent && (
-          <EventDetailsContent
-            event={eventModalEvent}
-            canEditPoints={canEditPoints}
-            onEditPoints={(event) => {
-              setEventModalId(null)
-              openPointsEditor(event)
-            }}
-          />
-        )}
-      </Modal>
-
-      <Modal
-        open={editingEvent != null}
-        onClose={() => setEditingEvent(null)}
-        title="Event points"
-      >
-        <p className="mb-3 text-sm text-[var(--muted)]">{editingEvent?.name}</p>
-        <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-            Points awarded
-          </span>
-          <input
-            type="number"
-            min={0}
-            value={pointsDraft}
-            onChange={(e) => setPointsDraft(Number(e.target.value))}
-            className="input-editorial mt-1 font-mono"
-          />
-        </label>
-        <button type="button" onClick={savePoints} className="btn-primary mt-4 w-full">
-          Save points
-        </button>
       </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New event">

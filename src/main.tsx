@@ -6,6 +6,8 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { bootCloud } from './components/routing/CloudBootstrap'
 import { isGuestPreviewActive } from './lib/guestPreview'
 import { clearDemoData, ensureGuestDemoFresh, STORAGE_KEYS } from './lib/demoSeed'
+import { initPwaInstallCapture } from './lib/pwa/installPrompt'
+import { registerServiceWorker } from './lib/pwa/registerServiceWorker'
 
 try {
   if (!isGuestPreviewActive() && localStorage.getItem(STORAGE_KEYS.demoSeeded)) {
@@ -16,6 +18,9 @@ try {
 } catch {
   /* storage unavailable */
 }
+
+initPwaInstallCapture()
+void registerServiceWorker()
 
 void bootCloud().finally(() => {
   createRoot(document.getElementById('root')!).render(

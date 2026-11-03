@@ -12,7 +12,8 @@ import { ChapterResourcesProvider } from './context/ChapterResourcesContext'
 import { ChapterTablesProvider } from './context/ChapterTablesContext'
 import { RecruitmentProvider } from './context/RecruitmentContext'
 import { BudgetProvider } from './context/BudgetContext'
-import { DemoPage, JoinPage, OnboardingPage, PreviewPage, RootRedirect } from './components/routing/OnboardingPage'
+import { DemoPage, JoinPage, OnboardingPage, PreviewPage } from './components/routing/OnboardingPage'
+import { RootRedirect } from './components/routing/SessionResume'
 import { ExecShell, MemberShell, SharedShell } from './components/routing/AppShells'
 import { ChapterViewModeProvider } from './context/ChapterViewModeContext'
 import { FeatureRoute } from './components/routing/FeatureRoute'
@@ -33,6 +34,7 @@ import MemberDashboard from './pages/MemberDashboard'
 import Announcements from './pages/Announcements'
 import ExcuseApprovals from './pages/ExcuseApprovals'
 import AttendancePage from './pages/AttendancePage'
+import LoginPage from './pages/Login'
 import CheckInPage from './pages/CheckIn'
 import LibraryHours from './pages/LibraryHours'
 import ChapterSetup from './pages/ChapterSetup'
@@ -71,7 +73,7 @@ export default function App() {
                                 <ToastProvider>
                                 <Routes>
                                   <Route path="/preview" element={<PreviewPage />} />
-                                  <Route path="/login" element={<PreviewPage />} />
+                                  <Route path="/login" element={<LoginPage />} />
                                   <Route path="/demo" element={<DemoPage />} />
                                   <Route path="/check-in/:eventId" element={<CheckInPage />} />
                                   <Route path="/join" element={<JoinPage />} />

@@ -8,6 +8,15 @@ export function requiresSupabaseAuth(): boolean {
   return isSupabaseConfigured()
 }
 
+const MIN_PASSWORD_LEN = 8
+
+export function validatePassword(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LEN) {
+    return `Password must be at least ${MIN_PASSWORD_LEN} characters.`
+  }
+  return null
+}
+
 export async function sendEmailOtp(email: string): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Supabase not configured' }
@@ -47,6 +56,72 @@ export async function verifyEmailOtp(
   if (!signupAttempt.error) return { ok: true }
 
   return { ok: false, error: signupAttempt.error.message || emailAttempt.error.message }
+}
+
+export async function signInWithPassword(
+  email: string,
+  password: string
+): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Supabase not configured' }
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed) return { ok: false, error: 'Email required' }
+  const pwdError = validatePassword(password)
+  if (pwdError) return { ok: false, error: pwdError }
+
+  const { error } = await sb.auth.signInWithPassword({ email: trimmed, password })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+/** Create account with email + password (onboarding / first device). */
+export async function signUpWithPassword(
+  email: string,
+  password: string
+): Promise<{ ok: boolean; error?: string; needsEmailConfirm?: boolean }> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Supabase not configured' }
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed) return { ok: false, error: 'Email required' }
+  const pwdError = validatePassword(password)
+  if (pwdError) return { ok: false, error: pwdError }
+
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined
+  const { data, error } = await sb.auth.signUp({
+    email: trimmed,
+    password,
+    options: { emailRedirectTo: redirectTo },
+  })
+  if (error) return { ok: false, error: error.message }
+  // No session means project requires email confirm before sign-in
+  if (!data.session) return { ok: true, needsEmailConfirm: true }
+  return { ok: true }
+}
+
+/** Set or change password while signed in (after OTP or password login). */
+export async function updatePassword(password: string): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Supabase not configured' }
+  const pwdError = validatePassword(password)
+  if (pwdError) return { ok: false, error: pwdError }
+  const { error } = await sb.auth.updateUser({ password })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+export async function sendPasswordResetEmail(
+  email: string
+): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Supabase not configured' }
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed) return { ok: false, error: 'Email required' }
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/login?reset=1` : undefined
+  const { error } = await sb.auth.resetPasswordForEmail(trimmed, { redirectTo })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 export async function signOutSupabase(): Promise<void> {

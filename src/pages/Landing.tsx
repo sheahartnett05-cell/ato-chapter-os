@@ -1,16 +1,26 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, KeyRound, Play, UserPlus } from 'lucide-react'
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, KeyRound, LogIn, Play, UserPlus } from 'lucide-react'
 import { BrandHeroPanel } from '../components/onboarding/BrandHeroPanel'
 import { ChapteraMark } from '../components/layout/Logo'
 import { useAuth } from '../context/AuthContext'
 import { CHAPTERA_PRODUCT_NAME, CHAPTERA_TAGLINE } from '../lib/brandCopy'
 import { isGuestPreviewActive } from '../lib/guestPreview'
 import { defaultHomePath } from '../lib/onboardingStorage'
+import { readRememberedEmail } from '../lib/rememberedAuth'
 
 export default function Landing() {
-  const { isOnboarded, onboarding } = useAuth()
+  const navigate = useNavigate()
+  const { isOnboarded, onboarding, emailVerified } = useAuth()
   const inGuest = isOnboarded && (onboarding?.isGuest === true || isGuestPreviewActive())
   const inChapter = isOnboarded && !inGuest
+  const remembered = readRememberedEmail()
+
+  useEffect(() => {
+    if (inChapter && emailVerified) {
+      navigate(defaultHomePath(), { replace: true })
+    }
+  }, [inChapter, emailVerified, navigate])
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--surface-tint)' }}>
@@ -41,9 +51,10 @@ export default function Landing() {
 
         {inChapter && (
           <p className="mt-4 max-w-md text-sm text-[var(--ink)]">
-            You already have a chapter in this browser.{' '}
+            Welcome back
+            {onboarding?.profile?.firstName ? `, ${onboarding.profile.firstName}` : ''}.{' '}
             <Link to={defaultHomePath()} className="font-semibold underline-offset-2 hover:underline">
-              Continue
+              Open your chapter
             </Link>
           </p>
         )}
@@ -57,18 +68,50 @@ export default function Landing() {
         )}
 
         <div className="mt-8 max-w-md space-y-3">
+          {inChapter ? (
+            <Link
+              to={defaultHomePath()}
+              className="flex items-start gap-4 border border-[var(--ink)] bg-[var(--primary)] p-5 text-left text-[var(--primary-foreground)] transition hover:opacity-90"
+            >
+              <LogIn size={20} className="mt-0.5 shrink-0" strokeWidth={1.5} />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Continue as saved profile</span>
+                <span className="mt-1 block text-sm opacity-80">
+                  This phone already remembers you — no code needed.
+                </span>
+              </span>
+              <ArrowRight size={16} className="mt-1 shrink-0" />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-start gap-4 border border-[var(--ink)] bg-[var(--primary)] p-5 text-left text-[var(--primary-foreground)] transition hover:opacity-90"
+            >
+              <LogIn size={20} className="mt-0.5 shrink-0" strokeWidth={1.5} />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Sign in</span>
+                <span className="mt-1 block text-sm opacity-80">
+                  {remembered
+                    ? `Continue as ${remembered} — code only if this phone signed you out.`
+                    : 'Returning members — email login code once per phone.'}
+                </span>
+              </span>
+              <ArrowRight size={16} className="mt-1 shrink-0" />
+            </Link>
+          )}
+
           <Link
             to="/onboarding?intent=create"
-            className="flex items-start gap-4 border border-[var(--ink)] bg-[var(--primary)] p-5 text-left text-[var(--primary-foreground)] transition hover:opacity-90"
+            className="flex items-start gap-4 border border-[var(--rule)] bg-[var(--surface-card)] p-5 text-left text-[var(--ink)] transition hover:border-[var(--ink)]"
           >
             <UserPlus size={20} className="mt-0.5 shrink-0" strokeWidth={1.5} />
             <span className="min-w-0 flex-1">
               <span className="block font-semibold">Create a chapter</span>
-              <span className="mt-1 block text-sm opacity-80">
+              <span className="mt-1 block text-sm text-[var(--muted)]">
                 You are the founding officer. Name, school, then your org.
               </span>
             </span>
-            <ArrowRight size={16} className="mt-1 shrink-0" />
+            <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--muted)]" />
           </Link>
 
           <Link

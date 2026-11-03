@@ -124,7 +124,7 @@ export const CHAPTER_FEATURES: ChapterFeatureDef[] = [
   {
     id: 'execSlides',
     label: 'Chapter meeting',
-    description: 'Officer meeting decks',
+    description: 'Agenda, minutes, and meeting files',
     defaultEnabled: true,
   },
   {

@@ -74,6 +74,14 @@ export function CheckInQrPanel({
     const next = openCheckInSession({ eventId, chapterKey, openedBy })
     setSession(next)
     setNow(Date.now())
+    void import('../../lib/notifications/localPush').then(({ notifyLocalOnce }) =>
+      notifyLocalOnce({
+        title: 'QR check-in live',
+        body: `${eventName} — rotating code is active.`,
+        tag: `qr-live-${eventId}`,
+        url: `/events/${eventId}`,
+      })
+    )
   }
 
   const close = () => {

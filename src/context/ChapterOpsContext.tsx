@@ -394,6 +394,14 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       }
       persistExcuses((prev) => [...prev, excuse])
       setRsvp(input.eventId, input.memberId, 'Not Going')
+      void import('../lib/notifications/localPush').then(({ notifyLocalOnce }) =>
+        notifyLocalOnce({
+          title: 'Excuse submitted',
+          body: 'A member submitted an excuse for review.',
+          tag: 'excuse-pending',
+          url: '/attendance?tab=excuses&status=pending',
+        })
+      )
       return excuse
     },
     [persistExcuses, setRsvp]
@@ -528,6 +536,14 @@ export function ChapterOpsProvider({ children }: { children: ReactNode }) {
       writeJson(STORAGE_KEYS.studyLogs, next)
       return next
     })
+    void import('../lib/notifications/localPush').then(({ notifyLocalOnce }) =>
+      notifyLocalOnce({
+        title: 'Study hours logged',
+        body: `${entry.hours}h submitted for verification.`,
+        tag: `study-log-${entry.memberId}`,
+        url: '/my-dashboard#study-hours',
+      })
+    )
   }, [])
 
   const verifyStudyHours = useCallback((id: string) => {

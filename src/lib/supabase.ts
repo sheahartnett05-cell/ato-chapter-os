@@ -21,6 +21,8 @@ export function getSupabase(): SupabaseClient<Database> | null {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // localStorage so home-screen / PWA reopens stay signed in until Sign out
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       },
     })
   }

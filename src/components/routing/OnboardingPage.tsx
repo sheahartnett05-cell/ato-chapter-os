@@ -42,10 +42,3 @@ export function PreviewPage() {
 export function DemoPage() {
   return <DemoPreview />
 }
-
-export function RootRedirect() {
-  if (!isOnboardingCompleteInStorage()) {
-    return <Landing />
-  }
-  return <Navigate to={defaultHomePath()} replace />
-}

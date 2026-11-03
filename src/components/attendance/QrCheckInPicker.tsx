@@ -115,7 +115,7 @@ function QrCheckInPickerInner({ initialEventId = null }: Props) {
             id="qr-checkin-event"
             value={effectiveId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className="input-editorial w-full text-sm"
+            className="input-editorial min-h-11 w-full text-sm"
             disabled={choices.length === 0}
           >
             {choices.length === 0 ? (

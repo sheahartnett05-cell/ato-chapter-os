@@ -25,8 +25,11 @@ import {
   isEmailVerified,
   requiresSupabaseAuth,
   sendEmailOtp,
+  sendPasswordResetEmail,
+  signInWithPassword,
   signOutSupabase,
-  upsertSupabaseProfile,
+  signUpWithPassword,
+  updatePassword,
   verifyEmailOtp,
 } from '../lib/supabaseAuth'
 import {
@@ -99,11 +102,20 @@ interface AuthContextValue {
   authReady: boolean
   sendEmailOtp: (email: string) => Promise<{ ok: boolean; error?: string }>
   verifyEmailOtp: (email: string, token: string) => Promise<{ ok: boolean; error?: string }>
+  signInWithPassword: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  signUpWithPassword: (
+    email: string,
+    password: string
+  ) => Promise<{ ok: boolean; error?: string; needsEmailConfirm?: boolean }>
+  updatePassword: (password: string) => Promise<{ ok: boolean; error?: string }>
+  sendPasswordResetEmail: (email: string) => Promise<{ ok: boolean; error?: string }>
   signOut: () => Promise<void>
   completeOnboarding: (data: Omit<OnboardingData, 'completed'>) => void
   updateProfile: (patch: Partial<UserProfile>) => void
   updateRole: (role: UserRole) => void
   resetOnboarding: () => void
+  /** Re-read local onboarding after restoreSessionAfterAuth writes storage. */
+  reloadOnboardingFromStorage: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -153,7 +165,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const next: OnboardingData = { ...data, userId: resolvedUserId, completed: true }
       writeOnboarding(next)
       setOnboarding(next)
-      void upsertSupabaseProfile({ ...next.profile, email: next.profile.email ?? authEmail ?? undefined })
+      const profile = {
+        ...next.profile,
+        email: next.profile.email ?? authEmail ?? undefined,
+      }
+      void import('../lib/syncPersonProfile').then(({ syncPersonProfileToChapter }) => {
+        syncPersonProfileToChapter(next.memberId, profile)
+      })
     },
     [authUserId, authEmail]
   )
@@ -164,7 +182,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!prev) return prev
         const next = { ...prev, profile: { ...prev.profile, ...patch } }
         writeOnboarding(next)
-        void upsertSupabaseProfile({ ...next.profile, email: next.profile.email ?? authEmail ?? undefined })
+        const profile = {
+          ...next.profile,
+          email: next.profile.email ?? authEmail ?? undefined,
+        }
+        void import('../lib/syncPersonProfile').then(({ syncPersonProfileToChapter }) => {
+          syncPersonProfileToChapter(next.memberId, profile)
+        })
         return next
       })
     },
@@ -200,6 +224,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboarding(null)
   }, [])
 
+  const reloadOnboardingFromStorage = useCallback(() => {
+    setOnboarding(readOnboarding())
+  }, [])
+
   const value = useMemo<AuthContextValue>(() => {
     const localRole = onboarding?.role ?? null
     const role = serverRole ?? localRole
@@ -224,11 +252,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authReady: !supabaseAuth || isSupabaseSessionReady(),
       sendEmailOtp,
       verifyEmailOtp,
+      signInWithPassword,
+      signUpWithPassword,
+      updatePassword,
+      sendPasswordResetEmail,
       signOut,
       completeOnboarding,
       updateProfile,
       updateRole,
       resetOnboarding,
+      reloadOnboardingFromStorage,
     }
   }, [
     onboarding,
@@ -237,6 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authUserId,
     authEmail,
     supabaseAuth,
+    reloadOnboardingFromStorage,
     completeOnboarding,
     updateProfile,
     updateRole,

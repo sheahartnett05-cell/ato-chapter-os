@@ -13,6 +13,11 @@ import {
   resetDayLabel,
   resetFrequencyLabel,
 } from '../lib/studyHours'
+import {
+  DEFAULT_GEOFENCE_RADIUS_M,
+  getCurrentPosition,
+  locationHasGeofence,
+} from '../lib/study/geoFence'
 
 type AssignmentDraft = Record<string, { included: boolean; hours: number }>
 
@@ -60,7 +65,15 @@ export default function LibraryHoursPage() {
 
   const [locOpen, setLocOpen] = useState(false)
   const [assignOpen, setAssignOpen] = useState(false)
-  const [newLoc, setNewLoc] = useState({ name: '', address: '' })
+  const [newLoc, setNewLoc] = useState({
+    name: '',
+    address: '',
+    lat: '' as string,
+    lng: '' as string,
+    radiusMeters: String(DEFAULT_GEOFENCE_RADIUS_M),
+  })
+  const [locGpsError, setLocGpsError] = useState<string | null>(null)
+  const [locGpsBusy, setLocGpsBusy] = useState(false)
   const [allMembersHours, setAllMembersHours] = useState(studyHoursRequired)
   const [bulkHours, setBulkHours] = useState(studyHoursRequired)
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>({})
@@ -119,17 +132,64 @@ export default function LibraryHoursPage() {
     [studyLogs, studyHoursReset]
   )
 
+  useEffect(() => {
+    if (pendingLogs.length <= 0) return
+    void import('../lib/notifications/localPush').then(({ notifyLocalOnce }) =>
+      notifyLocalOnce({
+        title: 'Study hours to verify',
+        body: `${pendingLogs.length} log${pendingLogs.length === 1 ? '' : 's'} awaiting verification.`,
+        tag: 'study-verify-queue',
+        url: '/library-hours',
+      })
+    )
+  }, [pendingLogs.length])
+
   const locationName = (id: string) =>
     studyLocations.find((l) => l.id === id)?.name ?? 'Unknown'
 
+  const pinMyLocation = async () => {
+    setLocGpsError(null)
+    setLocGpsBusy(true)
+    try {
+      const pos = await getCurrentPosition()
+      setNewLoc((prev) => ({
+        ...prev,
+        lat: pos.lat.toFixed(6),
+        lng: pos.lng.toFixed(6),
+      }))
+    } catch (e) {
+      setLocGpsError(e instanceof Error ? e.message : 'Could not read GPS.')
+    } finally {
+      setLocGpsBusy(false)
+    }
+  }
+
   const addLocation = () => {
     if (!newLoc.name.trim()) return
+    const lat = newLoc.lat.trim() ? Number(newLoc.lat) : undefined
+    const lng = newLoc.lng.trim() ? Number(newLoc.lng) : undefined
+    const radiusMeters = newLoc.radiusMeters.trim()
+      ? Number(newLoc.radiusMeters)
+      : DEFAULT_GEOFENCE_RADIUS_M
     addStudyLocation({
       name: newLoc.name.trim(),
       address: newLoc.address.trim() || undefined,
       active: true,
+      lat: lat != null && Number.isFinite(lat) ? lat : undefined,
+      lng: lng != null && Number.isFinite(lng) ? lng : undefined,
+      radiusMeters:
+        Number.isFinite(radiusMeters) && radiusMeters > 0
+          ? radiusMeters
+          : DEFAULT_GEOFENCE_RADIUS_M,
     })
-    setNewLoc({ name: '', address: '' })
+    setNewLoc({
+      name: '',
+      address: '',
+      lat: '',
+      lng: '',
+      radiusMeters: String(DEFAULT_GEOFENCE_RADIUS_M),
+    })
+    setLocGpsError(null)
     setLocOpen(false)
   }
 
@@ -181,13 +241,17 @@ export default function LibraryHoursPage() {
         title="Library Hours"
         subtitle="Officer view · roster progress, verification, and reset schedule"
         actions={
-          <button type="button" onClick={() => setLocOpen(true)} className="btn-ghost text-xs">
+          <button
+            type="button"
+            onClick={() => setLocOpen(true)}
+            className="btn-ghost min-h-11 px-3 text-xs"
+          >
             Add location
           </button>
         }
       />
 
-      <PageShell className="space-y-8">
+      <PageShell className="space-y-8 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="ledger-bar grid-cols-2 lg:grid-cols-4">
           <div className="ledger-cell">
             <p className="font-serif text-3xl tracking-tight">
@@ -227,11 +291,11 @@ export default function LibraryHoursPage() {
                 Set the same requirement for everyone, or assign different amounts per member.
               </p>
             </div>
-            <div className="flex rounded-sm border border-[var(--rule)] bg-white p-0.5">
+            <div className="flex w-full rounded-sm border border-[var(--rule)] bg-white p-0.5 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setStudyHoursAssignmentMode('all')}
-                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                className={`min-h-11 flex-1 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider sm:flex-none ${
                   studyHoursRequirements.mode === 'all'
                     ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                     : 'text-[var(--muted)] hover:text-[var(--ink)]'
@@ -245,7 +309,7 @@ export default function LibraryHoursPage() {
                   setStudyHoursAssignmentMode('custom')
                   openAssignmentModal()
                 }}
-                className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                className={`min-h-11 flex-1 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider sm:flex-none ${
                   studyHoursRequirements.mode === 'custom'
                     ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                     : 'text-[var(--muted)] hover:text-[var(--ink)]'
@@ -257,8 +321,8 @@ export default function LibraryHoursPage() {
           </div>
 
           {studyHoursRequirements.mode === 'all' ? (
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <label className="block">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <label className="block w-full sm:w-auto">
                 <span className="font-mono text-[10px] uppercase text-[var(--muted)]">
                   Hours required (each member)
                 </span>
@@ -268,24 +332,28 @@ export default function LibraryHoursPage() {
                   step="0.5"
                   value={allMembersHours}
                   onChange={(e) => setAllMembersHours(Number(e.target.value))}
-                  className="input-editorial mt-1 w-28 font-mono"
+                  className="input-editorial mt-1 min-h-11 w-full font-mono sm:w-28"
                 />
               </label>
               <button
                 type="button"
                 onClick={applyAllMembersHours}
-                className="btn-primary text-xs"
+                className="btn-primary min-h-11 w-full text-xs sm:w-auto"
               >
                 Apply to all members
               </button>
             </div>
           ) : (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <p className="text-sm text-neutral-700">
                 {membersWithRequirement.length} of {eligibleMembers.length} members have hour
                 requirements.
               </p>
-              <button type="button" onClick={openAssignmentModal} className="btn-primary text-xs">
+              <button
+                type="button"
+                onClick={openAssignmentModal}
+                className="btn-primary min-h-11 w-full text-xs sm:w-auto"
+              >
                 <Users size={14} />
                 Manage assignments
               </button>
@@ -299,11 +367,11 @@ export default function LibraryHoursPage() {
             Controls when member hour totals restart. Next reset:{' '}
             <span className="font-semibold text-neutral-900">{nextResetLabel(studyHoursReset)}</span>
           </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <label className="block">
               <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Frequency</span>
               <select
-                className="input-editorial mt-1"
+                className="input-editorial mt-1 min-h-11"
                 value={studyHoursReset.frequency}
                 onChange={(e) =>
                   updateStudyHoursReset({
@@ -320,7 +388,7 @@ export default function LibraryHoursPage() {
               <label className="block">
                 <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Reset day</span>
                 <select
-                  className="input-editorial mt-1"
+                  className="input-editorial mt-1 min-h-11"
                   value={studyHoursReset.resetDay}
                   onChange={(e) => updateStudyHoursReset({ resetDay: Number(e.target.value) })}
                 >
@@ -338,7 +406,7 @@ export default function LibraryHoursPage() {
               <label className="block">
                 <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Day of month</span>
                 <select
-                  className="input-editorial mt-1"
+                  className="input-editorial mt-1 min-h-11"
                   value={studyHoursReset.resetDay}
                   onChange={(e) => updateStudyHoursReset({ resetDay: Number(e.target.value) })}
                 >
@@ -355,7 +423,7 @@ export default function LibraryHoursPage() {
                 <span className="font-mono text-[10px] uppercase text-[var(--muted)]">Reset time</span>
                 <input
                   type="time"
-                  className="input-editorial mt-1 font-mono"
+                  className="input-editorial mt-1 min-h-11 font-mono"
                   value={studyHoursReset.resetTime}
                   onChange={(e) => updateStudyHoursReset({ resetTime: e.target.value })}
                 />
@@ -435,6 +503,11 @@ export default function LibraryHoursPage() {
                     {loc.address && (
                       <p className="font-mono text-[10px] text-[var(--muted)]">{loc.address}</p>
                     )}
+                    <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {locationHasGeofence(loc)
+                        ? `GPS · ${loc.radiusMeters ?? DEFAULT_GEOFENCE_RADIUS_M}m radius`
+                        : 'No GPS pin — members cannot geofence-log here'}
+                    </p>
                   </div>
                   <span
                     className={`tag border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
@@ -447,8 +520,28 @@ export default function LibraryHoursPage() {
                   </span>
                   <button
                     type="button"
+                    className="btn-ghost min-h-11 px-2 py-1 text-[10px]"
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const pos = await getCurrentPosition()
+                          updateStudyLocation(loc.id, {
+                            lat: pos.lat,
+                            lng: pos.lng,
+                            radiusMeters: loc.radiusMeters ?? DEFAULT_GEOFENCE_RADIUS_M,
+                          })
+                        } catch {
+                          /* ignore */
+                        }
+                      })()
+                    }}
+                  >
+                    Pin GPS
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => toggleStudyLocation(loc.id)}
-                    className="btn-ghost px-2 py-1 text-[10px]"
+                    className="btn-ghost min-h-11 px-2 py-1 text-[10px]"
                   >
                     {loc.active ? 'Disable' : 'Enable'}
                   </button>
@@ -459,7 +552,7 @@ export default function LibraryHoursPage() {
                         name: window.prompt('Location name', loc.name) || loc.name,
                       })
                     }
-                    className="btn-ghost px-2 py-1 text-[10px]"
+                    className="btn-ghost min-h-11 px-2 py-1 text-[10px]"
                   >
                     Rename
                   </button>
@@ -479,6 +572,16 @@ export default function LibraryHoursPage() {
             ) : (
               pendingLogs.map((entry) => {
                 const member = getMemberById(entry.memberId)
+                const gpsLabel = !entry.checkIn
+                  ? 'No GPS'
+                  : entry.checkIn.withinGeofence
+                    ? 'Within'
+                    : 'Outside'
+                const gpsClass = !entry.checkIn
+                  ? 'border-neutral-200 text-neutral-600'
+                  : entry.checkIn.withinGeofence
+                    ? 'border-emerald-200 text-emerald-800'
+                    : 'border-amber-200 text-amber-900'
                 return (
                   <li key={entry.id} className="flex flex-wrap items-center gap-3 py-3.5">
                     <div className="min-w-0 flex-1">
@@ -492,11 +595,16 @@ export default function LibraryHoursPage() {
                         <p className="mt-1 text-xs text-[var(--muted)]">{entry.notes}</p>
                       )}
                     </div>
+                    <span
+                      className={`tag border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${gpsClass}`}
+                    >
+                      {gpsLabel}
+                    </span>
                     {permissions.canVerifyStudyHours && (
                       <button
                         type="button"
                         onClick={() => verifyStudyHours(entry.id)}
-                        className="btn-primary px-3 py-1.5 text-[10px]"
+                        className="btn-primary min-h-11 px-3 py-1.5 text-[10px]"
                       >
                         Verify
                       </button>
@@ -515,8 +623,8 @@ export default function LibraryHoursPage() {
             Check members who need hours this period and set how many each must complete.
           </p>
 
-          <div className="flex flex-wrap items-end gap-2 rounded-sm border border-[var(--rule)] bg-[var(--surface-card)] p-3">
-            <label className="block flex-1 min-w-[120px]">
+          <div className="flex flex-col gap-2 rounded-sm border border-[var(--rule)] bg-[var(--surface-card)] p-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <label className="block min-w-[120px] flex-1">
               <span className="font-mono text-[10px] uppercase text-[var(--muted)]">
                 Set checked to
               </span>
@@ -526,13 +634,13 @@ export default function LibraryHoursPage() {
                 step="0.5"
                 value={bulkHours}
                 onChange={(e) => setBulkHours(Number(e.target.value))}
-                className="input-editorial mt-1 w-full font-mono"
+                className="input-editorial mt-1 min-h-11 w-full font-mono"
               />
             </label>
             <button
               type="button"
               onClick={() => setBulkHoursForChecked(bulkHours)}
-              className="btn-ghost text-xs"
+              className="btn-ghost min-h-11 w-full text-xs sm:w-auto"
             >
               Apply to checked
             </button>
@@ -575,14 +683,18 @@ export default function LibraryHoursPage() {
                         [member.id]: { ...draft, hours: Number(e.target.value) },
                       }))
                     }
-                    className="input-editorial w-20 font-mono text-xs disabled:opacity-40"
+                    className="input-editorial min-h-11 w-20 font-mono text-xs disabled:opacity-40"
                   />
                 </li>
               )
             })}
           </ul>
 
-          <button type="button" onClick={applyCustomAssignments} className="btn-primary w-full">
+          <button
+            type="button"
+            onClick={applyCustomAssignments}
+            className="btn-primary min-h-11 w-full"
+          >
             Save assignments
           </button>
         </div>
@@ -591,18 +703,50 @@ export default function LibraryHoursPage() {
       <Modal open={locOpen} onClose={() => setLocOpen(false)} title="Add study location">
         <div className="space-y-3">
           <input
-            className="input-editorial"
+            className="input-editorial min-h-11"
             placeholder="Location name"
             value={newLoc.name}
             onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
           />
           <input
-            className="input-editorial"
+            className="input-editorial min-h-11"
             placeholder="Address / notes"
             value={newLoc.address}
             onChange={(e) => setNewLoc({ ...newLoc, address: e.target.value })}
           />
-          <button type="button" onClick={addLocation} className="btn-primary w-full">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            GPS geofence (required for member check-in)
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <input
+              className="input-editorial min-h-11 font-mono"
+              placeholder="Lat"
+              value={newLoc.lat}
+              onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })}
+            />
+            <input
+              className="input-editorial min-h-11 font-mono"
+              placeholder="Lng"
+              value={newLoc.lng}
+              onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })}
+            />
+            <input
+              className="input-editorial min-h-11 font-mono"
+              placeholder="Radius m"
+              value={newLoc.radiusMeters}
+              onChange={(e) => setNewLoc({ ...newLoc, radiusMeters: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-ghost min-h-11 w-full"
+            disabled={locGpsBusy}
+            onClick={() => void pinMyLocation()}
+          >
+            {locGpsBusy ? 'Reading GPS…' : 'Use my location'}
+          </button>
+          {locGpsError ? <p className="text-sm text-red-800">{locGpsError}</p> : null}
+          <button type="button" onClick={addLocation} className="btn-primary min-h-11 w-full">
             Add location
           </button>
           <a

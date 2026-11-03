@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -7,7 +7,6 @@ import {
   Users,
   Star,
   CheckCircle2,
-  Calendar,
 } from 'lucide-react'
 import { TopBar } from '../components/layout/TopBar'
 import { PageShell, Section, ListRow } from '../components/ui/Section'
@@ -42,12 +41,14 @@ import {
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
+  const navigate = useNavigate()
   const {
     events: chapterEvents,
     getEventAttendance,
     getEventExcuses,
     submitExcuse: persistExcuse,
     setAttendanceEntry,
+    updateEventPoints,
   } = useChapterOps()
   const { getTableForEvent, getEventRsvps, updateMemberFormRsvp } = useChapterTables()
   const { memberId, profile } = useAuth()
@@ -98,10 +99,26 @@ export default function EventPage() {
     const focus = (location.state as { focus?: string } | null)?.focus
     if (focus === 'checkin' && attendanceOn) setActiveSection('checkin')
   }, [location.state, attendanceOn])
+
   const [showExcuseModal, setShowExcuseModal] = useState(false)
   const [excuseCategory, setExcuseCategory] = useState(excusePolicy.categories[0] ?? '')
   const [excuseReason, setExcuseReason] = useState('')
   const [attachmentNote, setAttachmentNote] = useState('')
+  const [pointsDraft, setPointsDraft] = useState<number | null>(null)
+  const canEditPoints = permissions.canEditEventPoints
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setPointsDraft(null)
+  }, [id])
+
+  const sortedEvents = useMemo(
+    () =>
+      [...chapterEvents].sort(
+        (a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)
+      ),
+    [chapterEvents]
+  )
 
   if (!event) {
     return (
@@ -158,8 +175,12 @@ export default function EventPage() {
   return (
     <>
       <TopBar
-        title="Events"
-        subtitle={`${chapterEvents.length} scheduled · select below`}
+        title={event.name}
+        subtitle={`${event.type} · ${new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })}`}
         actions={
           <Link
             to="/calendar"
@@ -172,57 +193,33 @@ export default function EventPage() {
       />
 
       <PageShell className="space-y-8">
-        {/* All events — top */}
-        <Section
-          title="All events"
-          subtitle="Tap an event to view details below"
-        >
-          <div className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
-            {[...chapterEvents]
-              .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-              .map((e) => {
-                const color = eventTypeColor(e.type)
-                const active = e.id === event.id
-                return (
-                  <ListRow key={e.id}>
-                    <Link
-                      to={`/events/${e.id}`}
-                      className={`flex flex-1 items-center gap-4 px-2 py-1 transition ${
-                        active ? 'bg-[var(--primary-subtle)]' : 'hover:bg-black/[0.02]'
-                      }`}
-                    >
-                      <div
-                        className="flex h-10 w-1 shrink-0 self-stretch"
-                        style={{ backgroundColor: color }}
-                        aria-hidden
-                      />
-                      <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center border border-[var(--rule)] bg-[var(--surface-card)] font-mono">
-                        <span className="text-[9px] font-medium uppercase text-[var(--muted)]">
-                          {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', {
-                            month: 'short',
-                          })}
-                        </span>
-                        <span className="text-sm font-bold text-[var(--ink)]">
-                          {new Date(e.date + 'T12:00:00').getDate()}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-[var(--ink)]">{e.name}</p>
-                        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                          {e.time} · {e.type}
-                        </p>
-                      </div>
-                      <Calendar size={14} className="shrink-0 text-[var(--muted)]" />
-                    </Link>
-                  </ListRow>
-                )
-              })}
-          </div>
-        </Section>
+        <label className="block max-w-xl">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            Jump to event
+          </span>
+          <select
+            className="input-editorial mt-1 min-h-11 w-full"
+            value={event.id}
+            onChange={(e) => {
+              if (e.target.value) navigate(`/events/${e.target.value}`)
+            }}
+            aria-label="Jump to event"
+          >
+            {sortedEvents.map((e) => (
+              <option key={e.id} value={e.id}>
+                {new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}{' '}
+                · {e.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-        {/* Selected event details — below */}
         <Section title="Event details" subtitle={event.name}>
         <div
+          id="event-details"
           className="mb-4 flex items-center gap-2 border border-[var(--rule)] px-3 py-2"
           style={{ borderLeftWidth: 4, borderLeftColor: eventTypeColor(event.type) }}
         >
@@ -289,6 +286,32 @@ export default function EventPage() {
                 </div>
               ))}
             </div>
+            {canEditPoints ? (
+              <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-[var(--rule)] bg-neutral-50 px-4 py-3">
+                <label className="block min-w-[8rem] flex-1">
+                  <span className="text-xs font-medium text-neutral-500">Edit points</span>
+                  <input
+                    type="number"
+                    min={0}
+                    className="input-editorial mt-1 min-h-11 font-mono"
+                    value={pointsDraft ?? event.points}
+                    onChange={(e) => setPointsDraft(Number(e.target.value))}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn-primary min-h-11"
+                  onClick={() => {
+                    const next = pointsDraft ?? event.points
+                    if (!(next >= 0)) return
+                    updateEventPoints(event.id, next)
+                    setPointsDraft(null)
+                  }}
+                >
+                  Save points
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-4 rounded-2xl bg-neutral-50 p-6">

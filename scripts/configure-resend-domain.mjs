@@ -170,12 +170,22 @@ onboarding@resend.dev only delivers to your Resend account email.
 const pick =
   verified.find((d) => resendDomain && d.name === resendDomain) ??
   verified.find((d) => fromEmail && domainFromEmail(fromEmail) === d.name) ??
-  verified.find((d) => fromEmail && domainFromEmail(fromEmail)?.endsWith(d.name)) ??
+  verified.find((d) => fromEmail && domainFromEmail(fromEmail)?.endsWith('.' + d.name)) ??
   verified[0]
 
-if (!fromEmail || fromEmail.endsWith('@resend.dev')) {
+const fromDomain = domainFromEmail(fromEmail)
+const fromVerified =
+  fromDomain &&
+  verified.some((d) => fromDomain === d.name || fromDomain.endsWith('.' + d.name))
+
+// Never send OTP from an unverified domain — Resend will fail/park delivery.
+if (!fromEmail || fromEmail.endsWith('@resend.dev') || !fromVerified) {
+  const previous = fromEmail
   fromEmail = `auth@${pick.name}`
-  console.log(`\nUsing sender: ${fromEmail}`)
+  console.log(`\nUsing verified sender: ${fromEmail}`)
+  if (previous && previous !== fromEmail) {
+    console.log(`  (skipped unverified ${previous} — fix DNS, then set RESEND_FROM_EMAIL)`)
+  }
 }
 
 if (!accessToken || !projectRef) {

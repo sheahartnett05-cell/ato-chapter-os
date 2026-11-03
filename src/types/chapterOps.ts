@@ -4,6 +4,19 @@ export interface StudyLocation {
   name: string
   address?: string
   active: boolean
+  /** Geofence center (WGS84). Required for GPS-gated member logs. */
+  lat?: number
+  lng?: number
+  /** Geofence radius in meters (default 150). */
+  radiusMeters?: number
+}
+
+export interface StudyHoursCheckIn {
+  lat: number
+  lng: number
+  accuracyM?: number
+  at: string
+  withinGeofence: boolean
 }
 
 export interface StudyHoursLog {
@@ -15,6 +28,7 @@ export interface StudyHoursLog {
   notes?: string
   verified: boolean
   rejected?: boolean
+  checkIn?: StudyHoursCheckIn
 }
 
 export type StudyHoursResetFrequency = 'weekly' | 'monthly' | 'semester'

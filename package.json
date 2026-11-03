@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:phase-a": "node scripts/test-phase-a-identity.mjs",
+    "test:storage": "node scripts/test-storage-readiness.mjs",
+    "test:pilot-ready": "npm run test && npm run test:phase-a && npm run test:storage",
     "preview": "vite preview",
     "smoke-test": "node scripts/smoke-test.mjs",
     "smoke-test:quick": "node scripts/smoke-test.mjs --chapters=alpha,beta",

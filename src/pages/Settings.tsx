@@ -13,33 +13,23 @@ import { useChapterOps } from '../context/ChapterOpsContext'
 import { useGovernance } from '../context/GovernanceContext'
 import { useMembers } from '../context/MembersContext'
 import { leaveGuestPreview } from '../lib/leaveGuestPreview'
+import {
+  readNotifyPrefs,
+  writeNotifyPrefs,
+  type NotifyPrefs,
+} from '../lib/notifications/notifyPrefs'
+import { notificationPermission } from '../lib/notifications/localPush'
+import {
+  locationDeniedHelp,
+  queryLocationPermission,
+  readLocationPrefs,
+  requestLocationPermission,
+  writeLocationPrefs,
+  type LocationPermissionState,
+  type LocationPrefs,
+} from '../lib/location/locationPrefs'
+import { PwaInstallButton } from '../components/pwa/PwaInstallButton'
 import { ONBOARDING_ROLES, roleLabel, type UserProfile } from '../types/permissions'
-
-const NOTIFY_PREFS_KEY = 'chapter-os-notify-prefs'
-
-type NotifyPrefs = { email: boolean; push: boolean }
-
-function readNotifyPrefs(): NotifyPrefs {
-  try {
-    const raw = localStorage.getItem(NOTIFY_PREFS_KEY)
-    if (!raw) return { email: true, push: true }
-    const parsed = JSON.parse(raw) as Partial<NotifyPrefs>
-    return {
-      email: parsed.email !== false,
-      push: parsed.push !== false,
-    }
-  } catch {
-    return { email: true, push: true }
-  }
-}
-
-function writeNotifyPrefs(prefs: NotifyPrefs) {
-  try {
-    localStorage.setItem(NOTIFY_PREFS_KEY, JSON.stringify(prefs))
-  } catch {
-    /* storage unavailable */
-  }
-}
 
 type SettingsTab = 'account' | 'position' | 'invites'
 
@@ -184,11 +174,23 @@ function AccountSettings({
 }) {
   const [local, setLocal] = useState(profile)
   const [notifyPrefs, setNotifyPrefs] = useState<NotifyPrefs>(() => readNotifyPrefs())
+  const [locationPrefs, setLocationPrefs] = useState<LocationPrefs>(() => readLocationPrefs())
+  const [locationPerm, setLocationPerm] = useState<LocationPermissionState>('prompt')
+  const [locationBusy, setLocationBusy] = useState(false)
+  const [locationMessage, setLocationMessage] = useState<string | null>(null)
   const { duesPayments, duesCharges } = useChapterOps()
 
   useEffect(() => {
     writeNotifyPrefs(notifyPrefs)
   }, [notifyPrefs])
+
+  useEffect(() => {
+    writeLocationPrefs(locationPrefs)
+  }, [locationPrefs])
+
+  useEffect(() => {
+    void queryLocationPermission().then(setLocationPerm)
+  }, [])
 
   const receipts = useMemo(() => {
     if (!memberId) return []
@@ -209,8 +211,45 @@ function AccountSettings({
       .sort((a, b) => b.date.localeCompare(a.date))
   }, [duesPayments, duesCharges, memberId])
 
-  const setNotify = (key: keyof NotifyPrefs, value: boolean) => {
+  const setNotify = async (key: keyof NotifyPrefs, value: boolean) => {
+    if (key === 'push' && value) {
+      const { ensurePushEnabled } = await import('../lib/notifications/localPush')
+      const ok = await ensurePushEnabled()
+      setNotifyPrefs(readNotifyPrefs())
+      if (!ok) return
+      return
+    }
     setNotifyPrefs((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const setLocationEnabled = async (value: boolean) => {
+    setLocationMessage(null)
+    if (!value) {
+      setLocationPrefs({ enabled: false })
+      return
+    }
+    setLocationBusy(true)
+    const perm = await requestLocationPermission()
+    setLocationPerm(perm)
+    setLocationBusy(false)
+    if (perm === 'granted') {
+      setLocationPrefs({ enabled: true })
+      setLocationMessage('Location allowed — study-hour check-in can use GPS.')
+      return
+    }
+    if (perm === 'denied') {
+      setLocationPrefs({ enabled: false })
+      setLocationMessage(locationDeniedHelp())
+      return
+    }
+    if (perm === 'unsupported') {
+      setLocationPrefs({ enabled: false })
+      setLocationMessage('This device or browser does not support location.')
+      return
+    }
+    // prompt / inconclusive — keep preference on so the next GPS action can retry
+    setLocationPrefs({ enabled: true })
+    setLocationMessage('Allow location when your phone asks, then try again if needed.')
   }
 
   return (
@@ -282,10 +321,17 @@ function AccountSettings({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => leaveGuestPreview('/onboarding?intent=create')}
+                onClick={() => leaveGuestPreview('/login')}
                 className="btn-primary text-xs"
               >
-                Create chapter / sign in
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => leaveGuestPreview('/onboarding?intent=create')}
+                className="btn-ghost text-xs"
+              >
+                Create chapter
               </button>
               <Link to="/demo" className="btn-ghost text-xs">
                 Change demo role
@@ -305,21 +351,27 @@ function AccountSettings({
                   Signed in as <span className="font-medium">{cloudEmail}</span>
                 </p>
                 <p className="text-xs text-[var(--muted)]">
-                  Chapter data syncs to Supabase when you&apos;re signed in.
+                  Chapter data syncs when you&apos;re signed in. One chapter per account — leave
+                  this chapter (Profile) before joining or creating another.
                 </p>
-                {onSignOut && (
-                  <button type="button" onClick={onSignOut} className="btn-secondary">
-                    Sign out
-                  </button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Link to="/my-profile" className="btn-primary text-xs">
+                    Open my profile
+                  </Link>
+                  {onSignOut && (
+                    <button type="button" onClick={onSignOut} className="btn-secondary text-xs">
+                      Sign out
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
               <>
                 <p className="text-sm text-[var(--ink)]">
                   Not signed in — this chapter is saved only in this browser.
                 </p>
-                <Link to="/onboarding" className="btn-primary inline-block text-xs">
-                  Sign in
+                <Link to="/login" className="btn-primary inline-block text-xs">
+                  Sign in to my profile
                 </Link>
               </>
             )}
@@ -329,10 +381,26 @@ function AccountSettings({
 
       <div>
         <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Install app
+        </p>
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          Install Chaptera as a PWA for a full-screen mobile home-screen experience.
+        </p>
+        <PwaInstallButton />
+      </div>
+
+      <div>
+        <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
           Notifications
         </p>
         <p className="mb-3 text-xs text-[var(--muted)]">
-          Preferences save on this device. Email and push delivery are not connected yet.
+          Push alerts use this phone&apos;s notification permission (install Chaptera / Add to Home
+          Screen on iPhone for best results). Turning On asks Apple or Google for permission. Alerts
+          fire while the app or PWA can run — not closed-app server push yet. Email prefs are saved
+          only.
+          {notificationPermission() === 'denied'
+            ? ' Permission is blocked — enable notifications for Chaptera in phone Settings.'
+            : ''}
         </p>
         <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
           {(
@@ -350,7 +418,7 @@ function AccountSettings({
                   role="switch"
                   aria-checked={checked}
                   aria-label={`${label} notifications`}
-                  onClick={() => setNotify(key, !checked)}
+                  onClick={() => void setNotify(key, !checked)}
                   className={`min-h-11 min-w-[3.25rem] rounded-sm px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider ${
                     checked ? 'theme-pill-active' : 'theme-pill-muted'
                   }`}
@@ -361,6 +429,43 @@ function AccountSettings({
             )
           })}
         </ul>
+      </div>
+
+      <div>
+        <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Location services
+        </p>
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          Used for library / study-hour GPS check-in. Turning On asks your phone (Apple or Google)
+          for location permission. Chaptera cannot open system Settings for you — if blocked, use
+          the device path below.
+          {locationPerm === 'denied'
+            ? ` Currently blocked. ${locationDeniedHelp()}`
+            : locationPerm === 'granted'
+              ? ' Phone permission is granted.'
+              : ''}
+        </p>
+        <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+          <li className="flex items-center justify-between gap-4 px-4 py-3.5">
+            <span className="text-sm font-medium text-[var(--ink)]">Location</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={locationPrefs.enabled}
+              aria-label="Location services"
+              disabled={locationBusy}
+              onClick={() => void setLocationEnabled(!locationPrefs.enabled)}
+              className={`min-h-11 min-w-[3.25rem] rounded-sm px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50 ${
+                locationPrefs.enabled ? 'theme-pill-active' : 'theme-pill-muted'
+              }`}
+            >
+              {locationBusy ? '…' : locationPrefs.enabled ? 'On' : 'Off'}
+            </button>
+          </li>
+        </ul>
+        {locationMessage ? (
+          <p className="mt-2 text-xs text-[var(--muted)]">{locationMessage}</p>
+        ) : null}
       </div>
 
       <div>

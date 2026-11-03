@@ -7,53 +7,49 @@
 
 > Older refs to `oquqmoroihoksciiqwyt` are retired. Vercel `VITE_SUPABASE_URL` and `.env.local` must point at `qfurjvkdbvjpvezsrddf` only.
 
-## Status (2026-11-01)
+## Status (2026-11-03)
 
 | Item | Status |
 |------|--------|
-| Site live at chapteramanager.com | **Yes** — prod redeployed with `d932a05` |
+| Site live at chapteramanager.com | **Yes** — prod redeployed with `d932a05` (local uncommitted: login/password/PWA/GPS/storage sync) |
 | `VITE_SUPABASE_URL` (local + Vercel prod) | `https://qfurjvkdbvjpvezsrddf.supabase.co` |
-| Migrations through Phase A (`20260401…`) | Applied to `qfurjvkdbvjpvezsrddf` |
-| Gate A (`npm run test:phase-a`) | **PASS** (17/17) via Management API + `SUPABASE_ACCESS_TOKEN` — no Docker. Ephemeral GateA-* chapter/users cleaned up. |
-| Full-feature human smoke prompt | [`HUMAN-FULL-SMOKE.md`](./HUMAN-FULL-SMOKE.md) (wipe via Settings → Wipe test chapter data) |
+| Migrations through `20260402…` (one membership / user) | Applied to `qfurjvkdbvjpvezsrddf` |
+| Unit tests (`npm test`) | **PASS** (24/24) |
+| Gate A (`npm run test:phase-a`) | **PASS** (17/17) via Management API — ephemeral GateA-* cleaned up |
+| Storage Gate (`npm run test:storage`) | **PASS** (16/16) — profiles ↔ membership ↔ `chapter_kv`, password auth, one-chapter exclusivity, RLS |
+| Combined (`npm run test:pilot-ready`) | Gate A + storage + units |
 | `verify-supabase` join RPCs | **Pass** (`CHAPTER-FOUNDER`, `sync_chapter_join_codes`) |
 | Auth Site URL | `https://chapteramanager.com` |
-| Chaptera Auth email templates + Resend SMTP | Configured on project |
-| Resend domain `chapteramanager.com` | **Pending / STOP-SHIP** — DNS wrong (see below) |
+| Chaptera Auth email templates + Resend SMTP | **Connected** — SMTP via Resend API key |
+| Resend send-from (working) | `Chaptera <auth@agoragreekmanagement.com>` (**verified** domain) |
+| Resend domain `chapteramanager.com` | **Not verified** — DNS still parked at Porkbun (`uixie.porkbun.com`); branding switch blocked until DNS fixed |
 | Guest demo Officer Home | Fixed in `36fc518` |
 | Attendance tracker `/attendance` | Shipped in `f41e93b` |
 | Chapter QR check-in | Shipped in `d932a05` — Event → QR check-in; `/check-in/:eventId` |
-| Founder / join smoke (OTP + 2nd device) | **Not proven** — blocked on Resend DNS |
+| Founder / join smoke (OTP + password + 2nd device) | **Unblocked for delivery** via verified `agoragreekmanagement.com` sender — still needs a human OTP inbox proof |
 | Vercel deploy | Working via CLI login (`vercel whoami`) |
 
-## STOP-SHIP: Resend DNS
+## Email delivery (current)
 
-Public DNS for the Resend hosts currently **CNAMEs to Porkbun parking** (`uixie.porkbun.com`), so verification cannot succeed:
+**Working now:** Supabase Auth → Resend SMTP, from `Chaptera <auth@agoragreekmanagement.com>` (verified). OTP / password-reset can deliver to real inboxes.
 
-- `resend._domainkey.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **TXT** DKIM)
-- `send.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **MX** + **TXT** SPF)
-- `rsend.chapteramanager.com` → CNAME `uixie.porkbun.com` (need **CNAME** `send.forge.rmta.net`)
+**Branding backlog (not blocking OTP):** `chapteramanager.com` Resend hosts still **CNAME to Porkbun parking** (`uixie.porkbun.com`), so that domain cannot be the From address yet:
 
-Root `chapteramanager.com` A records → Vercel are fine (`216.198.79.1`, `64.29.17.1`).
+- `resend._domainkey.chapteramanager.com` → need **TXT** DKIM (not parking CNAME)
+- `send.chapteramanager.com` → need **MX** + **TXT** SPF
+- `rsend.chapteramanager.com` → need **CNAME** `send.forge.rmta.net`
 
-**At Porkbun:** delete those parking aliases, then add exact records from [`CHAPTERA_DNS_RECORDS.md`](./CHAPTERA_DNS_RECORDS.md). Then:
+Root site A records → Vercel are fine. After Porkbun is fixed: set `RESEND_FROM_EMAIL=auth@chapteramanager.com`, then `npm run configure-resend-domain -- verify` and `npm run configure-resend-domain`.
 
-```bash
-npm run configure-resend-domain -- verify
-npm run configure-resend-domain
-npm run configure-pilot
-npm run configure-resend-domain -- --test you@real-inbox.com
-```
-
-OTP proof: https://chapteramanager.com/onboarding → Send login code.
+OTP proof: https://chapteramanager.com/login → Send login code (or password).
 
 ## Must before inviting a real chapter
 
-1. **Fix Resend DNS** (above) until domain status is `verified` and a real inbox receives OTP.
-2. **Gate A** — `npm run test:phase-a` (uses `SUPABASE_ACCESS_TOKEN` + project URL; Docker optional).
-3. **Full human smoke** (every feature → wipe): paste prompt in [`HUMAN-FULL-SMOKE.md`](./HUMAN-FULL-SMOKE.md).
-4. **Founder smoke minimum:** create chapter → OTP → second device join; Event → QR check-in.  
-   Still **STOP-SHIP** until Resend DNS for `chapteramanager.com` is verified.
+1. **Human OTP/password proof** — real inbox receives Chaptera login mail (sender may be `@agoragreekmanagement.com` until chapteramanager DNS is fixed).
+2. **Gate A + storage** — `npm run test:pilot-ready` (already green as of 2026-11-03).
+3. **Full human smoke** (every feature → wipe): [`HUMAN-FULL-SMOKE.md`](./HUMAN-FULL-SMOKE.md).
+4. **Founder smoke minimum:** create chapter → login → second device join; Event → QR check-in.
+5. **Optional branding:** fix Porkbun Resend DNS so From becomes `auth@chapteramanager.com`.
 
 ## Founder / join smoke
 
@@ -67,8 +63,9 @@ OTP proof: https://chapteramanager.com/onboarding → Send login code.
 
 - Dues: balances + pay **links** — not a card processor
 - Announcement polls ≠ binding chapter votes
-- QR check-in: chapter-scoped rotating codes per event (Event → QR check-in). Cloud multi-device uses shared chapter storage; no geofence yet.
-- No push notification delivery yet
+- QR check-in: chapter-scoped rotating codes per event (Event → QR check-in / Attendance picker). Cloud multi-device uses shared chapter storage; attendance QR is not GPS-gated.
+- Local PWA notifications only (`Notification` API / service worker) while the app or installed PWA is open or recently used — **not** closed-app server Web Push. Email preference is stored but not delivered.
+- Library hours: hard GPS geofence required when a study location has coordinates (`lat`/`lng` + radius); members must check in inside the radius to submit a log. Locations without a pin cannot be used for geofenced logging.
 - Guest demo is local-only sample data
 
 ## Optional before wider pilot
