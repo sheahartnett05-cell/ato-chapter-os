@@ -272,7 +272,6 @@ export default function CalendarPage() {
   const goToday = () => {
     setCursor(startOfMonth(parseEventDate(todayIso)))
     setSelectedDate(todayIso)
-    setEventModalId(null)
     setDayModalDate(null)
     setView('month')
   }
@@ -377,7 +376,6 @@ export default function CalendarPage() {
                 type="button"
                 onClick={() => {
                   setView('agenda')
-                  setEventModalId(null)
                 }}
                 className={`flex items-center gap-1 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                   view === 'agenda'
@@ -482,16 +480,13 @@ export default function CalendarPage() {
                         <ul className="mt-1 space-y-0.5">
                           {dayEvents.slice(0, 3).map((e) => {
                             const color = eventTypeColor(e.type)
-                            const active = eventModalId === e.id
                             return (
                               <li key={e.id}>
                                 <button
                                   type="button"
                                   onClick={(ev) => cell.iso && pickEventFromGrid(ev, e.id, cell.iso)}
                                   title={`${e.name} · ${e.type}`}
-                                  className={`block w-full truncate px-1 py-0.5 text-left font-mono text-[9px] font-medium uppercase tracking-wide text-white hover:opacity-90 ${
-                                    active ? 'ring-1 ring-white/80' : ''
-                                  }`}
+                                  className="block w-full truncate px-1 py-0.5 text-left font-mono text-[9px] font-medium uppercase tracking-wide text-white hover:opacity-90"
                                   style={{ backgroundColor: color }}
                                 >
                                   {e.name}
