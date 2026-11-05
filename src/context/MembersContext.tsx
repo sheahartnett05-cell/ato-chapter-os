@@ -279,6 +279,31 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  // Keep pulling joiners while the officer app stays open (SQL + KV heal).
+  useEffect(() => {
+    if (!canSyncToCloud()) return
+    let cancelled = false
+    const refresh = () => {
+      void import('../lib/chapterCloud')
+        .then(({ hydrateFromCloud }) => hydrateFromCloud({ notify: true }))
+        .catch(() => {})
+    }
+    const onFocus = () => {
+      if (!cancelled) refresh()
+    }
+    window.addEventListener('focus', onFocus)
+    const interval = window.setInterval(() => {
+      if (!cancelled && document.visibilityState === 'visible') refresh()
+    }, 20_000)
+    // Immediate heal for chapters that already have SQL joiners missing from KV.
+    refresh()
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+      window.clearInterval(interval)
+    }
+  }, [])
+
   const persistInvites = useCallback((next: InviteCode[]) => {
     setInviteCodes(next)
     writeJson(INVITES_KEY, next)

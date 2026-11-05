@@ -14,7 +14,6 @@ export type RosterMergeRow = {
   shirtSize?: string
   emergencyContact?: string
   emergencyPhone?: string
-  [key: string]: unknown
 }
 
 function prefer(a: string | undefined, b: string | undefined): string | undefined {

@@ -17,6 +17,7 @@ import {
 } from './cloudChapterId'
 import { notifyCloudHydrated } from './cloudHydration'
 import { mergeRosterLists } from './rosterMerge'
+import { syncRosterFromSqlChapter } from './rosterSqlSync'
 
 export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId }
 
@@ -258,6 +259,30 @@ export async function flushChapterKvQueue(): Promise<void> {
     const chapterId = (await ensureCloudChapter()) ?? getCachedCloudChapterId()
     if (!chapterId) return
 
+    // Never last-write-wins wipe joiners: union pending roster with cloud first.
+    if (pending.has('chapter-os-roster-members')) {
+      try {
+        const pendingRoster = pending.get('chapter-os-roster-members')
+        const { data } = await sb
+          .from('chapter_kv')
+          .select('value')
+          .eq('chapter_id', chapterId)
+          .eq('key', 'chapter-os-roster-members')
+          .maybeSingle()
+        const cloud = Array.isArray(data?.value) ? (data.value as { id: string }[]) : []
+        const local = Array.isArray(pendingRoster) ? (pendingRoster as { id: string }[]) : []
+        const merged = mergeRosterLists(local, cloud)
+        pending.set('chapter-os-roster-members', merged)
+        try {
+          localStorage.setItem('chapter-os-roster-members', JSON.stringify(merged))
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+
     const batch = [...pending.entries()]
     pending.clear()
 
@@ -328,7 +353,38 @@ export async function hydrateFromCloud(options?: {
       /* ignore */
     }
   }
-  if (notify && n > 0) notifyCloudHydrated()
+  // SQL memberships are authoritative for who joined — heal KV roster gaps.
+  let healed = false
+  try {
+    const synced = await syncRosterFromSqlChapter(chapterId)
+    if (synced.ok && synced.added > 0) {
+      n += synced.added
+      healed = true
+      // Push healed roster so other devices stop seeing a founder-only KV blob.
+      try {
+        const raw = localStorage.getItem('chapter-os-roster-members')
+        if (raw && sb) {
+          const value = JSON.parse(raw) as import('./database.types').Json
+          const { error: healErr } = await sb.from('chapter_kv').upsert(
+            {
+              chapter_id: chapterId,
+              key: 'chapter-os-roster-members',
+              value,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'chapter_id,key' }
+          )
+          if (healErr) console.warn('[agora cloud] healed roster push failed', healErr.message)
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+  } catch (e) {
+    console.warn('[agora cloud] sql roster sync failed', e)
+  }
+
+  if (notify && (n > 0 || healed)) notifyCloudHydrated()
   return { ok: true, keys: n }
 }
 
