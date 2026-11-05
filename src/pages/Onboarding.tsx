@@ -328,12 +328,12 @@ export default function Onboarding() {
     void finish()
   }
   return (
-    <div className="flex min-h-screen bg-[var(--surface-tint)] text-[var(--ink)]">
+    <div className="flex min-h-screen min-h-[100dvh] bg-[var(--surface-tint)] text-[var(--ink)]">
       <BrandHeroPanel org={selectedOrg} variant="onboarding" />
-      <div className="flex min-h-screen w-full flex-col lg:w-1/2">
+      <div className="flex min-h-screen min-h-[100dvh] w-full flex-col lg:w-1/2">
         <div className="theme-stripe" />
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-8 sm:px-10">
-          <div className="mb-8 flex items-center justify-between">
+        <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 py-6 sm:px-10 sm:py-8">
+          <div className="mb-6 flex items-center justify-between sm:mb-8">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
               Step {step + 1} / {steps.length}
             </p>
@@ -841,13 +841,13 @@ export default function Onboarding() {
           {inviteError && stepKey !== 'Start' && (
             <p className="mt-6 text-sm text-red-600">{inviteError}</p>
           )}
-          <div className="mt-8 flex items-center gap-2 border-t border-[var(--rule)] pt-6">
+          <div className="sticky bottom-0 z-10 -mx-5 mt-8 flex items-center gap-2 border-t border-[var(--rule)] bg-[var(--surface-tint)] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-6">
             {step > 0 ? (
-              <button type="button" onClick={() => setStep((s) => s - 1)} className="btn-ghost">
+              <button type="button" onClick={() => setStep((s) => s - 1)} className="btn-ghost min-w-[5.5rem]">
                 <ArrowLeft size={14} /> Back
               </button>
             ) : (
-              <button type="button" onClick={() => navigate('/')} className="btn-ghost">
+              <button type="button" onClick={() => navigate('/')} className="btn-ghost min-w-[5.5rem]">
                 <ArrowLeft size={14} /> Home
               </button>
             )}
@@ -855,7 +855,7 @@ export default function Onboarding() {
               type="button"
               disabled={!canNext || inviteBusy || finishBusy}
               onClick={goNext}
-              className="btn-primary ml-auto disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-primary ml-auto min-w-[8rem] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {inviteBusy || finishBusy ? (
                 'Checking…'

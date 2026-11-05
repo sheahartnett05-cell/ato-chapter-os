@@ -292,88 +292,57 @@ export default function MemberDashboard() {
   return (
 
     <div className="min-h-screen pb-6" style={{ background: 'var(--surface-tint)' }}>
-
       <div className="theme-stripe" />
 
       {/* Chapter Room hero */}
-
-      <header className="relative overflow-hidden theme-sidebar px-5 pb-8 pt-4">
-
+      <header className="relative overflow-hidden theme-sidebar px-4 pb-7 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5 sm:pb-8">
         <p
-
-          className="pointer-events-none absolute -right-4 top-6 select-none font-serif text-[7rem] leading-none opacity-[0.08]"
-
+          className="pointer-events-none absolute -right-4 top-6 select-none font-serif text-[6rem] leading-none opacity-[0.08] sm:text-[7rem]"
           aria-hidden
-
         >
-
           {chapter.letters}
-
         </p>
 
         <div className="relative z-10 flex items-start justify-between gap-3">
-
           <Logo compact />
-
           <div className="flex shrink-0 items-center gap-2">
             {showDashboardLink && <GoToDashboardButton variant="hero" />}
             <Link
               to="/profile"
               aria-label="Your profile"
-              className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20"
+              className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-[11px] font-semibold ring-1 ring-white/20 active:opacity-90"
               style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
             >
               {initials}
             </Link>
           </div>
-
         </div>
 
-        <div className="relative z-10 mt-8">
-
+        <div className="relative z-10 mt-6 sm:mt-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
-
             Chapter Room
-
           </p>
-
-          <h1 className="mt-2 font-serif text-3xl tracking-tight text-white md:text-4xl">
-
+          <h1 className="mt-1.5 font-serif text-[1.75rem] tracking-tight text-white sm:mt-2 sm:text-3xl md:text-4xl">
             Hey, {displayName}
-
           </h1>
-
           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">
-
             {chapter.chapterDesignation} · {chapter.university}
-
           </p>
-
           {role && (
-
             <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/40">
-
               {roleLabel(role)} · {chapter.semester}
-
             </p>
-
           )}
-
         </div>
 
-        <div className="relative z-10 mt-6 flex gap-px">
-
+        <div className="relative z-10 mt-5 flex gap-px sm:mt-6">
           {[chapter.primaryColor, chapter.accentColor, chapter.secondaryColor].map((c) => (
-
             <span key={c} className="h-0.5 flex-1" style={{ backgroundColor: c }} />
-
           ))}
-
         </div>
-
       </header>
 
-      <main className="mx-auto max-w-lg space-y-3 px-4 py-5 md:max-w-2xl">
+      <main className="mx-auto max-w-lg space-y-3 px-4 py-4 sm:py-5 md:max-w-2xl">
 
         <ChapterRoomSection eyebrow="Your semester" tone="soft" pad={false}>
         <div className="ledger-bar grid-cols-2 border-0 bg-transparent md:grid-cols-4">

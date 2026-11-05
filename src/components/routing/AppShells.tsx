@@ -21,7 +21,7 @@ function useShowGuestBanner(): boolean {
   return onboarding?.isGuest === true || isGuestPreviewActive()
 }
 
-const MEMBER_NAV_PAD = 'pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'
+const MEMBER_NAV_PAD = 'pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]'
 
 function useScrollContainerReset(ref: RefObject<HTMLElement | null>, pathname: string) {
   useEffect(() => {

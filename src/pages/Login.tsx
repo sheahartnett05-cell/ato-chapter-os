@@ -216,18 +216,21 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--surface-tint)' }}>
+    <div
+      className="flex min-h-screen min-h-[100dvh]"
+      style={{ background: 'var(--surface-tint)' }}
+    >
       <BrandHeroPanel
         org={null}
         headline="Sign in to your profile."
         description="Use your email and password. This phone keeps you signed in until you sign out."
       />
 
-      <main className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-14">
-        <div className="mb-10 flex items-center gap-3 lg:hidden">
+      <main className="flex w-full flex-col justify-center px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:py-12 lg:w-1/2 lg:px-14">
+        <div className="mb-8 flex items-center gap-3 lg:hidden">
           <ChapteraMark size={40} />
           <div>
-            <p className="font-serif text-base text-[var(--ink)]">{CHAPTERA_PRODUCT_NAME}</p>
+            <p className="font-serif text-lg text-[var(--ink)]">{CHAPTERA_PRODUCT_NAME}</p>
             <p className="text-xs text-[var(--muted)]">{CHAPTERA_TAGLINE}</p>
           </div>
         </div>
@@ -235,7 +238,7 @@ export default function Login() {
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
           Login
         </p>
-        <h1 className="mt-3 max-w-md font-serif text-4xl tracking-tight text-[var(--ink)]">
+        <h1 className="mt-2 max-w-md font-serif text-[2rem] leading-[1.15] tracking-tight text-[var(--ink)] sm:mt-3 sm:text-4xl">
           {mode === 'forgot'
             ? 'Reset password'
             : mode === 'setPassword'
@@ -310,11 +313,19 @@ export default function Login() {
               >
                 Sign in
               </button>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                <button type="button" className="hover:text-[var(--ink)]" onClick={() => setMode('forgot')}>
+              <div className="flex flex-col gap-1 pt-1 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-2">
+                <button
+                  type="button"
+                  className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
+                  onClick={() => setMode('forgot')}
+                >
                   Forgot password
                 </button>
-                <button type="button" className="hover:text-[var(--ink)]" onClick={() => setMode('otp')}>
+                <button
+                  type="button"
+                  className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
+                  onClick={() => setMode('otp')}
+                >
                   Use email code instead
                 </button>
               </div>
@@ -358,7 +369,7 @@ export default function Login() {
               ) : null}
               <button
                 type="button"
-                className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+                className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
                 onClick={() => setMode('password')}
               >
                 ← Back to password
@@ -378,7 +389,7 @@ export default function Login() {
               </button>
               <button
                 type="button"
-                className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+                className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
                 onClick={() => setMode('password')}
               >
                 ← Back to password
@@ -427,15 +438,24 @@ export default function Login() {
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
-          <Link to="/" className="hover:text-[var(--ink)]">
+        <div className="mt-8 flex flex-col sm:mt-10">
+          <Link
+            to="/"
+            className="flex min-h-11 items-center font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
+          >
             ← Back to start
           </Link>
-          <Link to="/onboarding?intent=create" className="hover:text-[var(--ink)]">
-            Create a chapter
+          <Link
+            to="/onboarding?intent=join"
+            className="flex min-h-11 items-center font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
+          >
+            Join with a code
           </Link>
-          <Link to="/onboarding?intent=join" className="hover:text-[var(--ink)]">
-            I have a join code
+          <Link
+            to="/onboarding?intent=create"
+            className="flex min-h-11 items-center font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
+          >
+            Create a chapter
           </Link>
         </div>
       </main>

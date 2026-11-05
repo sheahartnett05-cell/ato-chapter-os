@@ -356,7 +356,7 @@ export function Sidebar({
             role="dialog"
             aria-modal="true"
             aria-label="Officer navigation"
-            className="theme-sidebar fixed inset-y-0 left-0 z-[var(--z-drawer)] flex w-56 max-w-[85vw] flex-col md:hidden"
+            className="theme-sidebar fixed inset-y-0 left-0 z-[var(--z-drawer)] flex w-[min(18rem,88vw)] flex-col pt-[env(safe-area-inset-top,0px)] md:hidden"
           >
             {navBody}
           </aside>
