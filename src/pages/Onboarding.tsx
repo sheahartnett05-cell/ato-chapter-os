@@ -537,7 +537,9 @@ export default function Onboarding() {
                               return
                             }
                             const res = emailVerified
-                              ? await updatePassword(accountPassword)
+                              ? await updatePassword(accountPassword, {
+                                  requireEmailCode: false,
+                                })
                               : await signUpWithPassword(profile.email ?? '', accountPassword)
                             setOtpBusy(false)
                             if (!res.ok) {

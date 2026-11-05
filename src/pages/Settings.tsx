@@ -321,8 +321,15 @@ function AccountSettings({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => leaveGuestPreview('/login')}
+                onClick={() => leaveGuestPreview('/')}
                 className="btn-primary text-xs"
+              >
+                Log out
+              </button>
+              <button
+                type="button"
+                onClick={() => leaveGuestPreview('/login')}
+                className="btn-ghost text-xs"
               >
                 Sign in
               </button>
@@ -359,8 +366,8 @@ function AccountSettings({
                     Open my profile
                   </Link>
                   {onSignOut && (
-                    <button type="button" onClick={onSignOut} className="btn-secondary text-xs">
-                      Sign out
+                    <button type="button" onClick={onSignOut} className="btn-primary text-xs">
+                      Log out
                     </button>
                   )}
                 </div>
@@ -881,7 +888,7 @@ export default function Settings() {
             isGuest={onboarding?.isGuest === true}
             memberId={onboarding?.memberId ?? null}
             onSignOut={() => {
-              void signOut().then(() => window.location.assign('/onboarding'))
+              void signOut().then(() => window.location.assign('/'))
             }}
           />
         )}

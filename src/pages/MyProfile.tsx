@@ -29,6 +29,7 @@ export default function MyProfile() {
     signOut,
     requiresSupabaseAuth,
     updatePassword,
+    sendPasswordChangeEmailCode,
   } = useAuth()
   const isMemberShell = useIsMemberShell()
   const { getMemberById, updateMemberProfile } = useMembers()
@@ -38,6 +39,8 @@ export default function MyProfile() {
   const [leaving, setLeaving] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [newPassword2, setNewPassword2] = useState('')
+  const [passwordCode, setPasswordCode] = useState('')
+  const [passwordCodeSent, setPasswordCodeSent] = useState(false)
   const [passwordBusy, setPasswordBusy] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null)
 
@@ -157,10 +160,10 @@ export default function MyProfile() {
                 </p>
                 <div className="mt-4 space-y-2 border-t border-[var(--rule)] pt-3">
                   <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                    Password
+                    Change password
                   </p>
                   <p className="text-xs text-[var(--muted)]">
-                    Set a password so you can sign in on any phone without waiting for a code.
+                    We email a 6-digit code to {authEmail} before saving a new password.
                   </p>
                   <input
                     type="password"
@@ -180,7 +183,7 @@ export default function MyProfile() {
                   />
                   <button
                     type="button"
-                    className="btn-primary min-h-11 w-full text-xs disabled:opacity-40"
+                    className="btn-secondary min-h-11 w-full text-xs disabled:opacity-40"
                     disabled={
                       passwordBusy ||
                       newPassword.length < 8 ||
@@ -188,8 +191,58 @@ export default function MyProfile() {
                     }
                     onClick={() => {
                       setPasswordMsg(null)
+                      if (newPassword !== newPassword2) {
+                        setPasswordMsg('Passwords do not match.')
+                        return
+                      }
                       setPasswordBusy(true)
-                      void updatePassword(newPassword).then((res) => {
+                      void sendPasswordChangeEmailCode().then((res) => {
+                        setPasswordBusy(false)
+                        if (!res.ok) {
+                          setPasswordMsg(res.error ?? 'Could not send verification code')
+                          return
+                        }
+                        setPasswordCodeSent(true)
+                        setPasswordMsg(`Code sent to ${authEmail}. Enter it below to save.`)
+                      })
+                    }}
+                  >
+                    {passwordBusy
+                      ? 'Sending…'
+                      : passwordCodeSent
+                        ? 'Resend email code'
+                        : 'Send email code'}
+                  </button>
+                  {passwordCodeSent ? (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      className="input-editorial min-h-11 tracking-[0.3em]"
+                      placeholder="6-digit code"
+                      value={passwordCode}
+                      onChange={(e) =>
+                        setPasswordCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                      }
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn-primary min-h-11 w-full text-xs disabled:opacity-40"
+                    disabled={
+                      passwordBusy ||
+                      !passwordCodeSent ||
+                      passwordCode.length < 6 ||
+                      newPassword.length < 8 ||
+                      newPassword !== newPassword2
+                    }
+                    onClick={() => {
+                      setPasswordMsg(null)
+                      setPasswordBusy(true)
+                      void updatePassword(newPassword, {
+                        emailCode: passwordCode,
+                        requireEmailCode: true,
+                      }).then((res) => {
                         setPasswordBusy(false)
                         if (!res.ok) {
                           setPasswordMsg(res.error ?? 'Could not save password')
@@ -197,11 +250,13 @@ export default function MyProfile() {
                         }
                         setNewPassword('')
                         setNewPassword2('')
+                        setPasswordCode('')
+                        setPasswordCodeSent(false)
                         setPasswordMsg('Password saved — use it next time on Login.')
                       })
                     }}
                   >
-                    {passwordBusy ? 'Saving…' : 'Save password'}
+                    {passwordBusy ? 'Saving…' : 'Verify code & save password'}
                   </button>
                   {passwordMsg ? (
                     <p className="text-xs text-[var(--muted)]">{passwordMsg}</p>
@@ -210,10 +265,10 @@ export default function MyProfile() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="btn-ghost min-h-11 text-xs"
-                    onClick={() => void signOut().then(() => window.location.assign('/login'))}
+                    className="btn-primary min-h-11 text-xs"
+                    onClick={() => void signOut().then(() => window.location.assign('/'))}
                   >
-                    Sign out
+                    Log out
                   </button>
                   <button
                     type="button"
@@ -233,7 +288,7 @@ export default function MyProfile() {
                           wipeLocalAndLeaveCloudChapters()
                         )
                         .then(() => signOut())
-                        .then(() => window.location.assign('/login'))
+                        .then(() => window.location.assign('/'))
                         .finally(() => setLeaving(false))
                     }}
                   >
@@ -478,6 +533,24 @@ export default function MyProfile() {
             )}
           </section>
         )}
+
+        {!(requiresSupabaseAuth && emailVerified && authEmail) ? (
+          <section className="border border-[var(--rule)] bg-[var(--surface-card)] p-4">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              Session
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Log out returns you to the Chaptera start page on this device.
+            </p>
+            <button
+              type="button"
+              className="btn-primary mt-3 min-h-11 w-full text-xs"
+              onClick={() => void signOut().then(() => window.location.assign('/'))}
+            >
+              Log out
+            </button>
+          </section>
+        ) : null}
       </main>
     </div>
   )

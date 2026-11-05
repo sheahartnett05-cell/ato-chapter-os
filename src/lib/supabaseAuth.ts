@@ -99,13 +99,44 @@ export async function signUpWithPassword(
   return { ok: true }
 }
 
-/** Set or change password while signed in (after OTP or password login). */
-export async function updatePassword(password: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Email a one-time code so the signed-in user can change their password.
+ * Pair with updatePassword(..., { emailCode }).
+ */
+export async function sendPasswordChangeEmailCode(): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Supabase not configured' }
+  if (!getSupabaseUser()) return { ok: false, error: 'Sign in first' }
+  const { error } = await sb.auth.reauthenticate()
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+/**
+ * Set or change password while signed in.
+ * Password changes from Profile require the email code from sendPasswordChangeEmailCode.
+ * Recovery / first-set after magic link may omit the code when Secure password change allows it.
+ */
+export async function updatePassword(
+  password: string,
+  options?: { emailCode?: string; requireEmailCode?: boolean }
+): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Supabase not configured' }
   const pwdError = validatePassword(password)
   if (pwdError) return { ok: false, error: pwdError }
-  const { error } = await sb.auth.updateUser({ password })
+
+  const code = options?.emailCode?.trim() ?? ''
+  if (options?.requireEmailCode !== false) {
+    if (!/^\d{6}$/.test(code)) {
+      return { ok: false, error: 'Enter the 6-digit code from your email.' }
+    }
+  }
+
+  const payload: { password: string; nonce?: string } = { password }
+  if (code) payload.nonce = code
+
+  const { error } = await sb.auth.updateUser(payload)
   if (error) return { ok: false, error: error.message }
   return { ok: true }
 }

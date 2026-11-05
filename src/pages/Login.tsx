@@ -203,7 +203,8 @@ export default function Login() {
       return
     }
     setBusy(true)
-    const res = await updatePassword(password)
+    // Recovery link already verified email — do not require a second OTP here.
+    const res = await updatePassword(password, { requireEmailCode: false })
     if (!res.ok) {
       setBusy(false)
       setError(res.error ?? 'Could not update password.')

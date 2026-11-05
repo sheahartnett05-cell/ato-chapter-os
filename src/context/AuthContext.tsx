@@ -26,6 +26,7 @@ import {
   isEmailVerified,
   requiresSupabaseAuth,
   sendEmailOtp,
+  sendPasswordChangeEmailCode,
   sendPasswordResetEmail,
   signInWithPassword,
   signOutSupabase,
@@ -108,7 +109,11 @@ interface AuthContextValue {
     email: string,
     password: string
   ) => Promise<{ ok: boolean; error?: string; needsEmailConfirm?: boolean }>
-  updatePassword: (password: string) => Promise<{ ok: boolean; error?: string }>
+  updatePassword: (
+    password: string,
+    options?: { emailCode?: string; requireEmailCode?: boolean }
+  ) => Promise<{ ok: boolean; error?: string }>
+  sendPasswordChangeEmailCode: () => Promise<{ ok: boolean; error?: string }>
   sendPasswordResetEmail: (email: string) => Promise<{ ok: boolean; error?: string }>
   signOut: () => Promise<void>
   completeOnboarding: (data: Omit<OnboardingData, 'completed'>) => void
@@ -263,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       signUpWithPassword,
       updatePassword,
+      sendPasswordChangeEmailCode,
       sendPasswordResetEmail,
       signOut,
       completeOnboarding,
