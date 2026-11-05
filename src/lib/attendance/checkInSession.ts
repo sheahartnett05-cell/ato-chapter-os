@@ -66,6 +66,10 @@ export function openCheckInSession(input: {
     openedBy: input.openedBy,
   }
   writeCheckInSessions([session, ...sessions].slice(0, 40))
+  // Officer phones must see this session immediately when members scan.
+  void import('../chapterCloud')
+    .then(({ flushChapterKvQueue }) => flushChapterKvQueue())
+    .catch(() => {})
   return session
 }
 

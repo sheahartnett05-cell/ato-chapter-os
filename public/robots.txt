@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /home
+Disallow: /my-dashboard
+Disallow: /my-profile
+Disallow: /settings
+Disallow: /members
+Disallow: /check-in
+
+Sitemap: https://chapteramanager.com/sitemap.xml

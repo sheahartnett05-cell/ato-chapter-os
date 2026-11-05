@@ -217,5 +217,9 @@ export function getAuthEmail(): string | null {
 }
 
 export function isEmailVerified(): boolean {
-  return Boolean(getSupabaseUser()?.email)
+  const user = getSupabaseUser()
+  if (!user?.email) return false
+  // Password/OTP session means the address is usable even if confirm flag lags.
+  if (user.email_confirmed_at) return true
+  return Boolean(user.aud === 'authenticated' && user.id)
 }

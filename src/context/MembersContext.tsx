@@ -24,7 +24,7 @@ import {
 import { pushLocalChapterToCloud, bootstrapChapterCloud, setCachedCloudChapterId, getCachedCloudChapterId, canSyncToCloud } from '../lib/chapterCloud'
 import { notifyCloudHydrated, subscribeCloudHydrated } from '../lib/cloudHydration'
 import { cloudIdentityEnabled, rpcSetMemberRole } from '../lib/cloudIdentity'
-import { requiresSupabaseAuth } from '../lib/supabaseAuth'
+import { getAuthUserId, requiresSupabaseAuth } from '../lib/supabaseAuth'
 import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
 import type { ChapterLock, InviteCode, MemberAccount } from '../types/memberAccount'
 import type { Member } from '../types'
@@ -181,7 +181,7 @@ interface MembersContextValue {
       cloudChapterId?: string
       /** Redeemed invite code string (for usage sync after cloud hydrate) */
       inviteCode?: string
-    }) => { memberId: string; account: MemberAccount }
+    }) => Promise<{ memberId: string; account: MemberAccount }>
   /** Add a roster member (exec add form). Rejects duplicate emails. */
   addMemberToRoster: (input: {
     firstName: string
@@ -571,7 +571,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   )
 
   const registerMember = useCallback(
-    (input: {
+    async (input: {
       userId: string
       profile: UserProfile
       role: UserRole
@@ -591,13 +591,16 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         .trim()
         .toLowerCase()
       const existing = email
-        ? roster.find((m) => m.email.trim().toLowerCase() === email)
+        ? roster.find((m) => (m.email ?? '').trim().toLowerCase() === email)
         : undefined
       const existingAcct = email
         ? accounts.find((a) => (a.email ?? a.profile.email ?? '').trim().toLowerCase() === email)
         : undefined
       if (existing || existingAcct) {
         throw new Error('An account with this email already exists. Use a different email.')
+      }
+      if (requiresSupabaseAuth() && !getAuthUserId()) {
+        throw new Error('Sign in with email before creating or joining a chapter.')
       }
       const memberId = uid('m')
       const isExec = !['ActiveMember', 'NewMember'].includes(input.role)
@@ -679,69 +682,65 @@ export function MembersProvider({ children }: { children: ReactNode }) {
           },
           input.userId
         )
-        void (async () => {
-          primeChapterIdentityForCloud({
-            orgId: input.orgId,
-            chapterDesignation: input.chapterDesignation,
-            university: input.university,
-          })
-          const boot = await bootstrapChapterCloud({
-            appMemberId: memberId,
-            role: input.role,
-            isFounder: true,
-            profile: {
-              firstName: input.profile.firstName,
-              lastName: input.profile.lastName,
-              email: input.email ?? input.profile.email,
-              phone: input.profile.phone,
-            },
-          })
-          if (!boot.ok) {
-            console.warn('[agora] founder cloud bootstrap failed', boot.error)
-          }
-          const syncedInvites = readInviteCodes()
-          const published = await publishInviteCodesToCloud(syncedInvites)
-          if (!published.ok) {
-            console.warn('[agora] publish join codes failed', published.error)
-          }
-          publishJoinCode(joinInvite, {
-            chapterDesignation: input.chapterDesignation,
-            university: input.university,
-            orgId: input.orgId,
-            cloudChapterId:
-              published.chapterId ?? boot.chapterId ?? getCachedCloudChapterId() ?? undefined,
-          })
-        })()
+        primeChapterIdentityForCloud({
+          orgId: input.orgId,
+          chapterDesignation: input.chapterDesignation,
+          university: input.university,
+        })
+        const boot = await bootstrapChapterCloud({
+          appMemberId: memberId,
+          role: input.role,
+          isFounder: true,
+          profile: {
+            firstName: input.profile.firstName,
+            lastName: input.profile.lastName,
+            email: input.email ?? input.profile.email,
+            phone: input.profile.phone,
+          },
+        })
+        if (!boot.ok) {
+          throw new Error(boot.error || 'Could not create chapter in the cloud')
+        }
+        const syncedInvites = readInviteCodes()
+        const published = await publishInviteCodesToCloud(syncedInvites)
+        if (!published.ok) {
+          throw new Error(published.error || 'Could not publish join code')
+        }
+        publishJoinCode(joinInvite, {
+          chapterDesignation: input.chapterDesignation,
+          university: input.university,
+          orgId: input.orgId,
+          cloudChapterId:
+            published.chapterId ?? boot.chapterId ?? getCachedCloudChapterId() ?? undefined,
+        })
       } else if (requiresSupabaseAuth()) {
         const joinCode =
           input.inviteCode ??
           inviteCodes.find((i) => i.id === input.inviteCodeId)?.code
         if (input.cloudChapterId) setCachedCloudChapterId(input.cloudChapterId)
         primeChapterIdentityForCloud(input)
-        void (async () => {
-          const boot = await bootstrapChapterCloud({
-            appMemberId: memberId,
-            role: input.role,
-            isFounder: false,
-            joinCode,
-            profile: {
-              firstName: input.profile.firstName,
-              lastName: input.profile.lastName,
-              email: input.email ?? input.profile.email,
-              phone: input.profile.phone,
-            },
-          })
-          if (!boot.ok) {
-            console.warn('[agora] join cloud bootstrap failed', boot.error)
-          }
-          await mergeJoinerAfterHydrate({
-            memberId,
-            newMember,
-            account,
-            inviteCodeId: input.inviteCodeId,
-            inviteCode: joinCode,
-          })
-        })()
+        const boot = await bootstrapChapterCloud({
+          appMemberId: memberId,
+          role: input.role,
+          isFounder: false,
+          joinCode,
+          profile: {
+            firstName: input.profile.firstName,
+            lastName: input.profile.lastName,
+            email: input.email ?? input.profile.email,
+            phone: input.profile.phone,
+          },
+        })
+        if (!boot.ok) {
+          throw new Error(boot.error || 'Could not join chapter')
+        }
+        await mergeJoinerAfterHydrate({
+          memberId,
+          newMember,
+          account,
+          inviteCodeId: input.inviteCodeId,
+          inviteCode: joinCode,
+        })
       }
 
       return { memberId, account }
@@ -773,7 +772,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         return { ok: false as const, error: 'First and last name are required.' }
       }
       if (!email) return { ok: false as const, error: 'Email is required.' }
-      if (roster.some((m) => m.email.trim().toLowerCase() === email)) {
+      if (roster.some((m) => (m.email ?? '').trim().toLowerCase() === email)) {
         return { ok: false as const, error: 'A member with this email already exists.' }
       }
       const memberId = uid('m')
@@ -825,7 +824,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       const resolvedEmail =
         email ||
         `${prospect.firstName.trim().toLowerCase()}.${memberId.slice(-6)}@chapter.local`
-      if (roster.some((m) => m.email.trim().toLowerCase() === resolvedEmail)) {
+      if (roster.some((m) => (m.email ?? '').trim().toLowerCase() === resolvedEmail)) {
         return { ok: false as const, error: 'Already on roster.' }
       }
       const newMember: Member = {

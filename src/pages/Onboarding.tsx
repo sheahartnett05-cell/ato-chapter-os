@@ -177,15 +177,19 @@ export default function Onboarding() {
     profile.avatar.trim() ||
     `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase() ||
     '?'
+  const profileReady =
+    Boolean(profile.firstName.trim()) &&
+    Boolean(profile.lastName.trim()) &&
+    Boolean(profile.phone.trim()) &&
+    Boolean(profile.email?.trim()) &&
+    isLikelyEmail(profile.email ?? '') &&
+    (!needsAuth || emailVerified)
+
   const canNext =
     stepKey === 'Start'
       ? entryPath === 'create' || (entryPath === 'invite' && inviteInput.trim().length >= 4)
       : stepKey === 'Profile'
-        ? profile.firstName.trim() &&
-          profile.lastName.trim() &&
-          profile.phone.trim() &&
-          profile.email?.trim() &&
-          isLikelyEmail(profile.email)
+        ? profileReady
         : stepKey === 'About'
           ? profile.major?.trim() && profile.birthday?.trim()
           : stepKey === 'Organization'
@@ -234,6 +238,11 @@ export default function Onboarding() {
   const finish = async () => {
     const resolvedOrgId = chapterLock?.orgId ?? inviteChapterMeta?.orgId ?? orgId
     if (!resolvedOrgId) return
+    if (needsAuth && (!emailVerified || !getAuthUserId())) {
+      setInviteError('Sign in with your email code or password before finishing.')
+      setStep(steps.indexOf('Profile') >= 0 ? steps.indexOf('Profile') : 0)
+      return
+    }
     const chapter =
       chapterLock?.chapterDesignation ??
       inviteChapterMeta?.chapterDesignation ??
@@ -253,10 +262,11 @@ export default function Onboarding() {
     const avatar = initials
     let inviteCodeId = 'self-register'
     const normalizedInviteCode = inviteInput.trim().toUpperCase()
-    if (!selfRegistered) {
-      if (!validatedInvite) return
-      setFinishBusy(true)
-      try {
+    setFinishBusy(true)
+    setInviteError('')
+    try {
+      if (!selfRegistered) {
+        if (!validatedInvite) return
         // Cloud joiners increment usage after hydrate (mergeJoinerAfterHydrate)
         if (!resolvedCloudChapterId) {
           const redeemed = await redeemInvite(inviteInput)
@@ -269,12 +279,8 @@ export default function Onboarding() {
         } else {
           inviteCodeId = validatedInvite.id
         }
-      } finally {
-        setFinishBusy(false)
       }
-    }
-    try {
-      const { memberId } = registerMember({
+      const { memberId } = await registerMember({
         userId,
         profile: { ...profile, avatar },
         role,
@@ -306,6 +312,8 @@ export default function Onboarding() {
       const raw = e instanceof Error ? e.message : 'Could not create account'
       const { humanizeChapterMembershipError } = await import('../lib/cloudIdentity')
       setInviteError(humanizeChapterMembershipError(raw))
+    } finally {
+      setFinishBusy(false)
     }
   }
   const goNext = () => {

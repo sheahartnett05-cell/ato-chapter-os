@@ -16,6 +16,7 @@ import {
   setCachedCloudChapterId,
 } from './cloudChapterId'
 import { notifyCloudHydrated } from './cloudHydration'
+import { mergeRosterLists } from './rosterMerge'
 
 export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId }
 
@@ -305,6 +306,20 @@ export async function hydrateFromCloud(options?: {
     try {
       if (row.value === null) {
         localStorage.removeItem(row.key)
+      } else if (row.key === 'chapter-os-roster-members' && Array.isArray(row.value)) {
+        // Union by member id so a stale founder push cannot erase a fresh joiner.
+        let local: unknown[] = []
+        try {
+          const raw = localStorage.getItem(row.key)
+          if (raw) local = JSON.parse(raw) as unknown[]
+        } catch {
+          local = []
+        }
+        const merged = mergeRosterLists(
+          Array.isArray(local) ? (local as { id: string }[]) : [],
+          row.value as { id: string }[]
+        )
+        localStorage.setItem(row.key, JSON.stringify(merged))
       } else {
         localStorage.setItem(row.key, JSON.stringify(row.value))
       }
@@ -321,6 +336,32 @@ export async function pushLocalChapterToCloud(): Promise<void> {
   if (!canSyncToCloud()) return
   const chapterId = await ensureCloudChapter()
   if (!chapterId) return
+
+  // Merge cloud roster into local before push so we never upload a subset.
+  try {
+    const sb = getSupabase()
+    if (sb) {
+      const { data } = await sb
+        .from('chapter_kv')
+        .select('value')
+        .eq('chapter_id', chapterId)
+        .eq('key', 'chapter-os-roster-members')
+        .maybeSingle()
+      if (data?.value && Array.isArray(data.value)) {
+        let local: { id: string }[] = []
+        try {
+          const raw = localStorage.getItem('chapter-os-roster-members')
+          if (raw) local = JSON.parse(raw) as { id: string }[]
+        } catch {
+          local = []
+        }
+        const merged = mergeRosterLists(local, data.value as { id: string }[])
+        localStorage.setItem('chapter-os-roster-members', JSON.stringify(merged))
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
 
   for (const key of CLOUD_SYNC_KEYS) {
     try {

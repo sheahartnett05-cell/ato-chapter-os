@@ -35,7 +35,7 @@ export default function CheckInPage() {
     memberId != null &&
     getEventAttendance(eventId).some((a) => a.memberId === memberId && a.status === 'Present')
 
-  const submit = (rawCode = code) => {
+  const submit = async (rawCode = code) => {
     setMessage(null)
     setOk(false)
     if (!event) {
@@ -50,11 +50,31 @@ export default function CheckInPage() {
       setMessage('This QR is for a different chapter than the one open in this browser.')
       return
     }
-    const result = tryValidateCheckIn({
+    // Pull the officer's open session from cloud before validating (cross-device QR).
+    try {
+      const { hydrateFromCloud } = await import('../lib/chapterCloud')
+      await hydrateFromCloud({ notify: true })
+    } catch {
+      /* offline — fall through to local sessions */
+    }
+    let result = tryValidateCheckIn({
       eventId,
       chapterKey,
       code: rawCode,
     })
+    if (!result.ok) {
+      try {
+        const { hydrateFromCloud } = await import('../lib/chapterCloud')
+        await hydrateFromCloud({ notify: true })
+      } catch {
+        /* ignore */
+      }
+      result = tryValidateCheckIn({
+        eventId,
+        chapterKey,
+        code: rawCode,
+      })
+    }
     if (!result.ok) {
       setMessage(result.reason)
       return
@@ -69,7 +89,7 @@ export default function CheckInPage() {
   useEffect(() => {
     if (autoTried.current || !queryCode || alreadyPresent || !isOnboarded || !memberId) return
     autoTried.current = true
-    submit(queryCode)
+    void submit(queryCode)
     // One-shot on mount when the QR deep-link includes a code
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryCode, alreadyPresent, isOnboarded, memberId])
@@ -119,14 +139,14 @@ export default function CheckInPage() {
                 autoCorrect="off"
               />
             </label>
-            <button type="button" className="btn-primary w-full" onClick={() => submit()}>
+            <button type="button" className="btn-primary w-full" onClick={() => void submit()}>
               Check in
             </button>
             {queryCode ? (
               <button
                 type="button"
                 className="btn-ghost w-full"
-                onClick={() => submit(queryCode)}
+                onClick={() => void submit(queryCode)}
               >
                 Use code from QR
               </button>

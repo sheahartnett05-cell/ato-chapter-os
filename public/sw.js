@@ -1,6 +1,6 @@
-/* Chaptera service worker — shell cache + local notification clicks */
-const CACHE = 'chaptera-shell-v1'
-const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg']
+/* Chaptera service worker — network-first shell + local notification clicks */
+const CACHE = 'chaptera-shell-v2'
+const SHELL = ['/manifest.webmanifest', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -22,19 +22,31 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
 
+  // Navigations / HTML must always prefer network so deploys aren't stuck on stale shell.
+  const isNavigation =
+    request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    request.headers.get('accept')?.includes('text/html')
+
+  if (isNavigation) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => response)
+        .catch(() => caches.match('/') || caches.match(request))
+    )
+    return
+  }
+
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok && (url.pathname === '/' || url.pathname.endsWith('.svg'))) {
-            const copy = response.clone()
-            void caches.open(CACHE).then((cache) => cache.put(request, copy))
-          }
-          return response
-        })
-        .catch(() => cached)
-      return cached || network
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok && (url.pathname.endsWith('.svg') || url.pathname.endsWith('.webmanifest'))) {
+          const copy = response.clone()
+          void caches.open(CACHE).then((cache) => cache.put(request, copy))
+        }
+        return response
+      })
+      .catch(() => caches.match(request))
   )
 })
 
