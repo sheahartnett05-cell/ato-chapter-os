@@ -3,19 +3,23 @@
  * their profile/chapter without relying on a shared chapter_kv onboarding blob.
  */
 import type { OnboardingData, UserProfile, UserRole } from '../types/permissions'
+import type { Member } from '../types'
 import { fetchCloudMembership } from './cloudIdentity'
 import { hydrateFromCloud } from './chapterCloud'
 import { getCachedCloudChapterId, setCachedCloudChapterId } from './cloudChapterId'
 import { getSupabase } from './supabase'
 import { getAuthEmail, getAuthUserId } from './supabaseAuth'
 import { getSupabaseUser } from './supabaseSession'
-import { writeJson } from './persist'
+import { readJson, writeJson } from './persist'
 import {
   mergePersonAndRosterProfile,
   syncPersonProfileToChapter,
 } from './syncPersonProfile'
+import { currentTermLabel } from './demoRelativeDates'
 
 const ONBOARDING_KEY = 'chapter-os-onboarding'
+const MEMBERS_KEY = 'chapter-os-roster-members'
+const ACCOUNTS_KEY = 'chapter-os-member-accounts'
 
 function readLocalChapterMeta(): { chapterDesignation: string; university: string; orgId: string } {
   let chapterDesignation = ''
@@ -69,7 +73,7 @@ function readLocalChapterMeta(): { chapterDesignation: string; university: strin
 
 function rosterProfile(memberId: string): Partial<UserProfile> | null {
   try {
-    const raw = localStorage.getItem('chapter-os-roster-members')
+    const raw = localStorage.getItem(MEMBERS_KEY)
     if (!raw) return null
     const list = JSON.parse(raw) as Array<{
       id: string
@@ -80,6 +84,11 @@ function rosterProfile(memberId: string): Partial<UserProfile> | null {
       graduationYear?: number
       avatar?: string
       photoUrl?: string
+      major?: string
+      birthday?: string
+      shirtSize?: string
+      emergencyContact?: string
+      emergencyPhone?: string
     }>
     const m = list.find((row) => row.id === memberId)
     if (!m) return null
@@ -91,6 +100,11 @@ function rosterProfile(memberId: string): Partial<UserProfile> | null {
       graduationYear: m.graduationYear ?? new Date().getFullYear() + 1,
       avatar: m.avatar ?? '',
       photoUrl: m.photoUrl,
+      major: m.major,
+      birthday: m.birthday,
+      shirtSize: m.shirtSize,
+      emergencyContact: m.emergencyContact,
+      emergencyPhone: m.emergencyPhone,
     }
   } catch {
     return null
@@ -112,7 +126,130 @@ async function fetchAuthProfile(): Promise<Partial<UserProfile>> {
     lastName: data.last_name ?? '',
     phone: data.phone ?? '',
     email: data.email ?? user.email ?? getAuthEmail() ?? undefined,
-    avatar: data.avatar ?? '',
+    // SQL `avatar` is initials only — never treat a long value as a photo URL
+    avatar: data.avatar && data.avatar.length <= 4 ? data.avatar : data.avatar?.slice(0, 3) || '',
+  }
+}
+
+/** Server roster row written by create_chapter / join_chapter — survives empty chapter_kv. */
+async function fetchSqlChapterMemberProfile(
+  chapterId: string
+): Promise<Partial<UserProfile> | null> {
+  const sb = getSupabase()
+  const user = getSupabaseUser()
+  if (!sb || !user) return null
+  const { data, error } = await sb
+    .from('chapter_members')
+    .select('first_name, last_name, email, phone')
+    .eq('chapter_id', chapterId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (error || !data) return null
+  const firstName = data.first_name?.trim() || ''
+  const lastName = data.last_name?.trim() || ''
+  // Ignore RPC placeholders when the person never set a real name
+  if (
+    (firstName === 'Member' && lastName === 'New') ||
+    (firstName === 'Founder' && lastName === 'President')
+  ) {
+    if (!data.email && !data.phone) return null
+  }
+  return {
+    firstName,
+    lastName,
+    email: data.email ?? undefined,
+    phone: data.phone ?? '',
+    avatar:
+      `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '',
+  }
+}
+
+function ensureLocalRosterRow(
+  memberId: string,
+  profile: UserProfile,
+  role: UserRole,
+  userId: string
+) {
+  const roster = readJson<Member[]>(MEMBERS_KEY, [])
+  const existing = roster.find((m) => m.id === memberId)
+  if (existing) {
+    const patched = roster.map((m) =>
+      m.id !== memberId
+        ? m
+        : {
+            ...m,
+            firstName: profile.firstName || m.firstName,
+            lastName: profile.lastName || m.lastName,
+            phone: profile.phone || m.phone,
+            email: profile.email || m.email,
+            graduationYear: profile.graduationYear || m.graduationYear,
+            avatar: profile.avatar || m.avatar,
+            photoUrl: profile.photoUrl || m.photoUrl,
+            major: profile.major || m.major,
+            birthday: profile.birthday || m.birthday,
+            shirtSize: profile.shirtSize || m.shirtSize,
+            emergencyContact: profile.emergencyContact || m.emergencyContact,
+            emergencyPhone: profile.emergencyPhone || m.emergencyPhone,
+          }
+    )
+    writeJson(MEMBERS_KEY, patched)
+  } else if (profile.firstName.trim() || profile.lastName.trim() || profile.email) {
+    const stub: Member = {
+      id: memberId,
+      firstName: profile.firstName || 'Member',
+      lastName: profile.lastName || '',
+      email: profile.email || `${memberId}@chapter.local`,
+      phone: profile.phone || '',
+      major: profile.major || 'Undeclared',
+      graduationYear: profile.graduationYear || new Date().getFullYear() + 1,
+      pledgeClass: currentTermLabel(),
+      status: role === 'NewMember' ? 'New Member' : 'Active',
+      isExec: !['ActiveMember', 'NewMember'].includes(role),
+      role,
+      birthday: profile.birthday || '2000-01-01',
+      shirtSize: profile.shirtSize || 'M',
+      emergencyContact: profile.emergencyContact || '',
+      emergencyPhone: profile.emergencyPhone || '',
+      duesStatus: 'Outstanding',
+      duesPaid: 0,
+      duesExpected: 850,
+      attendancePct: null,
+      points: 0,
+      avatar:
+        profile.avatar ||
+        `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase() ||
+        '?',
+      photoUrl: profile.photoUrl,
+    }
+    writeJson(MEMBERS_KEY, [...roster, stub])
+  }
+
+  const accounts = readJson<
+    Array<{
+      id: string
+      userId: string
+      memberId: string
+      profile: UserProfile
+      role: UserRole
+      email?: string
+      inviteCodeId: string
+      joinedAt: string
+    }>
+  >(ACCOUNTS_KEY, [])
+  if (!accounts.some((a) => a.memberId === memberId)) {
+    writeJson(ACCOUNTS_KEY, [
+      ...accounts,
+      {
+        id: `acct-restore-${memberId}`,
+        userId,
+        memberId,
+        profile,
+        role,
+        email: profile.email,
+        inviteCodeId: 'restored',
+        joinedAt: new Date().toISOString(),
+      },
+    ])
   }
 }
 
@@ -130,7 +267,7 @@ export async function restoreSessionAfterAuth(): Promise<RestoreSessionResult> {
   if (!userId) return { ok: false, error: 'Not signed in' }
 
   try {
-    await hydrateFromCloud()
+    await hydrateFromCloud({ notify: false })
   } catch (e) {
     return {
       ok: false,
@@ -146,12 +283,16 @@ export async function restoreSessionAfterAuth(): Promise<RestoreSessionResult> {
   setCachedCloudChapterId(membership.chapterId)
   const authProfile = await fetchAuthProfile()
   const fromRoster = rosterProfile(membership.appMemberId)
+  const fromSql = fromRoster
+    ? null
+    : await fetchSqlChapterMemberProfile(membership.chapterId)
   const meta = readLocalChapterMeta()
 
-  // Person fields prefer SQL `profiles`; chapter-only fields come from roster
+  // Person fields prefer SQL profiles; chapter-only fields come from roster;
+  // chapter_members fills the gap when chapter_kv hasn't synced yet.
   const profile: UserProfile = mergePersonAndRosterProfile(
     { ...authProfile, email: authProfile.email || getAuthEmail() || undefined },
-    fromRoster
+    fromRoster ?? fromSql
   )
 
   const role = membership.role as UserRole
@@ -168,8 +309,9 @@ export async function restoreSessionAfterAuth(): Promise<RestoreSessionResult> {
   }
 
   writeJson(ONBOARDING_KEY, onboarding)
-  // Re-align roster with canonical person fields after restore
-  syncPersonProfileToChapter(membership.appMemberId, profile)
+  ensureLocalRosterRow(membership.appMemberId, profile, role, userId)
+  // Re-align roster + SQL profiles with canonical person fields after restore
+  await syncPersonProfileToChapter(membership.appMemberId, profile)
 
   // Keep selected org in sync for ChapterContext cold start
   if (meta.orgId) {
@@ -181,6 +323,9 @@ export async function restoreSessionAfterAuth(): Promise<RestoreSessionResult> {
   }
 
   void getCachedCloudChapterId()
+
+  const { notifyCloudHydrated } = await import('./cloudHydration')
+  notifyCloudHydrated()
 
   const homePath =
     role === 'ActiveMember' || role === 'NewMember' ? '/my-dashboard' : '/home'

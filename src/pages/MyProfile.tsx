@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Mail, Phone, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -41,6 +41,26 @@ export default function MyProfile() {
   const [passwordBusy, setPasswordBusy] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null)
 
+  // Prefer auth profile; fall back to roster row so restore races never show blank.
+  const viewProfile = useMemo(
+    () => ({
+      ...profile,
+      firstName: profile.firstName || member?.firstName || '',
+      lastName: profile.lastName || member?.lastName || '',
+      phone: profile.phone || member?.phone || '',
+      email: profile.email || member?.email,
+      avatar: profile.avatar || member?.avatar || '',
+      photoUrl: profile.photoUrl || member?.photoUrl,
+      graduationYear: profile.graduationYear || member?.graduationYear || new Date().getFullYear() + 1,
+      major: profile.major || member?.major,
+      birthday: profile.birthday || member?.birthday,
+      shirtSize: profile.shirtSize || member?.shirtSize,
+      emergencyContact: profile.emergencyContact || member?.emergencyContact,
+      emergencyPhone: profile.emergencyPhone || member?.emergencyPhone,
+    }),
+    [profile, member]
+  )
+
   const attendanceRows = useMemo(() => {
     if (!member) return []
     const rows: Array<{ eventId: string; event: string; date: string; status: string; pts: number }> =
@@ -61,7 +81,11 @@ export default function MyProfile() {
   }, [events, getEventAttendance, member])
 
   const [editing, setEditing] = useState(false)
-  const [local, setLocal] = useState(profile)
+  const [local, setLocal] = useState(viewProfile)
+
+  useEffect(() => {
+    if (!editing) setLocal(viewProfile)
+  }, [viewProfile, editing])
 
   const save = () => {
     updateProfile(local)
@@ -69,9 +93,10 @@ export default function MyProfile() {
     setEditing(false)
   }
 
-  const displayName = `${profile.firstName} ${profile.lastName}`.trim() || 'Member'
+  const displayName = `${viewProfile.firstName} ${viewProfile.lastName}`.trim() || 'Member'
   const initials =
-    profile.avatar || `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase()
+    viewProfile.avatar ||
+    `${viewProfile.firstName.charAt(0)}${viewProfile.lastName.charAt(0)}`.toUpperCase()
 
   return (
     <div className="min-h-screen pb-12" style={{ background: 'var(--surface-tint)' }}>
@@ -100,7 +125,7 @@ export default function MyProfile() {
             />
           ) : (
             <MemberAvatar
-              photoUrl={profile.photoUrl}
+              photoUrl={viewProfile.photoUrl}
               initials={initials}
               size="lg"
               accentColor={chapter.primaryColor}
@@ -258,7 +283,7 @@ export default function MyProfile() {
               <button
                 type="button"
                 onClick={() => {
-                  setLocal(profile)
+                  setLocal(viewProfile)
                   setEditing(true)
                 }}
                 className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]"
@@ -350,31 +375,31 @@ export default function MyProfile() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2">
                 <Phone size={14} className="text-[var(--muted)]" />
-                {profile.phone || '—'}
+                {viewProfile.phone || '—'}
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="text-[var(--muted)]" />
-                {profile.email || member?.email || '—'}
+                {viewProfile.email || '—'}
               </li>
               <li>
                 <span className="text-[var(--muted)]">Major </span>
-                {profile.major || member?.major || '—'}
+                {viewProfile.major || '—'}
               </li>
               <li className="font-mono text-xs text-[var(--muted)]">
-                Class of {profile.graduationYear}
+                Class of {viewProfile.graduationYear}
               </li>
-              {profile.birthday && (
+              {viewProfile.birthday && (
                 <li className="text-[var(--muted)]">
-                  Birthday {new Date(profile.birthday + 'T12:00:00').toLocaleDateString()}
+                  Birthday {new Date(viewProfile.birthday + 'T12:00:00').toLocaleDateString()}
                 </li>
               )}
-              {profile.shirtSize && (
-                <li className="text-[var(--muted)]">Shirt size {profile.shirtSize}</li>
+              {viewProfile.shirtSize && (
+                <li className="text-[var(--muted)]">Shirt size {viewProfile.shirtSize}</li>
               )}
-              {profile.emergencyContact && (
+              {viewProfile.emergencyContact && (
                 <li className="text-[var(--muted)]">
-                  Emergency: {profile.emergencyContact}
-                  {profile.emergencyPhone ? ` · ${profile.emergencyPhone}` : ''}
+                  Emergency: {viewProfile.emergencyContact}
+                  {viewProfile.emergencyPhone ? ` · ${viewProfile.emergencyPhone}` : ''}
                 </li>
               )}
             </ul>

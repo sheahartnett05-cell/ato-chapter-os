@@ -127,16 +127,20 @@ export default function MemberProfile() {
                 <span className="flex items-center gap-1.5">
                   <Phone size={14} /> {member.phone}
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} />
-                  {new Date(member.birthday + 'T12:00:00').toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Shirt size={14} /> Size {member.shirtSize}
-                </span>
+                {member.birthday ? (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={14} />
+                    {new Date(member.birthday + 'T12:00:00').toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                ) : null}
+                {member.shirtSize ? (
+                  <span className="flex items-center gap-1.5">
+                    <Shirt size={14} /> Size {member.shirtSize}
+                  </span>
+                ) : null}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-3 sm:gap-6">

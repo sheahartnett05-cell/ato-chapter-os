@@ -22,6 +22,7 @@ import {
   resolveJoinCode,
 } from '../lib/joinCodes'
 import { pushLocalChapterToCloud, bootstrapChapterCloud, setCachedCloudChapterId, getCachedCloudChapterId, canSyncToCloud } from '../lib/chapterCloud'
+import { notifyCloudHydrated, subscribeCloudHydrated } from '../lib/cloudHydration'
 import { cloudIdentityEnabled, rpcSetMemberRole } from '../lib/cloudIdentity'
 import { requiresSupabaseAuth } from '../lib/supabaseAuth'
 import { readJson, writeJson, writeLocalOnly } from '../lib/persist'
@@ -36,7 +37,7 @@ const MEMBERS_KEY = 'chapter-os-roster-members'
 const CHAPTER_LOCK_KEY = 'chapter-os-chapter-lock'
 const USER_ID_KEY = 'chapter-os-user-id'
 
-function mergeJoinerAfterHydrate(input: {
+async function mergeJoinerAfterHydrate(input: {
   memberId: string
   newMember: Member
   account: MemberAccount
@@ -45,12 +46,51 @@ function mergeJoinerAfterHydrate(input: {
 }) {
   const freshRoster = readJson<Member[]>(MEMBERS_KEY, [])
   const freshAccounts = readJson<MemberAccount[]>(ACCOUNTS_KEY, [])
-  if (!freshRoster.some((m) => m.id === input.memberId)) {
-    writeJson(MEMBERS_KEY, [...freshRoster, input.newMember])
-  }
-  if (!freshAccounts.some((a) => a.memberId === input.memberId)) {
+  const rosterHas = freshRoster.some((m) => m.id === input.memberId)
+  const accountHas = freshAccounts.some((a) => a.memberId === input.memberId)
+
+  // Prefer the joiner's completed profile if cloud already had a stub/empty row.
+  const nextRoster = rosterHas
+    ? freshRoster.map((m) =>
+        m.id === input.memberId
+          ? {
+              ...m,
+              firstName: input.newMember.firstName || m.firstName,
+              lastName: input.newMember.lastName || m.lastName,
+              email: input.newMember.email || m.email,
+              phone: input.newMember.phone || m.phone,
+              major: input.newMember.major || m.major,
+              graduationYear: input.newMember.graduationYear || m.graduationYear,
+              avatar: input.newMember.avatar || m.avatar,
+              photoUrl: input.newMember.photoUrl || m.photoUrl,
+              birthday: input.newMember.birthday || m.birthday,
+              shirtSize: input.newMember.shirtSize || m.shirtSize,
+              emergencyContact: input.newMember.emergencyContact || m.emergencyContact,
+              emergencyPhone: input.newMember.emergencyPhone || m.emergencyPhone,
+            }
+          : m
+      )
+    : [...freshRoster, input.newMember]
+  writeJson(MEMBERS_KEY, nextRoster)
+
+  if (!accountHas) {
     writeJson(ACCOUNTS_KEY, [...freshAccounts, input.account])
+  } else {
+    writeJson(
+      ACCOUNTS_KEY,
+      freshAccounts.map((a) =>
+        a.memberId === input.memberId
+          ? {
+              ...a,
+              profile: { ...a.profile, ...input.account.profile },
+              email: input.account.email ?? a.email,
+              userId: input.account.userId || a.userId,
+            }
+          : a
+      )
+    )
   }
+
   const codeNorm = input.inviteCode?.trim().toUpperCase()
   if (codeNorm || (input.inviteCodeId && input.inviteCodeId !== 'self-register')) {
     const invites = readJson<InviteCode[]>(INVITES_KEY, [])
@@ -65,6 +105,14 @@ function mergeJoinerAfterHydrate(input: {
     if (codeNorm) bumpJoinCodeUse(codeNorm)
     void publishInviteCodesToCloud(nextInvites)
   }
+
+  // Flush immediately so the founder/other devices see this member on next hydrate.
+  try {
+    await pushLocalChapterToCloud()
+  } catch (e) {
+    console.warn('[agora] joiner cloud push failed', e)
+  }
+  notifyCloudHydrated()
 }
 
 function primeChapterIdentityForCloud(input: {
@@ -220,6 +268,16 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   const [chapterLock, setChapterLock] = useState<ChapterLock | null>(() =>
     readJson(CHAPTER_LOCK_KEY, null)
   )
+
+  // After cloud hydrate / joiner merge, re-read LS so roster isn't a stale mount.
+  useEffect(() => {
+    return subscribeCloudHydrated(() => {
+      setRoster(readJson<Member[]>(MEMBERS_KEY, []))
+      setAccounts(readJson<MemberAccount[]>(ACCOUNTS_KEY, []))
+      setInviteCodes(readInviteCodes())
+      setChapterLock(readJson<ChapterLock | null>(CHAPTER_LOCK_KEY, null))
+    })
+  }, [])
 
   const persistInvites = useCallback((next: InviteCode[]) => {
     setInviteCodes(next)
@@ -676,7 +734,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
           if (!boot.ok) {
             console.warn('[agora] join cloud bootstrap failed', boot.error)
           }
-          mergeJoinerAfterHydrate({
+          await mergeJoinerAfterHydrate({
             memberId,
             newMember,
             account,

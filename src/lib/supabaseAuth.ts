@@ -149,14 +149,27 @@ export async function upsertSupabaseProfile(
   const sb = getSupabase()
   if (!user || !sb) return
 
-  await sb.from('profiles').upsert({
-    id: user.id,
-    email: profile.email ?? user.email ?? null,
-    first_name: profile.firstName ?? null,
-    last_name: profile.lastName ?? null,
-    phone: profile.phone ?? null,
-    avatar: profile.avatar ?? profile.photoUrl ?? null,
-  })
+  // Only write non-empty person fields so a blank restore never wipes SQL names.
+  const row: {
+    id: string
+    email?: string | null
+    first_name?: string | null
+    last_name?: string | null
+    phone?: string | null
+    avatar?: string | null
+  } = { id: user.id }
+
+  const email = profile.email?.trim() || user.email || null
+  if (email) row.email = email
+  if (profile.firstName?.trim()) row.first_name = profile.firstName.trim()
+  if (profile.lastName?.trim()) row.last_name = profile.lastName.trim()
+  if (profile.phone?.trim()) row.phone = profile.phone.trim()
+  // Avatar column stores initials only — never a photo data URL
+  const initials = profile.avatar?.trim()
+  if (initials && initials.length <= 4) row.avatar = initials
+
+  const { error } = await sb.from('profiles').upsert(row)
+  if (error) console.warn('[agora auth] profile upsert failed', error.message)
 }
 
 export async function fetchUserChapterId(): Promise<string | null> {

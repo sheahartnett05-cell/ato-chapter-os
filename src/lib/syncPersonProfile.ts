@@ -35,6 +35,12 @@ type AccountRow = {
   [key: string]: unknown
 }
 
+function pick(next: string | undefined, prev: string | undefined): string | undefined {
+  const n = next?.trim()
+  if (n) return next
+  return prev
+}
+
 function patchRosterRow(memberId: string, profile: UserProfile) {
   try {
     const raw = localStorage.getItem(ROSTER_KEY)
@@ -46,18 +52,19 @@ function patchRosterRow(memberId: string, profile: UserProfile) {
       changed = true
       return {
         ...row,
-        firstName: profile.firstName || row.firstName,
-        lastName: profile.lastName || row.lastName,
-        phone: profile.phone || row.phone,
-        email: profile.email ?? row.email,
+        firstName: pick(profile.firstName, row.firstName) ?? row.firstName,
+        lastName: pick(profile.lastName, row.lastName) ?? row.lastName,
+        phone: pick(profile.phone, row.phone) ?? row.phone,
+        email: pick(profile.email, row.email) ?? row.email,
         graduationYear: profile.graduationYear ?? row.graduationYear,
-        avatar: profile.avatar || row.avatar,
-        photoUrl: profile.photoUrl ?? row.photoUrl,
-        major: profile.major ?? row.major,
-        birthday: profile.birthday ?? row.birthday,
-        shirtSize: profile.shirtSize ?? row.shirtSize,
-        emergencyContact: profile.emergencyContact ?? row.emergencyContact,
-        emergencyPhone: profile.emergencyPhone ?? row.emergencyPhone,
+        avatar: pick(profile.avatar, row.avatar) ?? row.avatar,
+        photoUrl: profile.photoUrl || row.photoUrl,
+        major: pick(profile.major, row.major) ?? row.major,
+        birthday: pick(profile.birthday, row.birthday) ?? row.birthday,
+        shirtSize: pick(profile.shirtSize, row.shirtSize) ?? row.shirtSize,
+        emergencyContact:
+          pick(profile.emergencyContact, row.emergencyContact) ?? row.emergencyContact,
+        emergencyPhone: pick(profile.emergencyPhone, row.emergencyPhone) ?? row.emergencyPhone,
       }
     })
     if (changed) writeJson(ROSTER_KEY, next)
@@ -75,7 +82,18 @@ function patchAccountProfile(memberId: string, profile: UserProfile) {
     const next = list.map((row) => {
       if (row.memberId !== memberId) return row
       changed = true
-      return { ...row, profile: { ...row.profile, ...profile } }
+      return {
+        ...row,
+        profile: {
+          ...row.profile,
+          ...profile,
+          firstName: profile.firstName || row.profile?.firstName || '',
+          lastName: profile.lastName || row.profile?.lastName || '',
+          phone: profile.phone || row.profile?.phone || '',
+          email: profile.email || row.profile?.email,
+          photoUrl: profile.photoUrl || row.profile?.photoUrl,
+        },
+      }
     })
     if (changed) writeJson(ACCOUNTS_KEY, next)
   } catch {
@@ -84,8 +102,11 @@ function patchAccountProfile(memberId: string, profile: UserProfile) {
 }
 
 /** Push person fields to SQL profiles + chapter roster/accounts KV. */
-export function syncPersonProfileToChapter(memberId: string | null | undefined, profile: UserProfile) {
-  void upsertSupabaseProfile(profile)
+export async function syncPersonProfileToChapter(
+  memberId: string | null | undefined,
+  profile: UserProfile
+): Promise<void> {
+  await upsertSupabaseProfile(profile)
   if (!memberId) return
   patchRosterRow(memberId, profile)
   patchAccountProfile(memberId, profile)
@@ -93,23 +114,33 @@ export function syncPersonProfileToChapter(memberId: string | null | undefined, 
 
 /**
  * Merge person identity (prefer SQL profiles) with chapter-only fields from roster.
+ * Empty strings never clobber a real roster/SQL value.
  */
 export function mergePersonAndRosterProfile(
   authProfile: Partial<UserProfile>,
   roster: Partial<UserProfile> | null
 ): UserProfile {
+  const firstName = authProfile.firstName?.trim() || roster?.firstName?.trim() || ''
+  const lastName = authProfile.lastName?.trim() || roster?.lastName?.trim() || ''
   return {
-    firstName: authProfile.firstName || roster?.firstName || '',
-    lastName: authProfile.lastName || roster?.lastName || '',
-    phone: authProfile.phone || roster?.phone || '',
-    email: authProfile.email || roster?.email,
-    avatar: authProfile.avatar || roster?.avatar || '',
+    firstName,
+    lastName,
+    phone: authProfile.phone?.trim() || roster?.phone?.trim() || '',
+    email: authProfile.email?.trim() || roster?.email?.trim() || undefined,
+    avatar:
+      authProfile.avatar?.trim() ||
+      roster?.avatar?.trim() ||
+      `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() ||
+      '',
     photoUrl: roster?.photoUrl || authProfile.photoUrl,
-    graduationYear: roster?.graduationYear ?? new Date().getFullYear() + 1,
-    major: roster?.major,
-    birthday: roster?.birthday,
-    shirtSize: roster?.shirtSize,
-    emergencyContact: roster?.emergencyContact,
-    emergencyPhone: roster?.emergencyPhone,
+    graduationYear:
+      roster?.graduationYear ??
+      authProfile.graduationYear ??
+      new Date().getFullYear() + 1,
+    major: roster?.major || authProfile.major,
+    birthday: roster?.birthday || authProfile.birthday,
+    shirtSize: roster?.shirtSize || authProfile.shirtSize,
+    emergencyContact: roster?.emergencyContact || authProfile.emergencyContact,
+    emergencyPhone: roster?.emergencyPhone || authProfile.emergencyPhone,
   }
 }

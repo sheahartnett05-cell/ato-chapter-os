@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { clearDemoData } from '../lib/demoSeed'
 import { setCachedCloudChapterId } from '../lib/chapterCloud'
+import { subscribeCloudHydrated } from '../lib/cloudHydration'
 import { markGuestPreview } from '../lib/guestPreview'
 import { writeJson, removeJson } from '../lib/persist'
 import { applyPositionBoost, positionPermissionBoost } from '../lib/positionPermissions'
@@ -128,6 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => subscribeSupabaseSession(() => tick((n) => n + 1)), [])
 
+  // restoreSession / join merge write onboarding to LS — pick it up into React state
+  useEffect(() => {
+    return subscribeCloudHydrated(() => {
+      setOnboarding(readOnboarding())
+    })
+  }, [])
+
   const supabaseAuth = requiresSupabaseAuth()
   const authUserId = getAuthUserId()
   const authEmail = getAuthEmail()
@@ -170,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: next.profile.email ?? authEmail ?? undefined,
       }
       void import('../lib/syncPersonProfile').then(({ syncPersonProfileToChapter }) => {
-        syncPersonProfileToChapter(next.memberId, profile)
+        void syncPersonProfileToChapter(next.memberId, profile)
       })
     },
     [authUserId, authEmail]
@@ -187,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: next.profile.email ?? authEmail ?? undefined,
         }
         void import('../lib/syncPersonProfile').then(({ syncPersonProfileToChapter }) => {
-          syncPersonProfileToChapter(next.memberId, profile)
+          void syncPersonProfileToChapter(next.memberId, profile)
         })
         return next
       })

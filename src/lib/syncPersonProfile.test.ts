@@ -40,4 +40,16 @@ describe('mergePersonAndRosterProfile', () => {
     expect(merged.phone).toBe('111')
     expect(merged.graduationYear).toBe(2028)
   })
+
+  it('does not let blank SQL strings wipe roster names', () => {
+    const merged = mergePersonAndRosterProfile(
+      { firstName: '  ', lastName: '', phone: '' },
+      { firstName: 'Alex', lastName: 'Rivera', phone: '222', photoUrl: 'data:image/png;base64,abc' }
+    )
+    expect(merged.firstName).toBe('Alex')
+    expect(merged.lastName).toBe('Rivera')
+    expect(merged.phone).toBe('222')
+    expect(merged.photoUrl).toBe('data:image/png;base64,abc')
+    expect(merged.avatar).toBe('AR')
+  })
 })

@@ -15,6 +15,7 @@ import {
   getCachedCloudChapterId,
   setCachedCloudChapterId,
 } from './cloudChapterId'
+import { notifyCloudHydrated } from './cloudHydration'
 
 export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId }
 
@@ -148,7 +149,8 @@ export async function bootstrapChapterCloud(input: {
       const { publishInviteCodesToCloud } = await import('./joinCodes')
       await publishInviteCodesToCloud()
     } else {
-      await hydrateFromCloud()
+      // Joiner path merges the new roster row after hydrate — notify later.
+      await hydrateFromCloud({ notify: false })
     }
     return { ok: true, chapterId: existing }
   }
@@ -199,7 +201,8 @@ export async function bootstrapChapterCloud(input: {
     phone: input.profile?.phone,
   })
   if (!joined.ok) return { ok: false, error: joined.error }
-  await hydrateFromCloud()
+  // Caller (registerMember) re-adds the joiner then pushes + notifies.
+  await hydrateFromCloud({ notify: false })
   return { ok: true, chapterId: joined.chapterId }
 }
 
@@ -279,7 +282,10 @@ export async function flushChapterKvQueue(): Promise<void> {
   }
 }
 
-export async function hydrateFromCloud(): Promise<{ ok: boolean; keys: number; error?: string }> {
+export async function hydrateFromCloud(options?: {
+  notify?: boolean
+}): Promise<{ ok: boolean; keys: number; error?: string }> {
+  const notify = options?.notify !== false
   if (!canSyncToCloud()) return { ok: true, keys: 0 }
   const sb = getSupabase()
   if (!sb) return { ok: false, keys: 0, error: 'no client' }
@@ -307,6 +313,7 @@ export async function hydrateFromCloud(): Promise<{ ok: boolean; keys: number; e
       /* ignore */
     }
   }
+  if (notify && n > 0) notifyCloudHydrated()
   return { ok: true, keys: n }
 }
 
