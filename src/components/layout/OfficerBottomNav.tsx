@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   CalendarDays,
   ClipboardCheck,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { usePermissions } from '../../context/AuthContext'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
+import { isMobileNavActive } from '../../lib/mobileNavActive'
 import type { ChapterFeatureId } from '../../types/chapterFeatures'
 
 const NAV = [
@@ -31,6 +32,7 @@ const NAV = [
 ] as const
 
 export function OfficerBottomNav() {
+  const { pathname } = useLocation()
   const permissions = usePermissions()
   const features = useChapterFeaturesOptional()
 
@@ -44,41 +46,43 @@ export function OfficerBottomNav() {
     return true
   })
 
+  // Never render an empty bar — keep Home + More as fallback
+  const tabs =
+    visibleNav.length > 0
+      ? visibleNav
+      : NAV.filter((item) => item.to === '/home' || item.to === '/settings')
+
   return (
     <nav
-      className="shrink-0 border-t bg-[var(--surface-card)] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+      className="relative z-[var(--z-nav)] shrink-0 border-t bg-[var(--surface-card)] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
       style={{ borderColor: 'var(--rule)' }}
       aria-label="Officer navigation"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-between gap-0.5 px-1.5 pt-1">
-        {visibleNav.map((item) => {
+        {tabs.map((item) => {
           const { to, label, icon: Icon } = item
           const end = 'end' in item ? item.end : undefined
+          const active = isMobileNavActive(pathname, to, Boolean(end))
           return (
             <NavLink
               key={to}
               to={to}
               end={Boolean(end)}
-              className={({ isActive }) =>
-                `relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 font-mono text-[10px] uppercase tracking-wider transition ${
-                  isActive
-                    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
-                    : 'text-[var(--muted)] active:bg-black/[0.03]'
-                }`
-              }
+              aria-current={active ? 'page' : undefined}
+              className={`relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 font-mono text-[10px] uppercase tracking-wider transition ${
+                active
+                  ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
+                  : 'text-[var(--muted)] active:bg-black/[0.03]'
+              }`}
             >
-              {({ isActive }) => (
-                <>
-                  <Icon size={20} strokeWidth={isActive ? 2 : 1.5} aria-hidden />
-                  <span className="truncate">{label}</span>
-                  {isActive ? (
-                    <span
-                      className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--accent)]"
-                      aria-hidden
-                    />
-                  ) : null}
-                </>
-              )}
+              <Icon size={20} strokeWidth={active ? 2 : 1.5} aria-hidden />
+              <span className="truncate">{label}</span>
+              {active ? (
+                <span
+                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--accent)]"
+                  aria-hidden
+                />
+              ) : null}
             </NavLink>
           )
         })}

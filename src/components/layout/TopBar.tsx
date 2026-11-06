@@ -10,12 +10,12 @@ interface TopBarProps {
 }
 
 /**
- * Page title bar. Mobile menu + Room/Officer tabs live in AppShells chrome —
- * this bar is title + actions only (avoids duplicate hamburgers on phone).
+ * Page title bar. On phones it stays in document flow (no sticky/blur) so it does not
+ * fight MobileTopChrome or “phase” while scrolling. Sticky + blur from md up only.
  */
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--rule)] bg-[color-mix(in_srgb,var(--surface-card)_92%,transparent)] backdrop-blur-xl">
+    <header className="border-b border-[var(--rule)] bg-[var(--surface-card)] md:sticky md:top-0 md:z-20 md:bg-[color-mix(in_srgb,var(--surface-card)_92%,transparent)] md:backdrop-blur-xl">
       <div className="flex flex-col gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <TopBarChapterModeLinks />

@@ -43,7 +43,7 @@ function TabPills({
       isActive ? 'theme-pill-active' : 'theme-pill-muted'
     }`
   return (
-    <div className="sticky top-0 z-10 -mx-6 border-b border-[var(--rule)] bg-[var(--surface-tint)]/95 px-6 py-2 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+    <div className="-mx-4 border-b border-[var(--rule)] bg-[var(--surface-card)] px-4 py-2 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
       <div className="flex gap-1">
         <button type="button" onClick={() => onChange('overview')} className={tabClass(active === 'overview')}>
           Overview

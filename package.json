@@ -13,6 +13,7 @@
     "test:phase-a": "node scripts/test-phase-a-identity.mjs",
     "test:storage": "node scripts/test-storage-readiness.mjs",
     "test:pilot-ready": "npm run test && npm run test:phase-a && npm run test:storage",
+    "test:pwa": "node scripts/test-pwa-readiness.mjs",
     "preview": "vite preview",
     "smoke-test": "node scripts/smoke-test.mjs",
     "smoke-test:quick": "node scripts/smoke-test.mjs --chapters=alpha,beta",

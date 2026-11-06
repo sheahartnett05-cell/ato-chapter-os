@@ -43,7 +43,7 @@ function MobileTopChrome({
   if (!showMenu && !showMode) return null
 
   return (
-    <header className="z-20 shrink-0 border-b border-[var(--rule)] bg-[var(--surface-card)] pt-[env(safe-area-inset-top,0px)] md:hidden">
+    <header className="relative z-[var(--z-nav)] shrink-0 border-b border-[var(--rule)] bg-[var(--surface-card)] pt-[env(safe-area-inset-top,0px)] md:hidden">
       <div className="flex items-center gap-2 px-3 py-2">
         {showMenu && onOpenMenu ? (
           <button
@@ -142,11 +142,22 @@ export function SharedShell({ children }: { children: ReactNode }) {
 
 /** Always Chapter Room chrome (Room + Profile). */
 export function MemberShell({ children }: { children: ReactNode }) {
-  return (
-    <RequireOnboarded>
-      <MemberChrome>{children}</MemberChrome>
-    </RequireOnboarded>
-  )
+  const onboarded = useOnboarded()
+  const { role } = useAuth()
+  const permissions = usePermissions()
+  const kind = useShellKind()
+  const setViewMode = useSetChapterViewMode()
+  const execCapable = userIsExecCapable(role, permissions)
+
+  // Keep Room | Officer tabs in sync with this shell (avoid Officer highlighted on Room chrome).
+  useEffect(() => {
+    if (!onboarded || !execCapable) return
+    if (kind === 'exec') setViewMode('chapter-room')
+  }, [onboarded, execCapable, kind, setViewMode])
+
+  if (!onboarded) return <Navigate to="/" replace />
+
+  return <MemberChrome>{children}</MemberChrome>
 }
 
 /**

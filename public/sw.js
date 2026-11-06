@@ -1,18 +1,27 @@
 /* Chaptera service worker — network-first shell + local notification clicks */
-const CACHE = 'chaptera-shell-v2'
-const SHELL = ['/manifest.webmanifest', '/favicon.svg']
+const CACHE = 'chaptera-shell-v3'
+const SHELL = [
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE)
+      .then((cache) => cache.addAll(SHELL))
+      .then(() => self.skipWaiting())
   )
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   )
 })
 
@@ -26,12 +35,19 @@ self.addEventListener('fetch', (event) => {
   const isNavigation =
     request.mode === 'navigate' ||
     url.pathname === '/' ||
-    request.headers.get('accept')?.includes('text/html')
+    (request.headers.get('accept') || '').includes('text/html')
 
   if (isNavigation) {
     event.respondWith(
       fetch(request)
-        .then((response) => response)
+        .then((response) => {
+          // Keep a fresh copy of the app document for offline reopen.
+          if (response.ok) {
+            const copy = response.clone()
+            void caches.open(CACHE).then((cache) => cache.put('/', copy))
+          }
+          return response
+        })
         .catch(() => caches.match('/') || caches.match(request))
     )
     return
@@ -40,7 +56,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (response.ok && (url.pathname.endsWith('.svg') || url.pathname.endsWith('.webmanifest'))) {
+        const path = url.pathname
+        const cacheable =
+          response.ok &&
+          (path.endsWith('.svg') ||
+            path.endsWith('.png') ||
+            path.endsWith('.webmanifest') ||
+            path === '/sw.js')
+        if (cacheable && path !== '/sw.js') {
           const copy = response.clone()
           void caches.open(CACHE).then((cache) => cache.put(request, copy))
         }

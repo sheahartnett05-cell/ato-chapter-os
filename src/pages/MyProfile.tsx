@@ -102,7 +102,7 @@ export default function MyProfile() {
     `${viewProfile.firstName.charAt(0)}${viewProfile.lastName.charAt(0)}`.toUpperCase()
 
   return (
-    <div className="min-h-screen pb-12" style={{ background: 'var(--surface-tint)' }}>
+    <div className="pb-8" style={{ background: 'var(--surface-tint)' }}>
       <div className="theme-stripe" />
       <header className="theme-sidebar px-5 pb-6 pt-4">
         <div className="flex items-center justify-between">
