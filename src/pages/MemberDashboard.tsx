@@ -291,11 +291,11 @@ export default function MemberDashboard() {
 
   return (
 
-    <div className="min-h-screen pb-6" style={{ background: 'var(--surface-tint)' }}>
+    <div className="pb-2" style={{ background: 'var(--surface-tint)' }}>
       <div className="theme-stripe" />
 
       {/* Chapter Room hero */}
-      <header className="relative overflow-hidden theme-sidebar px-4 pb-7 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5 sm:pb-8">
+      <header className="relative overflow-hidden theme-sidebar px-4 pb-7 pt-4 sm:px-5 sm:pb-8">
         <p
           className="pointer-events-none absolute -right-4 top-6 select-none font-serif text-[6rem] leading-none opacity-[0.08] sm:text-[7rem]"
           aria-hidden
@@ -303,9 +303,11 @@ export default function MemberDashboard() {
           {chapter.letters}
         </p>
 
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          <Logo compact />
-          <div className="flex shrink-0 items-center gap-2">
+        <div className="relative z-10 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Logo compact to="/my-dashboard" />
+          </div>
+          <div className="flex max-w-[60%] shrink-0 flex-wrap items-center justify-end gap-2">
             {showDashboardLink && <GoToDashboardButton variant="hero" />}
             <Link
               to="/profile"

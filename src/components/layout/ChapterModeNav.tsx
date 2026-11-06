@@ -27,10 +27,10 @@ export function GoToDashboardButton({
       <button
         type="button"
         onClick={goToOperations}
-        className="flex min-h-11 shrink-0 items-center gap-2 border border-white/30 bg-white px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)] shadow-sm transition active:opacity-90 sm:px-3.5 sm:text-[11px]"
+        className="flex min-h-11 max-w-full shrink-0 items-center gap-1.5 border border-white/30 bg-white px-2.5 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)] shadow-sm transition active:opacity-90 sm:gap-2 sm:px-3.5 sm:text-[11px]"
       >
-        <LayoutDashboard size={15} strokeWidth={2} />
-        Dashboard
+        <LayoutDashboard size={15} strokeWidth={2} className="shrink-0" />
+        <span className="truncate">Dashboard</span>
       </button>
     )
   }

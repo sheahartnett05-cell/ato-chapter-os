@@ -7,12 +7,14 @@ import {
   ClipboardCheck,
   ClipboardList,
   ChevronDown,
+  Menu,
 } from 'lucide-react'
 import { PageShell } from '../components/ui/Section'
 import { useChapter } from '../context/ChapterContext'
 import { useAuth } from '../context/AuthContext'
 import { useCommunications } from '../context/CommunicationsContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
+import { useShellMenuOptional } from '../context/ShellMenuContext'
 import { useOfficerDashboard } from '../hooks/useOfficerDashboard'
 import { StatTile } from '../components/dashboard/StatTile'
 import { statGridClassName } from '../lib/dashboard/displayTiles'
@@ -37,6 +39,7 @@ export default function ExecutiveDashboard() {
   const { profile } = useAuth()
   const { posts } = useCommunications()
   const { events, excuses } = useChapterOps()
+  const shellMenu = useShellMenuOptional()
   const {
     tiles,
     ledgerTasks,
@@ -67,52 +70,65 @@ export default function ExecutiveDashboard() {
   const ledgerPreview = ledgerTasks.slice(0, 5)
 
   return (
-    <PageShell className="space-y-0 py-8">
-      <header className="mb-8 flex flex-col gap-5 border-b border-[var(--rule)] pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
-            {chapterTag}
-          </p>
-          <h1 className="mt-2 font-serif text-4xl tracking-tight text-[var(--ink)] md:text-[2.25rem]">
-            Hey, {profile.firstName || 'Member'}
-          </h1>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
-            {chapter.orgName} · {chapter.university}
-          </p>
-          {functionOptions.length > 1 ? (
-            <div className="relative mt-3 inline-flex items-center">
-              <label className="sr-only" htmlFor="dashboard-function">
-                Dashboard view
-              </label>
-              <select
-                id="dashboard-function"
-                value={activeFunction}
-                onChange={(e) => setActiveFunction(e.target.value as typeof activeFunction)}
-                className="appearance-none border border-[var(--rule)] bg-[var(--surface-card)] py-1.5 pl-2 pr-8 font-mono text-[10px] uppercase tracking-wider text-[var(--ink)]"
-              >
-                {functionOptions.map((o) => (
-                  <option key={o.fn} value={o.fn}>
-                    {o.title} · {officerFunctionLabel(o.fn)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="pointer-events-none absolute right-2 text-[var(--muted)]"
-              />
-            </div>
-          ) : (
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              {activeTitle}
-            </p>
+    <PageShell className="space-y-0 overflow-x-clip px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+      <header className="mb-6 flex flex-col gap-4 border-b border-[var(--rule)] pb-5 sm:mb-8 sm:gap-5 sm:pb-6">
+        <div className="flex min-w-0 items-start gap-3">
+          {shellMenu && (
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--rule)] text-[var(--ink)] active:bg-black/[0.03] md:hidden"
+              aria-label="Open menu"
+              onClick={shellMenu.openMenu}
+            >
+              <Menu size={18} strokeWidth={1.75} />
+            </button>
           )}
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+              {chapterTag}
+            </p>
+            <h1 className="mt-1.5 font-serif text-[1.75rem] leading-tight tracking-tight text-[var(--ink)] sm:mt-2 sm:text-4xl md:text-[2.25rem]">
+              Hey, {profile.firstName || 'Member'}
+            </h1>
+            <p className="mt-2 break-words font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+              {chapter.orgName} · {chapter.university}
+            </p>
+            {functionOptions.length > 1 ? (
+              <div className="relative mt-3 max-w-full">
+                <label className="sr-only" htmlFor="dashboard-function">
+                  Dashboard view
+                </label>
+                <select
+                  id="dashboard-function"
+                  value={activeFunction}
+                  onChange={(e) => setActiveFunction(e.target.value as typeof activeFunction)}
+                  className="w-full max-w-full appearance-none border border-[var(--rule)] bg-[var(--surface-card)] py-2.5 pl-2.5 pr-9 font-mono text-[10px] uppercase tracking-wider text-[var(--ink)] sm:w-auto"
+                >
+                  {functionOptions.map((o) => (
+                    <option key={o.fn} value={o.fn}>
+                      {o.title} · {officerFunctionLabel(o.fn)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                />
+              </div>
+            ) : (
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                {activeTitle}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:w-auto sm:min-w-[14rem] sm:max-w-md md:grid-cols-2">
+
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:w-full sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 md:max-w-md [&::-webkit-scrollbar]:hidden">
           {quickActions.map(({ label, icon: Icon, to, badge }) => (
             <Link
               key={label}
               to={to}
-              className="btn-ghost relative flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs sm:justify-start"
+              className="btn-ghost relative flex min-h-11 shrink-0 items-center justify-between gap-2 px-3 py-2.5 text-xs sm:w-full sm:justify-start"
             >
               <span className="flex items-center gap-1.5">
                 <Icon size={14} strokeWidth={1.75} />
@@ -128,7 +144,7 @@ export default function ExecutiveDashboard() {
 
       {tiles.length > 0 && (
         <div
-          className={`mb-10 grid auto-rows-fr items-stretch gap-px border border-[var(--rule)] bg-[var(--rule)] ${statGridClassName(tiles.length)}`}
+          className={`mb-8 grid auto-rows-fr items-stretch gap-px overflow-hidden border border-[var(--rule)] bg-[var(--rule)] sm:mb-10 ${statGridClassName(tiles.length)}`}
         >
           {tiles.map((tile) => (
             <StatTile key={tile.id} tile={tile} />
@@ -136,13 +152,13 @@ export default function ExecutiveDashboard() {
         </div>
       )}
 
-      <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr]">
-        <section>
-          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+      <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:gap-10">
+        <section className="min-w-0">
+          <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-[var(--rule)] pb-2">
             <h2 className="font-serif text-xl tracking-tight">Chapter Announcements</h2>
             <Link
               to="/announcements"
-              className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+              className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
             >
               View all
             </Link>
@@ -152,12 +168,12 @@ export default function ExecutiveDashboard() {
               <li key={a.id}>
                 <Link
                   to="/announcements"
-                  className="flex items-start gap-4 py-3.5 transition hover:bg-black/[0.015]"
+                  className="flex items-start gap-3 py-3.5 transition hover:bg-black/[0.015] sm:gap-4"
                 >
                   <span className={`${homeListStampClass} min-w-[3.25rem]`}>
                     {formatTime(a.createdAt)}
                   </span>
-                  <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
+                  <span className="min-w-0 flex-1 break-words text-[15px] leading-snug text-[var(--ink)]">
                     {a.pinned && (
                       <span className="tag mr-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--primary)]">
                         Pin
@@ -171,11 +187,11 @@ export default function ExecutiveDashboard() {
           </ul>
 
           <div className="mt-8">
-            <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+            <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-[var(--rule)] pb-2">
               <h2 className="font-serif text-xl tracking-tight">Upcoming</h2>
               <Link
                 to="/calendar"
-                className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+                className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
               >
                 Full calendar
               </Link>
@@ -196,19 +212,21 @@ export default function ExecutiveDashboard() {
                   <li key={event.id}>
                     <Link
                       to={`/events/${event.id}`}
-                      className="flex items-start gap-3 py-3.5 transition hover:bg-black/[0.015] sm:gap-4"
+                      className="flex flex-col gap-1 py-3.5 transition hover:bg-black/[0.015] sm:flex-row sm:items-start sm:gap-4"
                     >
-                      <span className={`${homeListStampClass} min-w-[11rem] sm:min-w-[11.5rem]`}>
+                      <span className={`${homeListStampClass} sm:min-w-[11.5rem]`}>
                         {formatHomeEventDateTime(event.date, event.time)}
                       </span>
-                      <span className="min-w-0 flex-1 text-[15px] leading-snug text-[var(--ink)]">
-                        {event.name}
-                      </span>
-                      {event.required && (
-                        <span className="tag shrink-0 text-[9px] font-semibold uppercase tracking-wider text-red-700">
-                          Req
+                      <span className="flex min-w-0 flex-1 items-start gap-2">
+                        <span className="min-w-0 flex-1 break-words text-[15px] leading-snug text-[var(--ink)]">
+                          {event.name}
                         </span>
-                      )}
+                        {event.required && (
+                          <span className="tag shrink-0 text-[9px] font-semibold uppercase tracking-wider text-red-700">
+                            Req
+                          </span>
+                        )}
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -217,20 +235,20 @@ export default function ExecutiveDashboard() {
           </div>
         </section>
 
-        <section id="action-ledger">
-          <div className="mb-3 flex items-baseline justify-between border-b border-[var(--rule)] pb-2">
+        <section id="action-ledger" className="min-w-0">
+          <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-[var(--rule)] pb-2">
             <h2 className="font-serif text-xl tracking-tight">Action Ledger</h2>
             {ledgerTasks.length > 5 && (
               <Link
                 to="/home#action-ledger"
-                className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
+                className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--ink)]"
               >
                 View all
               </Link>
             )}
           </div>
-          <div className="border border-[var(--rule)]">
-            <div className="grid grid-cols-[56px_1fr_24px] border-b border-[var(--rule)] bg-[var(--primary)] px-3 py-2 text-[var(--primary-foreground)]">
+          <div className="overflow-hidden border border-[var(--rule)]">
+            <div className="grid grid-cols-[48px_1fr_24px] border-b border-[var(--rule)] bg-[var(--primary)] px-3 py-2 text-[var(--primary-foreground)] sm:grid-cols-[56px_1fr_24px]">
               <span className="font-mono text-[9px] uppercase tracking-[0.14em]">Pri</span>
               <span className="font-mono text-[9px] uppercase tracking-[0.14em]">Item</span>
               <span />
@@ -245,7 +263,7 @@ export default function ExecutiveDashboard() {
                   <li key={alert.id} className="border-b border-[var(--rule)] last:border-0">
                     <Link
                       to={alert.link ?? '/home'}
-                      className="grid grid-cols-[56px_1fr_24px] items-center px-3 py-3 transition hover:bg-black/[0.02]"
+                      className="grid grid-cols-[48px_1fr_24px] items-center px-3 py-3 transition hover:bg-black/[0.02] sm:grid-cols-[56px_1fr_24px]"
                     >
                       <span
                         className={`tag text-[9px] font-semibold uppercase tracking-wider ${
@@ -258,7 +276,7 @@ export default function ExecutiveDashboard() {
                       >
                         {priorityLabel(alert.priority)}
                       </span>
-                      <span className="line-clamp-2 text-sm leading-snug text-[var(--ink)]">
+                      <span className="line-clamp-2 min-w-0 text-sm leading-snug text-[var(--ink)]">
                         {alert.title}
                       </span>
                       <ArrowUpRight size={14} className="justify-self-end text-[var(--muted)]" />

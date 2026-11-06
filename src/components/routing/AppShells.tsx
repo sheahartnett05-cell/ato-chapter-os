@@ -78,8 +78,11 @@ function ExecChrome({ children }: { children: ReactNode }) {
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <Sidebar mobileOpen={drawerOpen} onMobileClose={() => setDrawerOpen(false)} />
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <main ref={mainScrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-              <div className="min-h-full" style={{ background: 'var(--surface-card)' }}>
+            <main
+              ref={mainScrollRef}
+              className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]"
+            >
+              <div className="min-h-full min-w-0" style={{ background: 'var(--surface-card)' }}>
                 {children}
               </div>
             </main>
