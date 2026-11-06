@@ -47,6 +47,8 @@ export default function ChapterSetup() {
     university: chapter.university,
   })
   const [metaSaved, setMetaSaved] = useState(false)
+  const [seatError, setSeatError] = useState<string | null>(null)
+  const [seatBusy, setSeatBusy] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
 
   const activeMembers = useMemo(
@@ -73,13 +75,19 @@ export default function ChapterSetup() {
     const assigned = nextMemberId || undefined
     const mapped = roleFromPositionTitle(title)
 
-    assignPosition(positionId, assigned)
-
-    if (previousHolderId && previousHolderId !== assigned && mapped) {
-      applyRole(previousHolderId, 'ActiveMember')
-    }
-    if (!assigned || !mapped) return
-    applyRole(assigned, mapped)
+    setSeatBusy(true)
+    setSeatError(null)
+    void assignPosition(positionId, assigned).then((res) => {
+      setSeatBusy(false)
+      if (!res.ok) {
+        setSeatError(res.error ?? 'Could not save seat assignment')
+        return
+      }
+      if (previousHolderId && previousHolderId !== assigned && mapped) {
+        applyRole(previousHolderId, 'ActiveMember')
+      }
+      if (assigned && mapped) applyRole(assigned, mapped)
+    })
   }
 
   const saveMeta = () => {
@@ -93,9 +101,17 @@ export default function ChapterSetup() {
 
   const add = () => {
     if (!newTitle.trim()) return
-    addPosition(newTitle.trim(), newDescription.trim() || undefined)
-    setNewTitle('')
-    setNewDescription('')
+    setSeatBusy(true)
+    setSeatError(null)
+    void addPosition(newTitle.trim(), newDescription.trim() || undefined).then((res) => {
+      setSeatBusy(false)
+      if (!res.ok) {
+        setSeatError(res.error ?? 'Could not add position')
+        return
+      }
+      setNewTitle('')
+      setNewDescription('')
+    })
   }
 
   const startEdit = (id: string, title: string, description?: string) => {
@@ -113,16 +129,24 @@ export default function ChapterSetup() {
   const saveEdit = (id: string) => {
     const title = editTitle.trim()
     if (!title) return
-    updatePosition(id, {
+    setSeatBusy(true)
+    setSeatError(null)
+    void updatePosition(id, {
       title,
       description: editDescription.trim() || undefined,
+    }).then((res) => {
+      setSeatBusy(false)
+      if (!res.ok) {
+        setSeatError(res.error ?? 'Could not update position')
+        return
+      }
+      const pos = positions.find((p) => p.id === id)
+      if (pos?.assignedMemberId) {
+        const mapped = roleFromPositionTitle(title)
+        if (mapped) applyRole(pos.assignedMemberId, mapped)
+      }
+      cancelEdit()
     })
-    const pos = positions.find((p) => p.id === id)
-    if (pos?.assignedMemberId) {
-      const mapped = roleFromPositionTitle(title)
-      if (mapped) applyRole(pos.assignedMemberId, mapped)
-    }
-    cancelEdit()
   }
 
   const deletePosition = (id: string, title: string) => {
@@ -131,9 +155,17 @@ export default function ChapterSetup() {
 
   const confirmDeletePosition = () => {
     if (!deleteConfirm) return
-    removePosition(deleteConfirm.id)
-    if (editingId === deleteConfirm.id) cancelEdit()
-    setDeleteConfirm(null)
+    setSeatBusy(true)
+    setSeatError(null)
+    void removePosition(deleteConfirm.id).then((res) => {
+      setSeatBusy(false)
+      if (!res.ok) {
+        setSeatError(res.error ?? 'Could not remove position')
+        return
+      }
+      if (editingId === deleteConfirm.id) cancelEdit()
+      setDeleteConfirm(null)
+    })
   }
 
   const roleForMember = (id: string): UserRole => {
@@ -212,8 +244,13 @@ export default function ChapterSetup() {
         <Section
           id="officer-positions"
           title="Officer positions"
-          subtitle="Add, edit, or remove seats. Matching titles also update app permissions."
+          subtitle="Add, edit, or remove seats. Cloud sync requires President/founder. Matching titles also update app permissions."
         >
+          {seatError ? (
+            <p className="mb-3 rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {seatError}
+            </p>
+          ) : null}
           <div className="mb-4 space-y-3 rounded-2xl border border-[var(--rule)] bg-neutral-50/80 p-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
               Add position
@@ -299,11 +336,15 @@ export default function ChapterSetup() {
                             pos.function ??
                             inferFunctionFromTitle(pos.title, chapter.id)
                           }
-                          onChange={(e) =>
-                            updatePosition(pos.id, {
+                          onChange={(e) => {
+                            setSeatError(null)
+                            void updatePosition(pos.id, {
                               function: e.target.value as OfficerFunction,
+                            }).then((res) => {
+                              if (!res.ok) setSeatError(res.error ?? 'Could not save function')
                             })
-                          }
+                          }}
+                          disabled={seatBusy}
                           className="min-w-[140px] rounded-sm border border-black/5 bg-white px-2 py-2 font-mono text-[10px] uppercase tracking-wide outline-none focus:border-accent/40"
                           aria-label={`Function for ${pos.title}`}
                         >
@@ -316,7 +357,8 @@ export default function ChapterSetup() {
                         <select
                           value={pos.assignedMemberId ?? ''}
                           onChange={(e) => onAssignSeat(pos.id, pos.title, e.target.value)}
-                          className="min-w-[160px] rounded-sm border border-black/5 bg-white px-3 py-2 text-sm outline-none focus:border-accent/40"
+                          disabled={seatBusy}
+                          className="min-w-[160px] rounded-sm border border-black/5 bg-white px-3 py-2 text-sm outline-none focus:border-accent/40 disabled:opacity-50"
                         >
                           <option value="">Unassigned</option>
                           {activeMembers.map((m) => (

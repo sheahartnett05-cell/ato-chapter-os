@@ -22,7 +22,9 @@ import { syncRosterFromSqlChapter } from './rosterSqlSync'
 export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId }
 
 export const CLOUD_SYNC_KEYS: string[] = [
-  ...Object.values(STORAGE_KEYS).filter((k) => k !== STORAGE_KEYS.demoSeeded),
+  ...Object.values(STORAGE_KEYS).filter(
+    (k) => k !== STORAGE_KEYS.demoSeeded && k !== STORAGE_KEYS.positions
+  ),
   // User session (`chapter-os-onboarding`) is local + rebuilt from membership — not chapter-shared.
   'chapter-os-selected-org',
   'chapter-os-chapter-lock',
@@ -38,6 +40,8 @@ const HYDRATE_SKIP_KEYS = new Set([
   'chapter-os-notify-prefs',
   'chapter-os-location-prefs',
   STORAGE_KEYS.demoSeeded,
+  // Officer seats are authoritative in chapter_officer_seats — KV LWW was wiping assignments.
+  STORAGE_KEYS.positions,
 ])
 
 const pending = new Map<string, unknown>()
@@ -239,6 +243,7 @@ export function queueChapterKvWrite(key: string, value: unknown) {
   if (key === 'chapter-os-onboarding') return
   if (key === 'chapter-os-notify-prefs' || key === 'chapter-os-location-prefs') return
   if (key === 'chapter-os-user-id') return
+  if (key === STORAGE_KEYS.positions) return
   if (key === CLOUD_CHAPTER_ID_KEY) return
 
   pending.set(key, value)
