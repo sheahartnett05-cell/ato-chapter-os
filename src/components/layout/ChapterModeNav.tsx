@@ -1,9 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, LayoutDashboard } from 'lucide-react'
-import { useAuth, usePermissions } from '../../context/AuthContext'
 import { useSetChapterViewMode } from '../../context/ChapterViewModeContext'
 import { useIsMemberShell } from '../../hooks/useShellKind'
-import { userIsExecCapable } from '../../lib/access/can'
 
 /** Switch to Officer Home layout and open /home. Storage value remains `operations`. */
 export function useGoToOperations() {
@@ -47,23 +45,12 @@ export function GoToDashboardButton({
   )
 }
 
-/** Dashboard shortcut on member-shell subpages (hero on /my-dashboard has the primary control). */
+/** @deprecated MobileModeSwitcher in AppShells replaced this strip. */
 export function MemberShellOperationsStrip() {
-  const { role } = useAuth()
-  const permissions = usePermissions()
-  const { pathname } = useLocation()
-
-  if (!userIsExecCapable(role, permissions)) return null
-  if (pathname === '/my-dashboard' || pathname === '/chapter-room') return null
-
-  return (
-    <div className="flex shrink-0 items-center justify-end gap-3 border-b border-[var(--rule)] bg-[var(--surface-card)] px-4 py-2.5">
-      <GoToDashboardButton variant="bar" />
-    </div>
-  )
+  return null
 }
 
-/** TopBar: back to Room on subpages only (Officer Home lives on the strip). */
+/** Desktop/tablet back-to-Room chip; phones use the Room | Officer top tabs. */
 export function TopBarChapterModeLinks() {
   const { pathname } = useLocation()
   const isMemberShell = useIsMemberShell()
@@ -71,11 +58,10 @@ export function TopBarChapterModeLinks() {
   if (!isMemberShell) return null
 
   const onRoomHome = pathname === '/my-dashboard' || pathname === '/chapter-room'
-
   if (onRoomHome) return null
 
   return (
-    <div className="mr-1 flex shrink-0 flex-wrap items-center gap-1.5">
+    <div className="mr-1 hidden shrink-0 flex-wrap items-center gap-1.5 md:flex">
       <Link
         to="/my-dashboard"
         className="flex min-h-11 items-center gap-1 rounded-full border border-[var(--rule)] bg-[var(--surface-tint)] px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition hover:border-[var(--ink)] hover:text-[var(--ink)]"

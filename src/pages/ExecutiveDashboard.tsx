@@ -7,14 +7,12 @@ import {
   ClipboardCheck,
   ClipboardList,
   ChevronDown,
-  Menu,
 } from 'lucide-react'
 import { PageShell } from '../components/ui/Section'
 import { useChapter } from '../context/ChapterContext'
 import { useAuth } from '../context/AuthContext'
 import { useCommunications } from '../context/CommunicationsContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
-import { useShellMenuOptional } from '../context/ShellMenuContext'
 import { useOfficerDashboard } from '../hooks/useOfficerDashboard'
 import { StatTile } from '../components/dashboard/StatTile'
 import { statGridClassName } from '../lib/dashboard/displayTiles'
@@ -39,7 +37,6 @@ export default function ExecutiveDashboard() {
   const { profile } = useAuth()
   const { posts } = useCommunications()
   const { events, excuses } = useChapterOps()
-  const shellMenu = useShellMenuOptional()
   const {
     tiles,
     ledgerTasks,
@@ -72,55 +69,43 @@ export default function ExecutiveDashboard() {
   return (
     <PageShell className="space-y-0 overflow-x-clip px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
       <header className="mb-6 flex flex-col gap-4 border-b border-[var(--rule)] pb-5 sm:mb-8 sm:gap-5 sm:pb-6">
-        <div className="flex min-w-0 items-start gap-3">
-          {shellMenu && (
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--rule)] text-[var(--ink)] active:bg-black/[0.03] md:hidden"
-              aria-label="Open menu"
-              onClick={shellMenu.openMenu}
-            >
-              <Menu size={18} strokeWidth={1.75} />
-            </button>
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {chapterTag}
+          </p>
+          <h1 className="mt-1.5 font-serif text-[1.75rem] leading-tight tracking-tight text-[var(--ink)] sm:mt-2 sm:text-4xl md:text-[2.25rem]">
+            Hey, {profile.firstName || 'Member'}
+          </h1>
+          <p className="mt-2 break-words font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+            {chapter.orgName} · {chapter.university}
+          </p>
+          {functionOptions.length > 1 ? (
+            <div className="relative mt-3 max-w-full">
+              <label className="sr-only" htmlFor="dashboard-function">
+                Dashboard view
+              </label>
+              <select
+                id="dashboard-function"
+                value={activeFunction}
+                onChange={(e) => setActiveFunction(e.target.value as typeof activeFunction)}
+                className="w-full max-w-full appearance-none border border-[var(--rule)] bg-[var(--surface-card)] py-2.5 pl-2.5 pr-9 font-mono text-[10px] uppercase tracking-wider text-[var(--ink)] sm:w-auto"
+              >
+                {functionOptions.map((o) => (
+                  <option key={o.fn} value={o.fn}>
+                    {o.title} · {officerFunctionLabel(o.fn)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+              />
+            </div>
+          ) : (
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              {activeTitle}
+            </p>
           )}
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
-              {chapterTag}
-            </p>
-            <h1 className="mt-1.5 font-serif text-[1.75rem] leading-tight tracking-tight text-[var(--ink)] sm:mt-2 sm:text-4xl md:text-[2.25rem]">
-              Hey, {profile.firstName || 'Member'}
-            </h1>
-            <p className="mt-2 break-words font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
-              {chapter.orgName} · {chapter.university}
-            </p>
-            {functionOptions.length > 1 ? (
-              <div className="relative mt-3 max-w-full">
-                <label className="sr-only" htmlFor="dashboard-function">
-                  Dashboard view
-                </label>
-                <select
-                  id="dashboard-function"
-                  value={activeFunction}
-                  onChange={(e) => setActiveFunction(e.target.value as typeof activeFunction)}
-                  className="w-full max-w-full appearance-none border border-[var(--rule)] bg-[var(--surface-card)] py-2.5 pl-2.5 pr-9 font-mono text-[10px] uppercase tracking-wider text-[var(--ink)] sm:w-auto"
-                >
-                  {functionOptions.map((o) => (
-                    <option key={o.fn} value={o.fn}>
-                      {o.title} · {officerFunctionLabel(o.fn)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]"
-                />
-              </div>
-            ) : (
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                {activeTitle}
-              </p>
-            )}
-          </div>
         </div>
 
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:w-full sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 md:max-w-md [&::-webkit-scrollbar]:hidden">

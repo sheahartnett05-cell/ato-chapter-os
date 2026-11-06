@@ -1,7 +1,5 @@
-import { Menu } from 'lucide-react'
 import { TopBarChapterModeLinks } from './ChapterModeNav'
 import { Logo } from './Logo'
-import { useShellMenuOptional } from '../../context/ShellMenuContext'
 
 interface TopBarProps {
   title: string
@@ -11,23 +9,15 @@ interface TopBarProps {
   showBrand?: boolean
 }
 
+/**
+ * Page title bar. Mobile menu + Room/Officer tabs live in AppShells chrome —
+ * this bar is title + actions only (avoids duplicate hamburgers on phone).
+ */
 export function TopBar({ title, subtitle, actions, showBrand = true }: TopBarProps) {
-  const shellMenu = useShellMenuOptional()
-
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--rule)] bg-[color-mix(in_srgb,var(--surface-card)_92%,transparent)] backdrop-blur-xl pt-[env(safe-area-inset-top,0px)]">
+    <header className="sticky top-0 z-20 border-b border-[var(--rule)] bg-[color-mix(in_srgb,var(--surface-card)_92%,transparent)] backdrop-blur-xl">
       <div className="flex flex-col gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-5">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          {shellMenu && (
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--rule)] text-[var(--ink)] active:bg-black/[0.03] md:hidden"
-              aria-label="Open menu"
-              onClick={shellMenu.openMenu}
-            >
-              <Menu size={18} strokeWidth={1.75} />
-            </button>
-          )}
           <TopBarChapterModeLinks />
           {showBrand && (
             <div className="hidden sm:block">

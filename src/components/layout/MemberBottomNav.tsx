@@ -20,14 +20,11 @@ export function MemberBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[var(--z-nav)] border-t backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]"
-      style={{
-        backgroundColor: 'color-mix(in srgb, var(--surface-card) 94%, transparent)',
-        borderColor: 'var(--rule)',
-      }}
+      className="shrink-0 border-t bg-[var(--surface-card)] pb-[env(safe-area-inset-bottom,0px)]"
+      style={{ borderColor: 'var(--rule)' }}
       aria-label="Chapter navigation"
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-between gap-0.5 px-1.5 pt-1.5 md:max-w-2xl">
+      <div className="mx-auto flex max-w-lg items-stretch justify-between gap-0.5 px-1.5 pt-1 md:max-w-2xl">
         {visibleNav.map((item) => {
           const { to, label, icon: Icon } = item
           const end = 'end' in item ? item.end : undefined
@@ -50,7 +47,7 @@ export function MemberBottomNav() {
                   <span className="truncate">{label}</span>
                   {isActive ? (
                     <span
-                      className="absolute inset-x-3 -top-px h-0.5 rounded-full bg-[var(--accent)]"
+                      className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--accent)]"
                       aria-hidden
                     />
                   ) : null}
