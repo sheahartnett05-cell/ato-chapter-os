@@ -17,6 +17,64 @@ export function validatePassword(password: string): string | null {
   return null
 }
 
+/** Map GoTrue / Supabase auth messages into something members can act on. */
+export function humanizeAuthError(
+  message: string | null | undefined,
+  context: 'password' | 'otp' | 'signup' | 'reset' | 'update' = 'password'
+): string {
+  const raw = (message ?? '').trim()
+  if (!raw) return 'Something went wrong. Try again.'
+  const lower = raw.toLowerCase()
+
+  if (
+    lower.includes('invalid login credentials') ||
+    lower.includes('invalid email or password')
+  ) {
+    return 'Wrong email or password. If you joined with an email code and never set a password, use Email code — or Forgot password to create one.'
+  }
+  if (lower.includes('email not confirmed')) {
+    return 'Confirm your email from the link we sent, or sign in with an email code.'
+  }
+  if (
+    lower.includes('user already registered') ||
+    lower.includes('already been registered') ||
+    lower.includes('already registered')
+  ) {
+    return 'That email already has an account. Sign in on Login, or use Email code.'
+  }
+  if (
+    (lower.includes('token') || lower.includes('otp') || lower.includes('code')) &&
+    (lower.includes('expired') || lower.includes('invalid') || lower.includes('not found'))
+  ) {
+    return 'That code is invalid or expired. Request a new one.'
+  }
+  if (lower.includes('security purposes') || lower.includes('only request this after')) {
+    return 'Wait a moment, then request another email code.'
+  }
+  if (
+    lower.includes('reauthenticat') ||
+    lower.includes('nonce') ||
+    lower.includes('reauthentication')
+  ) {
+    return context === 'update'
+      ? 'Enter the 6-digit code we emailed you, then save again.'
+      : 'Confirm with the 6-digit code from your email, then try again.'
+  }
+  if (lower.includes('same password')) {
+    return 'Choose a password different from your current one.'
+  }
+  return raw
+}
+
+export function isInvalidLoginCredentials(message: string | null | undefined): boolean {
+  const lower = (message ?? '').toLowerCase()
+  return (
+    lower.includes('invalid login credentials') ||
+    lower.includes('invalid email or password') ||
+    lower.includes('wrong email or password')
+  )
+}
+
 export async function sendEmailOtp(email: string): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Supabase not configured' }
@@ -27,7 +85,7 @@ export async function sendEmailOtp(email: string): Promise<{ ok: boolean; error?
     email: trimmed,
     options: { shouldCreateUser: true },
   })
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'otp') }
   return { ok: true }
 }
 
@@ -38,24 +96,22 @@ export async function verifyEmailOtp(
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Supabase not configured' }
   const trimmed = email.trim().toLowerCase()
-  const code = token.trim()
+  const code = token.trim().replace(/\s/g, '')
   if (!trimmed || !code) return { ok: false, error: 'Email and code required' }
 
-  const emailAttempt = await sb.auth.verifyOtp({
-    email: trimmed,
-    token: code,
-    type: 'email',
-  })
-  if (!emailAttempt.error) return { ok: true }
+  const types = ['email', 'signup', 'magiclink', 'recovery'] as const
+  let lastError: string | undefined
+  for (const type of types) {
+    const attempt = await sb.auth.verifyOtp({
+      email: trimmed,
+      token: code,
+      type,
+    })
+    if (!attempt.error) return { ok: true }
+    lastError = attempt.error.message
+  }
 
-  const signupAttempt = await sb.auth.verifyOtp({
-    email: trimmed,
-    token: code,
-    type: 'signup',
-  })
-  if (!signupAttempt.error) return { ok: true }
-
-  return { ok: false, error: signupAttempt.error.message || emailAttempt.error.message }
+  return { ok: false, error: humanizeAuthError(lastError, 'otp') }
 }
 
 export async function signInWithPassword(
@@ -66,11 +122,13 @@ export async function signInWithPassword(
   if (!sb) return { ok: false, error: 'Supabase not configured' }
   const trimmed = email.trim().toLowerCase()
   if (!trimmed) return { ok: false, error: 'Email required' }
-  const pwdError = validatePassword(password)
+  // Strip accidental paste whitespace; intentional edge spaces are extremely rare here.
+  const pwd = password.trim()
+  const pwdError = validatePassword(pwd)
   if (pwdError) return { ok: false, error: pwdError }
 
-  const { error } = await sb.auth.signInWithPassword({ email: trimmed, password })
-  if (error) return { ok: false, error: error.message }
+  const { error } = await sb.auth.signInWithPassword({ email: trimmed, password: pwd })
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'password') }
   return { ok: true }
 }
 
@@ -83,17 +141,18 @@ export async function signUpWithPassword(
   if (!sb) return { ok: false, error: 'Supabase not configured' }
   const trimmed = email.trim().toLowerCase()
   if (!trimmed) return { ok: false, error: 'Email required' }
-  const pwdError = validatePassword(password)
+  const pwd = password.trim()
+  const pwdError = validatePassword(pwd)
   if (pwdError) return { ok: false, error: pwdError }
 
   const redirectTo =
     typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined
   const { data, error } = await sb.auth.signUp({
     email: trimmed,
-    password,
+    password: pwd,
     options: { emailRedirectTo: redirectTo },
   })
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'signup') }
   // No session means project requires email confirm before sign-in
   if (!data.session) return { ok: true, needsEmailConfirm: true }
   return { ok: true }
@@ -108,7 +167,7 @@ export async function sendPasswordChangeEmailCode(): Promise<{ ok: boolean; erro
   if (!sb) return { ok: false, error: 'Supabase not configured' }
   if (!getSupabaseUser()) return { ok: false, error: 'Sign in first' }
   const { error } = await sb.auth.reauthenticate()
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'update') }
   return { ok: true }
 }
 
@@ -123,7 +182,8 @@ export async function updatePassword(
 ): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Supabase not configured' }
-  const pwdError = validatePassword(password)
+  const pwd = password.trim()
+  const pwdError = validatePassword(pwd)
   if (pwdError) return { ok: false, error: pwdError }
 
   const code = options?.emailCode?.trim() ?? ''
@@ -133,11 +193,11 @@ export async function updatePassword(
     }
   }
 
-  const payload: { password: string; nonce?: string } = { password }
+  const payload: { password: string; nonce?: string } = { password: pwd }
   if (code) payload.nonce = code
 
   const { error } = await sb.auth.updateUser(payload)
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'update') }
   return { ok: true }
 }
 
@@ -151,7 +211,7 @@ export async function sendPasswordResetEmail(
   const redirectTo =
     typeof window !== 'undefined' ? `${window.location.origin}/login?reset=1` : undefined
   const { error } = await sb.auth.resetPasswordForEmail(trimmed, { redirectTo })
-  if (error) return { ok: false, error: error.message }
+  if (error) return { ok: false, error: humanizeAuthError(error.message, 'reset') }
   return { ok: true }
 }
 

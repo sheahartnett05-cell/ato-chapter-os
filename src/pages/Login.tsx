@@ -13,7 +13,10 @@ import {
 } from '../lib/rememberedAuth'
 import { restoreSessionAfterAuth } from '../lib/restoreSession'
 import { defaultHomePath } from '../lib/onboardingStorage'
-import { validatePassword } from '../lib/supabaseAuth'
+import {
+  isInvalidLoginCredentials,
+  validatePassword,
+} from '../lib/supabaseAuth'
 
 type Mode = 'password' | 'otp' | 'forgot' | 'setPassword'
 
@@ -46,6 +49,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [enablePush, setEnablePush] = useState(true)
+  const [noPasswordHint, setNoPasswordHint] = useState(false)
 
   useEffect(() => {
     if (authEmail && !email) setEmail(authEmail)
@@ -107,6 +111,7 @@ export default function Login() {
   const submitPasswordLogin = async () => {
     setError(null)
     setStatus(null)
+    setNoPasswordHint(false)
     if (!isLikelyEmail(email)) {
       setError('Enter a valid email.')
       return
@@ -115,7 +120,7 @@ export default function Login() {
       setError('Cloud sign-in is not configured in this environment.')
       return
     }
-    const pwdError = validatePassword(password)
+    const pwdError = validatePassword(password.trim())
     if (pwdError) {
       setError(pwdError)
       return
@@ -125,6 +130,7 @@ export default function Login() {
     if (!res.ok) {
       setBusy(false)
       setError(res.error ?? 'Sign-in failed.')
+      if (isInvalidLoginCredentials(res.error)) setNoPasswordHint(true)
       return
     }
     await afterAuth()
@@ -134,6 +140,7 @@ export default function Login() {
   const sendCode = async () => {
     setError(null)
     setStatus(null)
+    setNoPasswordHint(false)
     if (!isLikelyEmail(email)) {
       setError('Enter a valid email.')
       return
@@ -146,6 +153,7 @@ export default function Login() {
       setError(res.error ?? 'Could not send login code.')
       return
     }
+    setMode('otp')
     setOtpSent(true)
     setStatus('Code sent — check your inbox.')
   }
@@ -313,18 +321,55 @@ export default function Login() {
               >
                 Sign in
               </button>
+              <p className="text-xs leading-relaxed text-[var(--muted)]">
+                Joined with an email code and never set a password? Use email code below — or
+                Forgot password to create one.
+              </p>
+              {noPasswordHint ? (
+                <div className="space-y-2 border border-[var(--rule)] bg-[var(--surface-card)] p-3">
+                  <p className="text-sm text-[var(--ink)]">
+                    Try an email code for this address — most members who hit this never saved a
+                    password yet.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-secondary min-h-11 w-full"
+                    disabled={busy || !email.trim()}
+                    onClick={() => void sendCode()}
+                  >
+                    Send login code
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost min-h-11 w-full"
+                    disabled={busy}
+                    onClick={() => {
+                      setNoPasswordHint(false)
+                      setMode('forgot')
+                    }}
+                  >
+                    Forgot password
+                  </button>
+                </div>
+              ) : null}
               <div className="flex flex-col gap-1 pt-1 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-2">
                 <button
                   type="button"
                   className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
-                  onClick={() => setMode('forgot')}
+                  onClick={() => {
+                    setNoPasswordHint(false)
+                    setMode('forgot')
+                  }}
                 >
                   Forgot password
                 </button>
                 <button
                   type="button"
                   className="min-h-11 px-1 text-left font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] active:text-[var(--ink)]"
-                  onClick={() => setMode('otp')}
+                  onClick={() => {
+                    setNoPasswordHint(false)
+                    setMode('otp')
+                  }}
                 >
                   Use email code instead
                 </button>
