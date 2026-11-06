@@ -74,6 +74,7 @@ export default function Onboarding() {
     emailVerified,
     sendEmailOtp,
     verifyEmailOtp,
+    signInWithPassword,
     signUpWithPassword,
     updatePassword,
     sendPasswordChangeEmailCode,
@@ -147,7 +148,23 @@ export default function Onboarding() {
   const [accountPassword2, setAccountPassword2] = useState('')
   const [passwordChangeCode, setPasswordChangeCode] = useState('')
   const [passwordChangeCodeSent, setPasswordChangeCodeSent] = useState(false)
+  /** True once this device created/signed in with a password, or saved one after OTP. */
+  const [passwordReady, setPasswordReady] = useState(() => {
+    try {
+      return sessionStorage.getItem('chapter-os-onboarding-password-ready') === '1'
+    } catch {
+      return false
+    }
+  })
   const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password')
+  const markPasswordReady = () => {
+    try {
+      sessionStorage.setItem('chapter-os-onboarding-password-ready', '1')
+    } catch {
+      /* ignore */
+    }
+    setPasswordReady(true)
+  }
   const stepKey = steps[step]
   const selectedOrg = orgDirectory.find((o) => o.id === orgId) ?? null
   useEffect(() => {
@@ -186,7 +203,8 @@ export default function Onboarding() {
     Boolean(profile.phone.trim()) &&
     Boolean(profile.email?.trim()) &&
     isLikelyEmail(profile.email ?? '') &&
-    (!needsAuth || emailVerified)
+    // Join/create must finish with a real password credential — OTP alone is not enough.
+    (!needsAuth || (emailVerified && passwordReady))
 
   const canNext =
     stepKey === 'Start'
@@ -467,248 +485,280 @@ export default function Onboarding() {
                 {needsAuth && (
                   <div className="space-y-3 rounded-md border border-[var(--rule)] bg-[var(--surface-card)] p-4">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      Account {emailVerified ? '· signed in' : ''}
+                      Account
+                      {emailVerified ? ' · signed in' : ''}
+                      {passwordReady ? ' · password ready' : ''}
                     </p>
-                    <p className="text-xs leading-relaxed text-[var(--muted)]">
-                      {emailVerified
-                        ? 'Signed in — save a password now (email code required) so Login works without a one-time code next time.'
-                        : 'Create a password for this email (recommended), or use a one-time login code.'}
-                    </p>
-                    {!emailVerified && (
-                      <div className="flex gap-1 rounded-sm border border-[var(--rule)] p-0.5">
-                        <button
-                          type="button"
-                          className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
-                            authMethod === 'password' ? 'theme-pill-active' : 'theme-pill-muted'
-                          }`}
-                          onClick={() => setAuthMethod('password')}
-                        >
-                          Password
-                        </button>
-                        <button
-                          type="button"
-                          className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
-                            authMethod === 'otp' ? 'theme-pill-active' : 'theme-pill-muted'
-                          }`}
-                          onClick={() => setAuthMethod('otp')}
-                        >
-                          Email code
-                        </button>
-                      </div>
+                    {emailVerified && passwordReady ? (
+                      <p className="text-xs text-emerald-800">
+                        Account ready — you can continue. Sign in later with this email and
+                        password.
+                      </p>
+                    ) : (
+                      <p className="text-xs leading-relaxed text-[var(--muted)]">
+                        {emailVerified
+                          ? 'You signed in with an email code. Set a password now before continuing — otherwise Login with password will fail.'
+                          : 'Choose a password first. That creates your account and signs you in with the password already saved (no separate “set password” step).'}
+                      </p>
                     )}
-                    {(emailVerified || authMethod === 'password') && (
+
+                    {!(emailVerified && passwordReady) && (
                       <>
-                        <label className="block">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                            Password
-                          </span>
-                          <input
-                            type="password"
-                            autoComplete="new-password"
-                            className="input-editorial mt-1 min-h-11"
-                            value={accountPassword}
-                            onChange={(e) => setAccountPassword(e.target.value)}
-                            placeholder="At least 8 characters"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                            Confirm password
-                          </span>
-                          <input
-                            type="password"
-                            autoComplete="new-password"
-                            className="input-editorial mt-1 min-h-11"
-                            value={accountPassword2}
-                            onChange={(e) => setAccountPassword2(e.target.value)}
-                          />
-                        </label>
-                        {emailVerified ? (
-                          <>
-                            <p className="text-xs text-[var(--muted)]">
-                              We email a 6-digit code before saving a password (required for return
-                              logins without a code).
-                            </p>
+                        {!emailVerified && (
+                          <div className="flex gap-1 rounded-sm border border-[var(--rule)] p-0.5">
                             <button
                               type="button"
-                              disabled={
-                                otpBusy ||
-                                !profile.email?.trim() ||
-                                accountPassword.length < 8 ||
-                                accountPassword !== accountPassword2
-                              }
-                              onClick={async () => {
-                                setOtpBusy(true)
-                                setOtpError('')
-                                if (accountPassword !== accountPassword2) {
-                                  setOtpError('Passwords do not match')
-                                  setOtpBusy(false)
-                                  return
-                                }
-                                const sent = await sendPasswordChangeEmailCode()
-                                setOtpBusy(false)
-                                if (!sent.ok) {
-                                  setOtpError(sent.error ?? 'Could not send verification code')
-                                  return
-                                }
-                                setPasswordChangeCodeSent(true)
-                                setOtpError('')
-                              }}
-                              className="btn-secondary w-full disabled:opacity-40"
+                              className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
+                                authMethod === 'password' ? 'theme-pill-active' : 'theme-pill-muted'
+                              }`}
+                              onClick={() => setAuthMethod('password')}
                             >
-                              {passwordChangeCodeSent
-                                ? 'Resend verification code'
-                                : 'Email code to save password'}
+                              Password
                             </button>
-                            {passwordChangeCodeSent ? (
+                            <button
+                              type="button"
+                              className={`min-h-10 flex-1 font-mono text-[10px] uppercase tracking-wider ${
+                                authMethod === 'otp' ? 'theme-pill-active' : 'theme-pill-muted'
+                              }`}
+                              onClick={() => setAuthMethod('otp')}
+                            >
+                              Email code
+                            </button>
+                          </div>
+                        )}
+
+                        {(emailVerified || authMethod === 'password') && (
+                          <>
+                            <label className="block">
+                              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                                Password
+                              </span>
+                              <input
+                                type="password"
+                                autoComplete={emailVerified ? 'new-password' : 'new-password'}
+                                className="input-editorial mt-1 min-h-11"
+                                value={accountPassword}
+                                onChange={(e) => setAccountPassword(e.target.value)}
+                                placeholder="At least 8 characters"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                                {emailVerified ? 'Confirm new password' : 'Confirm password'}
+                              </span>
+                              <input
+                                type="password"
+                                autoComplete="new-password"
+                                className="input-editorial mt-1 min-h-11"
+                                value={accountPassword2}
+                                onChange={(e) => setAccountPassword2(e.target.value)}
+                              />
+                            </label>
+
+                            {emailVerified ? (
                               <>
-                                <label className="block">
-                                  <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                                    6-digit code
-                                  </span>
-                                  <input
-                                    value={passwordChangeCode}
-                                    onChange={(e) =>
-                                      setPasswordChangeCode(
-                                        e.target.value.replace(/\D/g, '').slice(0, 6)
-                                      )
-                                    }
-                                    placeholder="123456"
-                                    className="input-editorial mt-1 tracking-[0.3em]"
-                                    inputMode="numeric"
-                                    autoComplete="one-time-code"
-                                  />
-                                </label>
+                                <p className="text-xs text-[var(--muted)]">
+                                  We email a 6-digit code, then save the password on your account.
+                                </p>
                                 <button
                                   type="button"
                                   disabled={
                                     otpBusy ||
-                                    passwordChangeCode.length < 6 ||
+                                    !profile.email?.trim() ||
                                     accountPassword.length < 8 ||
                                     accountPassword !== accountPassword2
                                   }
                                   onClick={async () => {
                                     setOtpBusy(true)
                                     setOtpError('')
-                                    const res = await updatePassword(accountPassword, {
-                                      emailCode: passwordChangeCode,
-                                    })
-                                    setOtpBusy(false)
-                                    if (!res.ok) {
-                                      setOtpError(res.error ?? 'Could not save password')
+                                    if (accountPassword !== accountPassword2) {
+                                      setOtpError('Passwords do not match')
+                                      setOtpBusy(false)
                                       return
                                     }
+                                    const sent = await sendPasswordChangeEmailCode()
+                                    setOtpBusy(false)
+                                    if (!sent.ok) {
+                                      setOtpError(sent.error ?? 'Could not send verification code')
+                                      return
+                                    }
+                                    setPasswordChangeCodeSent(true)
                                     setOtpError('')
-                                    setAccountPassword('')
-                                    setAccountPassword2('')
-                                    setPasswordChangeCode('')
-                                    setPasswordChangeCodeSent(false)
                                   }}
-                                  className="btn-primary w-full disabled:opacity-40"
+                                  className="btn-secondary w-full disabled:opacity-40"
                                 >
-                                  Save password
+                                  {passwordChangeCodeSent
+                                    ? 'Resend verification code'
+                                    : 'Email code to save password'}
+                                </button>
+                                {passwordChangeCodeSent ? (
+                                  <>
+                                    <label className="block">
+                                      <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                                        6-digit code
+                                      </span>
+                                      <input
+                                        value={passwordChangeCode}
+                                        onChange={(e) =>
+                                          setPasswordChangeCode(
+                                            e.target.value.replace(/\D/g, '').slice(0, 6)
+                                          )
+                                        }
+                                        placeholder="123456"
+                                        className="input-editorial mt-1 tracking-[0.3em]"
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        otpBusy ||
+                                        passwordChangeCode.length < 6 ||
+                                        accountPassword.length < 8 ||
+                                        accountPassword !== accountPassword2
+                                      }
+                                      onClick={async () => {
+                                        setOtpBusy(true)
+                                        setOtpError('')
+                                        const res = await updatePassword(accountPassword, {
+                                          emailCode: passwordChangeCode,
+                                        })
+                                        setOtpBusy(false)
+                                        if (!res.ok) {
+                                          setOtpError(res.error ?? 'Could not save password')
+                                          return
+                                        }
+                                        setOtpError('')
+                                        setAccountPassword('')
+                                        setAccountPassword2('')
+                                        setPasswordChangeCode('')
+                                        setPasswordChangeCodeSent(false)
+                                        markPasswordReady()
+                                      }}
+                                      className="btn-primary w-full disabled:opacity-40"
+                                    >
+                                      Save password
+                                    </button>
+                                  </>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="min-h-11 w-full text-left font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]"
+                                  onClick={() => markPasswordReady()}
+                                >
+                                  I already have a password on this email — continue
                                 </button>
                               </>
-                            ) : null}
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={
+                                  otpBusy ||
+                                  !profile.email?.trim() ||
+                                  accountPassword.length < 8 ||
+                                  accountPassword !== accountPassword2
+                                }
+                                onClick={async () => {
+                                  setOtpBusy(true)
+                                  setOtpError('')
+                                  if (accountPassword !== accountPassword2) {
+                                    setOtpError('Passwords do not match')
+                                    setOtpBusy(false)
+                                    return
+                                  }
+                                  const email = profile.email ?? ''
+                                  let res = await signUpWithPassword(email, accountPassword)
+                                  // Existing account → sign in with the password they just entered
+                                  if (
+                                    !res.ok &&
+                                    /already/i.test(res.error ?? '')
+                                  ) {
+                                    res = await signInWithPassword(email, accountPassword)
+                                  }
+                                  setOtpBusy(false)
+                                  if (!res.ok) {
+                                    setOtpError(res.error ?? 'Could not create account')
+                                    return
+                                  }
+                                  if ('needsEmailConfirm' in res && res.needsEmailConfirm) {
+                                    setOtpError(
+                                      'Check your email to confirm the account, then sign in from Login.'
+                                    )
+                                    return
+                                  }
+                                  setOtpError('')
+                                  setAccountPassword('')
+                                  setAccountPassword2('')
+                                  markPasswordReady()
+                                }}
+                                className="btn-primary w-full disabled:opacity-40"
+                              >
+                                Create account & sign in
+                              </button>
+                            )}
                           </>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={
-                              otpBusy ||
-                              !profile.email?.trim() ||
-                              accountPassword.length < 8 ||
-                              accountPassword !== accountPassword2
-                            }
-                            onClick={async () => {
-                              setOtpBusy(true)
-                              setOtpError('')
-                              if (accountPassword !== accountPassword2) {
-                                setOtpError('Passwords do not match')
+                        )}
+
+                        {!emailVerified && authMethod === 'otp' && (
+                          <>
+                            <p className="text-xs text-[var(--muted)]">
+                              Email code signs you in without a password. You will be asked to set
+                              one before you can continue.
+                            </p>
+                            <button
+                              type="button"
+                              disabled={otpBusy || !profile.email?.trim()}
+                              onClick={async () => {
+                                setOtpBusy(true)
+                                setOtpError('')
+                                const res = await sendEmailOtp(profile.email ?? '')
                                 setOtpBusy(false)
-                                return
-                              }
-                              const res = await signUpWithPassword(
-                                profile.email ?? '',
-                                accountPassword
-                              )
-                              setOtpBusy(false)
-                              if (!res.ok) {
-                                setOtpError(res.error ?? 'Could not save password')
-                                return
-                              }
-                              if (res.needsEmailConfirm) {
-                                setOtpError(
-                                  'Check your email to confirm the account, then sign in from Login.'
-                                )
-                                return
-                              }
-                              setOtpError('')
-                              setAccountPassword('')
-                              setAccountPassword2('')
-                            }}
-                            className="btn-primary w-full disabled:opacity-40"
-                          >
-                            Create account with password
-                          </button>
-                        )}
-                      </>
-                    )}
-                    {!emailVerified && authMethod === 'otp' && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={otpBusy || !profile.email?.trim()}
-                          onClick={async () => {
-                            setOtpBusy(true)
-                            setOtpError('')
-                            const res = await sendEmailOtp(profile.email ?? '')
-                            setOtpBusy(false)
-                            if (res.ok) setOtpSent(true)
-                            else setOtpError(res.error ?? 'Could not send code')
-                          }}
-                          className="btn-secondary w-full disabled:opacity-40"
-                        >
-                          {otpSent ? 'Resend login code' : 'Send login code'}
-                        </button>
-                        {otpSent && (
-                          <label className="block">
-                            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                              6-digit code
-                            </span>
-                            <input
-                              value={otpCode}
-                              onChange={(e) =>
-                                setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                              }
-                              placeholder="123456"
-                              className="input-editorial mt-1 tracking-[0.3em]"
-                              inputMode="numeric"
-                            />
-                          </label>
-                        )}
-                        {otpSent && (
-                          <button
-                            type="button"
-                            disabled={otpBusy || otpCode.length < 6}
-                            onClick={async () => {
-                              setOtpBusy(true)
-                              setOtpError('')
-                              const res = await verifyEmailOtp(profile.email ?? '', otpCode)
-                              setOtpBusy(false)
-                              if (!res.ok) setOtpError(res.error ?? 'Invalid code')
-                            }}
-                            className="btn-primary w-full disabled:opacity-40"
-                          >
-                            Verify & sign in
-                          </button>
+                                if (res.ok) setOtpSent(true)
+                                else setOtpError(res.error ?? 'Could not send code')
+                              }}
+                              className="btn-secondary w-full disabled:opacity-40"
+                            >
+                              {otpSent ? 'Resend login code' : 'Send login code'}
+                            </button>
+                            {otpSent && (
+                              <label className="block">
+                                <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                                  6-digit code
+                                </span>
+                                <input
+                                  value={otpCode}
+                                  onChange={(e) =>
+                                    setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                                  }
+                                  placeholder="123456"
+                                  className="input-editorial mt-1 tracking-[0.3em]"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
+                                />
+                              </label>
+                            )}
+                            {otpSent && (
+                              <button
+                                type="button"
+                                disabled={otpBusy || otpCode.length < 6}
+                                onClick={async () => {
+                                  setOtpBusy(true)
+                                  setOtpError('')
+                                  const res = await verifyEmailOtp(profile.email ?? '', otpCode)
+                                  setOtpBusy(false)
+                                  if (!res.ok) setOtpError(res.error ?? 'Invalid code')
+                                }}
+                                className="btn-primary w-full disabled:opacity-40"
+                              >
+                                Verify & sign in
+                              </button>
+                            )}
+                          </>
                         )}
                       </>
                     )}
                     {otpError && <p className="text-xs text-red-600">{otpError}</p>}
-                    {emailVerified && !otpError && (
-                      <p className="text-xs text-emerald-800">Signed in — continue below.</p>
-                    )}
                   </div>
                 )}
                 <label className="block">
