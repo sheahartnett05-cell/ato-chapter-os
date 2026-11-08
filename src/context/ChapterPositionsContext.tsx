@@ -221,6 +221,15 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
     writePositions(next)
   }, [])
 
+  const resolveChapterId = useCallback(async (): Promise<string | null> => {
+    if (cloudChapterId) return cloudChapterId
+    if (!cloudIdentityEnabled()) return null
+    const membership = await fetchCloudMembership()
+    const chapterId = membership?.chapterId ?? getCachedCloudChapterId()
+    if (chapterId) setCloudChapterId(chapterId)
+    return chapterId
+  }, [cloudChapterId])
+
   const pushSeat = useCallback(
     async (input: {
       seatId: string
@@ -228,10 +237,18 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
       function: OfficerFunction | string
       memberId?: string
     }): Promise<{ ok: boolean; error?: string }> => {
-      if (!cloudChapterId) return { ok: true }
+      // Resolve at call time — don't treat "hydrate still loading" as local-only success.
+      const chapterId = await resolveChapterId()
+      if (!chapterId) {
+        if (!cloudIdentityEnabled()) return { ok: true }
+        return {
+          ok: false,
+          error: 'Chapter cloud link is not ready yet. Wait a moment and try again.',
+        }
+      }
       let memberUserId: string | null = null
       if (input.memberId) {
-        memberUserId = await resolveUserIdForAppMember(cloudChapterId, input.memberId)
+        memberUserId = await resolveUserIdForAppMember(chapterId, input.memberId)
         if (!memberUserId) {
           return {
             ok: false,
@@ -241,7 +258,7 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
         }
       }
       const res = await rpcAssignOfficerSeat({
-        chapterId: cloudChapterId,
+        chapterId,
         seatId: input.seatId,
         memberUserId,
         title: input.title,
@@ -260,7 +277,7 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
       }
       return { ok: true }
     },
-    [cloudChapterId]
+    [resolveChapterId]
   )
 
   const addPosition = useCallback(
@@ -294,8 +311,16 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
     async (id: string) => {
       const prev = positions
       persist(positions.filter((p) => p.id !== id))
-      if (!cloudChapterId) return { ok: true }
-      const res = await rpcRemoveOfficerSeat(cloudChapterId, id)
+      const chapterId = await resolveChapterId()
+      if (!chapterId) {
+        if (!cloudIdentityEnabled()) return { ok: true }
+        persist(prev)
+        return {
+          ok: false,
+          error: 'Chapter cloud link is not ready yet. Wait a moment and try again.',
+        }
+      }
+      const res = await rpcRemoveOfficerSeat(chapterId, id)
       if (!res.ok) {
         persist(prev)
         return {
@@ -305,7 +330,7 @@ export function ChapterPositionsProvider({ children }: { children: ReactNode }) 
       }
       return { ok: true }
     },
-    [positions, persist, cloudChapterId]
+    [positions, persist, resolveChapterId]
   )
 
   const assignPosition = useCallback(
