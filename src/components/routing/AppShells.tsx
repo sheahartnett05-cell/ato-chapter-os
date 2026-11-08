@@ -1,5 +1,12 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { Menu } from 'lucide-react'
 import { useAuth, usePermissions } from '../../context/AuthContext'
 import { useSetChapterViewMode } from '../../context/ChapterViewModeContext'
@@ -11,8 +18,11 @@ import { MemberBottomNav } from '../layout/MemberBottomNav'
 import { OfficerBottomNav } from '../layout/OfficerBottomNav'
 import { MobileModeSwitcher } from '../layout/MobileModeSwitcher'
 import { GuestPreviewBanner } from './GuestPreviewBanner'
+import { useAppShellHeight } from '../../hooks/useAppShellHeight'
 import { useShellKind } from '../../hooks/useShellKind'
 import { userIsExecCapable } from '../../lib/access/can'
+
+const shellHeightStyle = { height: 'var(--app-shell-height, 100svh)' } as const
 
 function useOnboarded(): boolean {
   return isOnboardingCompleteInStorage()
@@ -66,12 +76,13 @@ function MemberChrome({ children }: { children: ReactNode }) {
   const showGuest = useShowGuestBanner()
   const { pathname } = useLocation()
   const scrollRef = useRef<HTMLDivElement>(null)
+  useAppShellHeight()
   useScrollContainerReset(scrollRef, pathname)
 
   return (
     <div
-      className="flex h-dvh flex-col overflow-hidden"
-      style={{ background: 'var(--surface-tint)' }}
+      className="flex flex-col overflow-hidden"
+      style={{ ...shellHeightStyle, background: 'var(--surface-tint)' }}
     >
       {showGuest && <GuestPreviewBanner />}
       <MobileTopChrome />
@@ -89,6 +100,10 @@ function ExecChrome({ children }: { children: ReactNode }) {
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const mainScrollRef = useRef<HTMLElement>(null)
+  useAppShellHeight()
+
+  const openDrawer = useCallback(() => setDrawerOpen(true), [])
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   useEffect(() => {
     setDrawerOpen(false)
@@ -97,16 +112,16 @@ function ExecChrome({ children }: { children: ReactNode }) {
   useScrollContainerReset(mainScrollRef, location.pathname)
 
   return (
-    <ShellMenuProvider openMenu={() => setDrawerOpen(true)}>
+    <ShellMenuProvider openMenu={openDrawer}>
       <div
-        className="flex h-dvh flex-col overflow-hidden"
-        style={{ background: 'var(--surface-tint)' }}
+        className="flex flex-col overflow-hidden"
+        style={{ ...shellHeightStyle, background: 'var(--surface-tint)' }}
       >
         {showGuest && <GuestPreviewBanner />}
-        <MobileTopChrome showMenu onOpenMenu={() => setDrawerOpen(true)} />
+        <MobileTopChrome showMenu onOpenMenu={openDrawer} />
         <div className="theme-stripe hidden shrink-0 md:block" />
         <div className="relative flex min-h-0 min-w-0 flex-1">
-          <Sidebar mobileOpen={drawerOpen} onMobileClose={() => setDrawerOpen(false)} />
+          <Sidebar mobileOpen={drawerOpen} onMobileClose={closeDrawer} />
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <main
               ref={mainScrollRef}

@@ -184,9 +184,13 @@ export function Sidebar({
   const drawerRef = useRef<HTMLElement>(null)
   useFocusTrap(drawerRef, Boolean(mobileOpen && onMobileClose))
 
+  // Close only on real navigation. Do NOT depend on onMobileClose identity —
+  // an inline () => setDrawerOpen(false) from the shell re-created every render
+  // and immediately closed the drawer after open (flash open/close on iPhone).
   useEffect(() => {
     onMobileClose?.()
-  }, [location.pathname, onMobileClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pathname only
+  }, [location.pathname])
 
   useEffect(() => {
     if (!mobileOpen || !onMobileClose) return

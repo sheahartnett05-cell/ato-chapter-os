@@ -1,5 +1,5 @@
 /* Chaptera service worker — network-first shell + local notification clicks */
-const CACHE = 'chaptera-shell-v3'
+const CACHE = 'chaptera-shell-v4'
 const SHELL = [
   '/manifest.webmanifest',
   '/favicon.svg',
