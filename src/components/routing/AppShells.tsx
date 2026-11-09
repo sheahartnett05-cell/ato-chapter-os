@@ -22,7 +22,16 @@ import { useAppShellHeight } from '../../hooks/useAppShellHeight'
 import { useShellKind } from '../../hooks/useShellKind'
 import { userIsExecCapable } from '../../lib/access/can'
 
-const shellHeightStyle = { height: 'var(--app-shell-height, 100svh)' } as const
+/** Fixed to the visual viewport so iOS Safari toolbar / scroll can't leave dead taps. */
+const shellFrameStyle = {
+  position: 'fixed' as const,
+  left: 0,
+  right: 0,
+  top: 'var(--app-shell-top, 0px)',
+  height: 'var(--app-shell-height, 100dvh)',
+  width: '100%',
+  zIndex: 1,
+}
 
 function useOnboarded(): boolean {
   return isOnboardingCompleteInStorage()
@@ -82,7 +91,7 @@ function MemberChrome({ children }: { children: ReactNode }) {
   return (
     <div
       className="flex flex-col overflow-hidden"
-      style={{ ...shellHeightStyle, background: 'var(--surface-tint)' }}
+      style={{ ...shellFrameStyle, background: 'var(--surface-tint)' }}
     >
       {showGuest && <GuestPreviewBanner />}
       <MobileTopChrome />
@@ -115,7 +124,7 @@ function ExecChrome({ children }: { children: ReactNode }) {
     <ShellMenuProvider openMenu={openDrawer}>
       <div
         className="flex flex-col overflow-hidden"
-        style={{ ...shellHeightStyle, background: 'var(--surface-tint)' }}
+        style={{ ...shellFrameStyle, background: 'var(--surface-tint)' }}
       >
         {showGuest && <GuestPreviewBanner />}
         <MobileTopChrome showMenu onOpenMenu={openDrawer} />

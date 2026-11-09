@@ -350,17 +350,17 @@ export function Sidebar({
         <>
           <button
             type="button"
-            className="fixed inset-0 z-[var(--z-nav)] bg-black/40 md:hidden"
+            className="fixed inset-0 z-[45] bg-black/40 md:hidden"
             onClick={onMobileClose}
             tabIndex={-1}
-            aria-hidden
+            aria-label="Close menu"
           />
           <aside
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Officer navigation"
-            className="theme-sidebar fixed inset-y-0 left-0 z-[var(--z-drawer)] flex w-[min(18rem,88vw)] flex-col pt-[env(safe-area-inset-top,0px)] md:hidden"
+            className="theme-sidebar fixed inset-y-0 left-0 z-[50] flex w-[min(18rem,88vw)] flex-col pt-[env(safe-area-inset-top,0px)] md:hidden"
           >
             {navBody}
           </aside>
