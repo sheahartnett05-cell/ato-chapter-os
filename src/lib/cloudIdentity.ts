@@ -283,6 +283,8 @@ export function permissionsFromCapabilities(
     canManageRecruitment: base.canManageRecruitment || has('recruitment'),
     canPostAnnouncements: base.canPostAnnouncements || has('announcements'),
     canEditEventPoints: base.canEditEventPoints || has('calendar') || has('attendance'),
+    // QR host stays role/seat based — attendance capability alone must not open the door code.
+    canHostEventCheckIn: base.canHostEventCheckIn,
     canManageStudyLocations: base.canManageStudyLocations || has('attendance'),
     canVerifyStudyHours: base.canVerifyStudyHours || has('attendance'),
     canAccessAdminSettings: base.canAccessAdminSettings || has('setup'),

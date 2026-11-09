@@ -55,7 +55,7 @@ function QrCheckInPickerInner({ initialEventId = null }: Props) {
   const { events, getEventAttendance } = useChapterOps()
   const { members } = useMembers()
   const { chapter, selectedOrgId } = useChapter()
-  const { memberId, profile } = useAuth()
+  const { profile } = useAuth()
   const permissions = usePermissions()
   const features = useChapterFeaturesOptional()
 
@@ -72,11 +72,8 @@ function QrCheckInPickerInner({ initialEventId = null }: Props) {
   const selected = choices.find((e) => e.id === effectiveId) ?? null
 
   const attendanceOn = features?.isFeatureEnabled('attendancePoints') !== false
-  const canManage =
-    attendanceOn &&
-    (permissions.canAccessExecTools ||
-      permissions.canEditEventPoints ||
-      Boolean(memberId && features?.canMemberEdit('editAttendance', memberId)))
+  // Only President / VP / Secretary may open the rotating door QR.
+  const canManage = attendanceOn && permissions.canHostEventCheckIn
 
   const chapterKey = chapterAttendanceKey(
     selectedOrgId || chapter.id,

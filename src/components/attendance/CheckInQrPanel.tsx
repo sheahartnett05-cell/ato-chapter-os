@@ -93,7 +93,8 @@ export function CheckInQrPanel({
   if (!canManage && (!session || session.closedAt)) {
     return (
       <p className="p-6 text-sm text-[var(--muted)]">
-        Officers have not opened QR check-in for this event yet.
+        QR check-in is not open yet. Only the President, Vice President, or Secretary can start the
+        rotating code for this event.
       </p>
     )
   }
@@ -127,8 +128,8 @@ export function CheckInQrPanel({
       {!session || session.closedAt ? (
         <div className="space-y-3">
           <p className="max-w-md text-sm text-[var(--muted)]">
-            Opens a chapter-scoped QR for this event. Members scan to mark Present. Codes rotate so
-            screenshots go stale quickly.
+            Opens a chapter-scoped QR for this event. Only Pres / VP / Secretary can host it so
+            members cannot self-serve the door code. Codes rotate so screenshots go stale quickly.
           </p>
           {canManage ? (
             <button type="button" className="btn-primary" onClick={open}>

@@ -57,6 +57,8 @@ export interface PermissionFlags {
   canManageStudyLocations: boolean
   canVerifyStudyHours: boolean
   canEditEventPoints: boolean
+  /** Open/close the rotating event QR (President / VP / Secretary only). */
+  canHostEventCheckIn: boolean
   canManageBudgets: boolean
   isMemberView: boolean
 }
@@ -102,6 +104,10 @@ export function getPermissions(role: UserRole): PermissionFlags {
       role === 'President' ||
       (role as AssignableRole) === 'Secretary',
     canEditEventPoints: isExec,
+    canHostEventCheckIn:
+      role === 'President' ||
+      (role as AssignableRole) === 'VicePresident' ||
+      (role as AssignableRole) === 'Secretary',
     canManageBudgets: isExec,
     isMemberView: role === 'ActiveMember' || role === 'NewMember',
   }

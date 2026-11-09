@@ -60,6 +60,8 @@ export default function EventPage() {
     (permissions.canAccessExecTools ||
       permissions.canEditEventPoints ||
       canMemberEdit('editAttendance', memberId))
+  /** Rotating QR host — President / VP / Secretary only (not every officer). */
+  const canHostQr = attendanceOn && permissions.canHostEventCheckIn
   const { getMemberById, members } = useMembers()
   const { chapter, selectedOrgId } = useChapter()
   const { config } = useStandardsModuleConfig()
@@ -501,7 +503,7 @@ export default function EventPage() {
                   eventId={event.id}
                   eventName={event.name}
                   chapterKey={chapterKey}
-                  canManage={canTakeRoll}
+                  canManage={canHostQr}
                   checkedInCount={
                     eventAttendance.filter((a) => a.status === 'Present').length
                   }

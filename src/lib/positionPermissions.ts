@@ -10,6 +10,7 @@ export interface PositionPermissionBoost {
   isChaplain: boolean
   isRisk: boolean
   isHistorian: boolean
+  isPresidentSeat: boolean
   /** Any seat that should leave member-only chrome */
   isExecSeat: boolean
 }
@@ -83,6 +84,7 @@ export function positionPermissionBoost(
     isChaplain,
     isRisk,
     isHistorian,
+    isPresidentSeat,
     isExecSeat,
   }
 }
@@ -104,6 +106,9 @@ export function applyPositionBoost(
       boost.isPhilanthropy ||
       boost.isChaplain ||
       boost.isRisk,
+    // Door QR host: chapter leadership only (not every officer with attendance tools).
+    canHostEventCheckIn:
+      perms.canHostEventCheckIn || boost.isVp || boost.isSecretary || boost.isPresidentSeat,
     canPostAnnouncements:
       perms.canPostAnnouncements || boost.isSocial || boost.isSecretary || boost.isHistorian,
     canViewJBoardCases: perms.canViewJBoardCases || boost.isVp,

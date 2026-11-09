@@ -7,9 +7,11 @@ import { SearchField } from '../components/ui/SearchField'
 import { MemberAvatar } from '../components/ui/MemberAvatar'
 import { StatusPill } from '../components/ui/StatusPill'
 import { EmptyState } from '../components/ui/EmptyState'
+import { usePermissions } from '../context/AuthContext'
 import { useChapterOps } from '../context/ChapterOpsContext'
 import { useMembers } from '../context/MembersContext'
 import { useChapter } from '../context/ChapterContext'
+import { useChapterFeaturesOptional } from '../context/ChapterFeaturesContext'
 import {
   formatAttendancePct,
   normalizeAttendanceEntries,
@@ -48,6 +50,10 @@ export default function AttendanceTracker() {
   const { members } = useMembers()
   const { events, attendance, excuses, getEventAttendance } = useChapterOps()
   const { chapter } = useChapter()
+  const permissions = usePermissions()
+  const features = useChapterFeaturesOptional()
+  const canHostQr =
+    features?.isFeatureEnabled('attendancePoints') !== false && permissions.canHostEventCheckIn
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<StandingFilter>(
     searchParams.get('filter') === 'at_risk' ? 'at_risk' : 'all'
@@ -164,9 +170,11 @@ export default function AttendanceTracker() {
             <Link to="/excuses?status=pending" className="btn-ghost text-xs">
               Excuses{pendingExcuses > 0 ? ` (${pendingExcuses})` : ''}
             </Link>
-            <Link to="/attendance" className="btn-primary text-xs">
-              <ClipboardCheck size={14} /> QR check-in
-            </Link>
+            {canHostQr ? (
+              <Link to="/attendance" className="btn-primary text-xs">
+                <ClipboardCheck size={14} /> QR check-in
+              </Link>
+            ) : null}
             {latestMeeting && (
               <Link to={`/events/${latestMeeting.id}`} className="btn-ghost text-xs">
                 Roll call
