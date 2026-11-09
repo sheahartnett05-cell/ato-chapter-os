@@ -16,6 +16,7 @@ import {
   attendanceVariant,
 } from '../components/ui/StatusPill'
 import { formatAttendancePct, pointsFromEntry } from '../lib/attendance/attendanceMath'
+import { isValidOtpCode, normalizeOtpInput } from '../lib/supabaseAuth'
 
 export default function MyProfile() {
   const {
@@ -163,7 +164,7 @@ export default function MyProfile() {
                     Change password
                   </p>
                   <p className="text-xs text-[var(--muted)]">
-                    We email a 6-digit code to {authEmail} before saving a new password.
+                    We email a login code to {authEmail} before saving a new password.
                   </p>
                   <input
                     type="password"
@@ -219,11 +220,9 @@ export default function MyProfile() {
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       className="input-editorial min-h-11 tracking-[0.3em]"
-                      placeholder="6-digit code"
+                      placeholder="8-digit email code"
                       value={passwordCode}
-                      onChange={(e) =>
-                        setPasswordCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                      }
+                      onChange={(e) => setPasswordCode(normalizeOtpInput(e.target.value))}
                     />
                   ) : null}
                   <button
@@ -232,7 +231,7 @@ export default function MyProfile() {
                     disabled={
                       passwordBusy ||
                       !passwordCodeSent ||
-                      passwordCode.length < 6 ||
+                      !isValidOtpCode(passwordCode) ||
                       newPassword.length < 8 ||
                       newPassword !== newPassword2
                     }

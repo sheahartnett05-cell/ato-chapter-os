@@ -6,7 +6,11 @@ import { SearchField } from '../components/ui/SearchField'
 import { useAuth } from '../context/AuthContext'
 import { useChapter } from '../context/ChapterContext'
 import { getOrCreateUserId, useMembers } from '../context/MembersContext'
-import { getAuthUserId } from '../lib/supabaseAuth'
+import {
+  getAuthUserId,
+  isValidOtpCode,
+  normalizeOtpInput,
+} from '../lib/supabaseAuth'
 import {
   ORG_CATEGORIES,
   orgsInCategory,
@@ -558,7 +562,7 @@ export default function Onboarding() {
                             {emailVerified ? (
                               <>
                                 <p className="text-xs text-[var(--muted)]">
-                                  We email a 6-digit code, then save the password on your account.
+                                  We email a login code, then save the password on your account.
                                 </p>
                                 <button
                                   type="button"
@@ -595,16 +599,14 @@ export default function Onboarding() {
                                   <>
                                     <label className="block">
                                       <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                                        6-digit code
+                                        Email code
                                       </span>
                                       <input
                                         value={passwordChangeCode}
                                         onChange={(e) =>
-                                          setPasswordChangeCode(
-                                            e.target.value.replace(/\D/g, '').slice(0, 6)
-                                          )
+                                          setPasswordChangeCode(normalizeOtpInput(e.target.value))
                                         }
-                                        placeholder="123456"
+                                        placeholder="12345678"
                                         className="input-editorial mt-1 tracking-[0.3em]"
                                         inputMode="numeric"
                                         autoComplete="one-time-code"
@@ -614,7 +616,7 @@ export default function Onboarding() {
                                       type="button"
                                       disabled={
                                         otpBusy ||
-                                        passwordChangeCode.length < 6 ||
+                                        !isValidOtpCode(passwordChangeCode) ||
                                         accountPassword.length < 8 ||
                                         accountPassword !== accountPassword2
                                       }
@@ -724,14 +726,12 @@ export default function Onboarding() {
                             {otpSent && (
                               <label className="block">
                                 <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                                  6-digit code
+                                  Email code
                                 </span>
                                 <input
                                   value={otpCode}
-                                  onChange={(e) =>
-                                    setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                                  }
-                                  placeholder="123456"
+                                  onChange={(e) => setOtpCode(normalizeOtpInput(e.target.value))}
+                                  placeholder="12345678"
                                   className="input-editorial mt-1 tracking-[0.3em]"
                                   inputMode="numeric"
                                   autoComplete="one-time-code"
@@ -741,7 +741,7 @@ export default function Onboarding() {
                             {otpSent && (
                               <button
                                 type="button"
-                                disabled={otpBusy || otpCode.length < 6}
+                                disabled={otpBusy || !isValidOtpCode(otpCode)}
                                 onClick={async () => {
                                   setOtpBusy(true)
                                   setOtpError('')

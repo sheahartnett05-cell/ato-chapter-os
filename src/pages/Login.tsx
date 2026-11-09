@@ -15,6 +15,8 @@ import { restoreSessionAfterAuth } from '../lib/restoreSession'
 import { defaultHomePath } from '../lib/onboardingStorage'
 import {
   isInvalidLoginCredentials,
+  isValidOtpCode,
+  normalizeOtpInput,
   validatePassword,
 } from '../lib/supabaseAuth'
 
@@ -161,8 +163,8 @@ export default function Login() {
   const verifyOtp = async () => {
     setError(null)
     setStatus(null)
-    if (otpCode.trim().length < 6) {
-      setError('Enter the 6-digit code from your email.')
+    if (!isValidOtpCode(otpCode)) {
+      setError('Enter the full email code (usually 8 digits).')
       return
     }
     setBusy(true)
@@ -391,21 +393,21 @@ export default function Login() {
                 <>
                   <label className="block">
                     <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                      6-digit code
+                      Email code
                     </span>
                     <input
                       className="input-editorial mt-1 min-h-11 tracking-[0.3em]"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      placeholder="123456"
+                      placeholder="12345678"
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onChange={(e) => setOtpCode(normalizeOtpInput(e.target.value))}
                     />
                   </label>
                   <button
                     type="button"
                     className="btn-primary min-h-11 w-full disabled:opacity-40"
-                    disabled={busy || otpCode.length < 6}
+                    disabled={busy || !isValidOtpCode(otpCode)}
                     onClick={() => void verifyOtp()}
                   >
                     Verify & open my profile

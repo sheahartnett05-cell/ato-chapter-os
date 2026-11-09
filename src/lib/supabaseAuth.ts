@@ -10,6 +10,18 @@ export function requiresSupabaseAuth(): boolean {
 
 const MIN_PASSWORD_LEN = 8
 
+/** Supabase Auth emails 8-digit OTPs for this project; still accept 6 for older configs. */
+export const OTP_CODE_MAX_LEN = 8
+export const OTP_CODE_MIN_LEN = 6
+
+export function normalizeOtpInput(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, OTP_CODE_MAX_LEN)
+}
+
+export function isValidOtpCode(code: string): boolean {
+  return new RegExp(`^\\d{${OTP_CODE_MIN_LEN},${OTP_CODE_MAX_LEN}}$`).test(code.trim())
+}
+
 export function validatePassword(password: string): string | null {
   if (password.length < MIN_PASSWORD_LEN) {
     return `Password must be at least ${MIN_PASSWORD_LEN} characters.`
@@ -57,8 +69,8 @@ export function humanizeAuthError(
     lower.includes('reauthentication')
   ) {
     return context === 'update'
-      ? 'Enter the 6-digit code we emailed you, then save again.'
-      : 'Confirm with the 6-digit code from your email, then try again.'
+      ? 'Enter the email code we sent you, then save again.'
+      : 'Confirm with the email code, then try again.'
   }
   if (lower.includes('same password')) {
     return 'Choose a password different from your current one.'
@@ -188,8 +200,8 @@ export async function updatePassword(
 
   const code = options?.emailCode?.trim() ?? ''
   if (options?.requireEmailCode !== false) {
-    if (!/^\d{6}$/.test(code)) {
-      return { ok: false, error: 'Enter the 6-digit code from your email.' }
+    if (!isValidOtpCode(code)) {
+      return { ok: false, error: 'Enter the full email code (usually 8 digits).' }
     }
   }
 
