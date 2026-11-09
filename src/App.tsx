@@ -224,31 +224,40 @@ export default function App() {
                                   <Route
                                     path="/recruitment"
                                     element={
-                                      <ExecShell>
-                                        <FeatureRoute feature="recruitment">
+                                      <SharedShell>
+                                        <FeatureRoute
+                                          feature="recruitment"
+                                          requirePermission="canManageRecruitment"
+                                        >
                                           <RecruitmentDashboard />
                                         </FeatureRoute>
-                                      </ExecShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/recruitment/pipeline"
                                     element={
-                                      <ExecShell>
-                                        <FeatureRoute feature="recruitment">
+                                      <SharedShell>
+                                        <FeatureRoute
+                                          feature="recruitment"
+                                          requirePermission="canManageRecruitment"
+                                        >
                                           <RecruitmentPipeline />
                                         </FeatureRoute>
-                                      </ExecShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route
                                     path="/recruitment/pnm/:id"
                                     element={
-                                      <ExecShell>
-                                        <FeatureRoute feature="recruitment">
+                                      <SharedShell>
+                                        <FeatureRoute
+                                          feature="recruitment"
+                                          requirePermission="canManageRecruitment"
+                                        >
                                           <PNMProfile />
                                         </FeatureRoute>
-                                      </ExecShell>
+                                      </SharedShell>
                                     }
                                   />
                                   <Route

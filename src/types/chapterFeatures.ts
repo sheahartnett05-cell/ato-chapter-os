@@ -223,6 +223,11 @@ export const EDITOR_CAPABILITIES: EditorCapabilityDef[] = [
 export interface ChapterPolicies {
   /** When true, only officers and assigned announcement editors may post */
   announcementsOfficersOnly: boolean
+  /**
+   * When true, every active/new member can open and edit the rush pipeline
+   * (not just Recruitment Chair / assigned editors).
+   */
+  recruitmentOpenToChapter: boolean
 }
 
 export interface ChapterFeaturesState {
@@ -234,7 +239,7 @@ export interface ChapterFeaturesState {
 }
 
 export function defaultChapterPolicies(): ChapterPolicies {
-  return { announcementsOfficersOnly: false }
+  return { announcementsOfficersOnly: false, recruitmentOpenToChapter: false }
 }
 
 export function defaultChapterFeaturesState(): ChapterFeaturesState {

@@ -53,6 +53,8 @@ interface ChapterFeaturesContextValue {
   canMemberEdit: (capability: EditorCapabilityId, memberId: string | null) => boolean
   announcementsOfficersOnly: boolean
   setAnnouncementsOfficersOnly: (value: boolean) => void
+  recruitmentOpenToChapter: boolean
+  setRecruitmentOpenToChapter: (value: boolean) => void
 }
 
 const ChapterFeaturesContext = createContext<ChapterFeaturesContextValue | null>(null)
@@ -126,6 +128,16 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
     [features, persist]
   )
 
+  const setRecruitmentOpenToChapter = useCallback(
+    (value: boolean) => {
+      persist({
+        ...features,
+        policies: { ...features.policies, recruitmentOpenToChapter: value },
+      })
+    },
+    [features, persist]
+  )
+
   const value = useMemo(
     () => ({
       features,
@@ -139,6 +151,8 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
       canMemberEdit,
       announcementsOfficersOnly: features.policies.announcementsOfficersOnly,
       setAnnouncementsOfficersOnly,
+      recruitmentOpenToChapter: features.policies.recruitmentOpenToChapter === true,
+      setRecruitmentOpenToChapter,
     }),
     [
       features,
@@ -149,6 +163,7 @@ export function ChapterFeaturesProvider({ children }: { children: ReactNode }) {
       toggleEditor,
       canMemberEdit,
       setAnnouncementsOfficersOnly,
+      setRecruitmentOpenToChapter,
     ]
   )
 

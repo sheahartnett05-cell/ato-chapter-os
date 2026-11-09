@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { CalendarDays, Home, Settings, User, UsersRound } from 'lucide-react'
+import { CalendarDays, Home, Settings, User, UserSearch, UsersRound } from 'lucide-react'
+import { usePermissions } from '../../context/AuthContext'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
 import { isMobileNavActive } from '../../lib/mobileNavActive'
 import type { ChapterFeatureId } from '../../types/chapterFeatures'
@@ -7,6 +8,13 @@ import type { ChapterFeatureId } from '../../types/chapterFeatures'
 const NAV = [
   { to: '/my-dashboard', label: 'Home', icon: Home, end: true },
   { to: '/calendar', label: 'Events', icon: CalendarDays, feature: 'calendar' as const },
+  {
+    to: '/recruitment/pipeline',
+    label: 'Rush',
+    icon: UserSearch,
+    feature: 'recruitment' as const,
+    requiresRecruitment: true as const,
+  },
   { to: '/committees', label: 'Groups', icon: UsersRound, feature: 'committees' as const },
   { to: '/profile', label: 'Profile', icon: User },
   { to: '/settings', label: 'More', icon: Settings },
@@ -15,10 +23,17 @@ const NAV = [
 export function MemberBottomNav() {
   const { pathname } = useLocation()
   const features = useChapterFeaturesOptional()
+  const permissions = usePermissions()
   const featureOk = (id?: ChapterFeatureId) =>
     !id || features?.isFeatureEnabled(id) !== false
 
-  const visibleNav = NAV.filter((item) => featureOk('feature' in item ? item.feature : undefined))
+  const visibleNav = NAV.filter((item) => {
+    if (!featureOk('feature' in item ? item.feature : undefined)) return false
+    if ('requiresRecruitment' in item && item.requiresRecruitment) {
+      return permissions.canManageRecruitment
+    }
+    return true
+  })
 
   return (
     <nav

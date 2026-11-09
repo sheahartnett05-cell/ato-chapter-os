@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { TopBar } from '../layout/TopBar'
 import { PageShell } from '../ui/Section'
 import { useChapterFeaturesOptional } from '../../context/ChapterFeaturesContext'
 import { CHAPTER_FEATURES, type ChapterFeatureId } from '../../types/chapterFeatures'
 import { usePermissions } from '../../context/AuthContext'
+import type { PermissionFlags } from '../../types/permissions'
 
 function featureLabel(id: ChapterFeatureId): string {
   return CHAPTER_FEATURES.find((f) => f.id === id)?.label ?? id
@@ -42,13 +43,20 @@ function FeatureDisabledPage({ feature }: { feature: ChapterFeatureId }) {
 /** Block when a chapter feature is disabled (routes stay hidden from sidebar too). */
 export function FeatureRoute({
   feature,
+  requirePermission,
   children,
 }: {
   feature: ChapterFeatureId
+  /** When set, user must have this permission flag (e.g. open rush policy grants it). */
+  requirePermission?: keyof PermissionFlags
   children: ReactNode
 }) {
   const features = useChapterFeaturesOptional()
+  const permissions = usePermissions()
   const enabled = features?.isFeatureEnabled(feature) ?? true
   if (!enabled) return <FeatureDisabledPage feature={feature} />
+  if (requirePermission && !permissions[requirePermission]) {
+    return <Navigate to="/my-dashboard" replace />
+  }
   return children
 }

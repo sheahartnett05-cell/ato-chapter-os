@@ -14,6 +14,9 @@ export function isMobileNavActive(pathname: string, to: string, end?: boolean): 
   if (to === '/committees') {
     return pathname.startsWith('/committees')
   }
+  if (to === '/recruitment/pipeline' || to === '/recruitment') {
+    return pathname.startsWith('/recruitment')
+  }
   if (to === '/settings') {
     return pathname.startsWith('/settings')
   }

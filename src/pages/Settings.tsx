@@ -620,6 +620,8 @@ function ChapterPoliciesPanel() {
     isFeatureEnabled,
     announcementsOfficersOnly,
     setAnnouncementsOfficersOnly,
+    recruitmentOpenToChapter,
+    setRecruitmentOpenToChapter,
   } = useChapterFeatures()
 
   return (
@@ -646,6 +648,31 @@ function ChapterPoliciesPanel() {
           <span
             className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
               announcementsOfficersOnly ? 'left-5' : 'left-0.5'
+            }`}
+          />
+        </button>
+      </div>
+      <div className="mt-4 flex items-start justify-between gap-4 border-t border-black/5 pt-4">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">Open rush pipeline to chapter</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Let every member view and edit the rush board. Off keeps it to Recruitment Chair /
+            assigned editors.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={recruitmentOpenToChapter}
+          disabled={!isFeatureEnabled('recruitment')}
+          onClick={() => setRecruitmentOpenToChapter(!recruitmentOpenToChapter)}
+          className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40 ${
+            recruitmentOpenToChapter ? 'bg-accent' : 'bg-neutral-200'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+              recruitmentOpenToChapter ? 'left-5' : 'left-0.5'
             }`}
           />
         </button>
@@ -812,7 +839,7 @@ function PositionDashboard() {
         </section>
       )}
 
-      {permissions.canManageRecruitment && role === 'RecruitmentChair' && (
+      {permissions.canManageRecruitment && (
         <section>
           <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">Recruitment</p>
           <Link to="/recruitment/pipeline" className="text-xs font-semibold text-[var(--accent)]">

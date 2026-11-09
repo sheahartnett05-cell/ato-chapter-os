@@ -30,6 +30,8 @@ export default function ChapterSetup() {
     toggleEditor,
     announcementsOfficersOnly,
     setAnnouncementsOfficersOnly,
+    recruitmentOpenToChapter,
+    setRecruitmentOpenToChapter,
   } = useChapterFeatures()
   const { members, accounts, assignMemberRole } = useMembers()
   const { memberId, updateRole, role, resetOnboarding } = useAuth()
@@ -456,7 +458,7 @@ export default function ChapterSetup() {
 
         <Section
           title="Chapter policies"
-          subtitle="Optional restrictions — defaults keep tools open to all members"
+          subtitle="Chapter-wide rules for who can post and who can work the rush board"
         >
           <ul className="divide-y divide-black/5 rounded-2xl border border-black/5">
             <li className="flex items-center justify-between gap-4 px-5 py-3.5">
@@ -480,6 +482,31 @@ export default function ChapterSetup() {
                 <span
                   className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
                     announcementsOfficersOnly ? 'left-5' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </li>
+            <li className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="font-semibold text-neutral-900">Open rush pipeline to chapter</p>
+                <p className="text-xs text-neutral-500">
+                  When on, every member can view and edit the rush pipeline and PNM profiles. When
+                  off, only Recruitment Chair, President, and assigned recruitment editors.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={recruitmentOpenToChapter}
+                disabled={!isFeatureEnabled('recruitment')}
+                onClick={() => setRecruitmentOpenToChapter(!recruitmentOpenToChapter)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40 ${
+                  recruitmentOpenToChapter ? 'bg-accent' : 'bg-neutral-200'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+                    recruitmentOpenToChapter ? 'left-5' : 'left-0.5'
                   }`}
                 />
               </button>

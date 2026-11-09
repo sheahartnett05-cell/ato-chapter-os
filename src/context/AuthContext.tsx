@@ -329,6 +329,8 @@ export function usePermissions(): PermissionFlags {
 
   const announcementsFeatureOn = isFeatureEnabled('announcements')
   const officersOnlyAnnouncements = features.features.policies.announcementsOfficersOnly
+  const recruitmentFeatureOn = isFeatureEnabled('recruitment')
+  const recruitmentOpenToChapter = features.features.policies.recruitmentOpenToChapter === true
   const execOrEditorAnnouncements = or(
     permissions.canPostAnnouncements,
     'editAnnouncements',
@@ -338,15 +340,16 @@ export function usePermissions(): PermissionFlags {
     announcementsFeatureOn &&
     (officersOnlyAnnouncements ? execOrEditorAnnouncements : true)
 
+  const canManageRecruitment =
+    recruitmentFeatureOn &&
+    (recruitmentOpenToChapter ||
+      or(permissions.canManageRecruitment, 'editRecruitment', recruitmentFeatureOn))
+
   const merged: PermissionFlags = {
     ...permissions,
     canPostAnnouncements,
     canManageRoster: or(permissions.canManageRoster, 'editRoster', isFeatureEnabled('roster')),
-    canManageRecruitment: or(
-      permissions.canManageRecruitment,
-      'editRecruitment',
-      isFeatureEnabled('recruitment')
-    ),
+    canManageRecruitment,
     canViewJBoardCases: or(
       permissions.canViewJBoardCases,
       'editStandards',
@@ -382,6 +385,7 @@ export function usePermissions(): PermissionFlags {
     ),
     canAccessExecTools:
       permissions.canAccessExecTools ||
+      canManageRecruitment ||
       canMemberEdit('editCalendar', memberId) ||
       canMemberEdit('editHouse', memberId) ||
       canMemberEdit('editTables', memberId),
