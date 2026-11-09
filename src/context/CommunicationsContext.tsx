@@ -2,12 +2,16 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { DEMO_ANNOUNCEMENTS as seedPosts } from '../data/featureData'
-import { allowDemoData } from '../lib/demoSeed'
+import { allowDemoData, STORAGE_KEYS } from '../lib/demoSeed'
+import { subscribeCloudHydrated } from '../lib/cloudHydration'
+import { canSyncToCloud } from '../lib/chapterCloud'
+import { mergePostsLists } from '../lib/postsMerge'
 import { writeJson } from '../lib/persist'
 import { ANNOUNCEMENT_TEMPLATES } from '../data/templateData'
 import type {
@@ -16,7 +20,7 @@ import type {
   PostKind,
 } from '../types/features'
 
-const STORAGE_KEY = 'chapter-os-posts'
+const STORAGE_KEY = STORAGE_KEYS.posts
 
 function normalizePost(p: Announcement): Announcement {
   const post = { ...p, kind: p.kind ?? 'announcement' }
@@ -99,9 +103,42 @@ const CommunicationsContext = createContext<CommunicationsContextValue | null>(n
 export function CommunicationsProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Announcement[]>(readPosts)
 
+  // After chapter_kv hydrate, re-read so another member's post isn't stuck only in LS.
+  useEffect(() => {
+    return subscribeCloudHydrated(() => {
+      setPosts(readPosts())
+    })
+  }, [])
+
+  // Soft-pull while the announcements UI stays open (same idea as roster heal).
+  useEffect(() => {
+    if (!canSyncToCloud()) return
+    let cancelled = false
+    const refresh = () => {
+      void import('../lib/chapterCloud')
+        .then(({ hydrateFromCloud }) => hydrateFromCloud({ notify: true }))
+        .catch(() => {})
+    }
+    const onFocus = () => {
+      if (!cancelled) refresh()
+    }
+    window.addEventListener('focus', onFocus)
+    const interval = window.setInterval(() => {
+      if (!cancelled && document.visibilityState === 'visible') refresh()
+    }, 20_000)
+    refresh()
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+      window.clearInterval(interval)
+    }
+  }, [])
+
   const persist = useCallback((next: Announcement[]) => {
-    setPosts(next)
-    writePosts(next)
+    // Merge with whatever is already on disk (cloud may have landed mid-edit).
+    const merged = mergePostsLists(next, readPosts())
+    setPosts(merged)
+    writePosts(merged)
   }, [])
 
   const addPost = useCallback(

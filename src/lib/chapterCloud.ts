@@ -17,7 +17,9 @@ import {
 } from './cloudChapterId'
 import { notifyCloudHydrated } from './cloudHydration'
 import { mergeRosterLists } from './rosterMerge'
+import { mergePostsLists } from './postsMerge'
 import { syncRosterFromSqlChapter } from './rosterSqlSync'
+import type { Announcement } from '../types/features'
 
 export { CLOUD_CHAPTER_ID_KEY, getCachedCloudChapterId, setCachedCloudChapterId }
 
@@ -288,6 +290,30 @@ export async function flushChapterKvQueue(): Promise<void> {
       }
     }
 
+    // Same for announcements — concurrent phones were wiping each other's posts.
+    if (pending.has(STORAGE_KEYS.posts)) {
+      try {
+        const pendingPosts = pending.get(STORAGE_KEYS.posts)
+        const { data } = await sb
+          .from('chapter_kv')
+          .select('value')
+          .eq('chapter_id', chapterId)
+          .eq('key', STORAGE_KEYS.posts)
+          .maybeSingle()
+        const cloud = Array.isArray(data?.value) ? (data.value as unknown as Announcement[]) : []
+        const local = Array.isArray(pendingPosts) ? (pendingPosts as Announcement[]) : []
+        const merged = mergePostsLists(local, cloud)
+        pending.set(STORAGE_KEYS.posts, merged)
+        try {
+          localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(merged))
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+
     const batch = [...pending.entries()]
     pending.clear()
 
@@ -349,6 +375,17 @@ export async function hydrateFromCloud(options?: {
           Array.isArray(local) ? (local as { id: string }[]) : [],
           row.value as { id: string }[]
         )
+        localStorage.setItem(row.key, JSON.stringify(merged))
+      } else if (row.key === STORAGE_KEYS.posts && Array.isArray(row.value)) {
+        // Union by post id so one phone's sync cannot erase another's announcement.
+        let local: Announcement[] = []
+        try {
+          const raw = localStorage.getItem(row.key)
+          if (raw) local = JSON.parse(raw) as Announcement[]
+        } catch {
+          local = []
+        }
+        const merged = mergePostsLists(local, row.value as unknown as Announcement[])
         localStorage.setItem(row.key, JSON.stringify(merged))
       } else {
         localStorage.setItem(row.key, JSON.stringify(row.value))
